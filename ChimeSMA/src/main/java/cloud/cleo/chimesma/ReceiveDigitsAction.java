@@ -1,0 +1,124 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package cloud.cleo.chimesma;
+
+import cloud.cleo.chimesma.model.ResponseAction;
+import cloud.cleo.chimesma.model.ResponseActionType;
+import cloud.cleo.chimesma.model.ResponseReceiveDigits;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ *
+ * @author sjensen
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ReceiveDigitsAction extends Action {
+
+    // We will need to push our ID because we can be called anytime in the flow
+    public final static String RECEIVE_DIGITS_ID = "RecvDigitsID";
+    
+    // Where to get the Digits entered from the ActionData
+    public final static String RECEIVED_DIGITS = "ReceivedDigits";
+
+    private Action digitsRecevedAction;
+    
+    @JsonProperty(value = "ParticipantTag")
+    private ParticipantTag participantTag;
+    @JsonProperty(value = "InputDigitsRegex")
+    private String inputDigitsRegex;
+    @JsonProperty(value = "InBetweenDigitsDurationInMilliseconds")
+    private Integer inBetweenDigitsDurationInMilliseconds;
+    @JsonProperty(value = "FlushDigitsDurationInMilliseconds")
+    private Integer flushDigitsDurationInMilliseconds;
+
+    
+    @Override
+    public Action clone(SMAEvent event) throws CloneNotSupportedException {
+        var clone = super.clone(event);
+        clone.transactionAttributes.put(RECEIVE_DIGITS_ID, getId().toString());
+        return clone;
+    }
+    
+    @Override
+    protected StringBuilder getDebugSummary() {
+        return super.getDebugSummary()
+                .append(" [").append(getInputDigitsRegex()).append(']');
+    }
+    
+    public String getReceivedDigits() {
+        final var ad = getEvent().getActionData();
+        if ( ad == null ) {
+            return "";
+        }
+        return ad.getOrDefault(RECEIVED_DIGITS, "").toString();
+    }
+    
+    @Override
+    public ResponseAction getResponse() {
+        final var params = ResponseReceiveDigits.Parameters.builder()
+                .withCallId(callId)
+                .withParticipantTag(participantTag)
+                .withInputDigitsRegex(inputDigitsRegex)
+                .withInBetweenDigitsDurationInMilliseconds(inBetweenDigitsDurationInMilliseconds)
+                .withFlushDigitsDurationInMilliseconds(flushDigitsDurationInMilliseconds)
+                .build();
+        return ResponseReceiveDigits.builder().withParameters(params).build();
+    }
+
+     public static ReceiveDigitsActionBuilder builder() {
+        return new ReceiveDigitsActionBuilder();
+    }
+    
+    @NoArgsConstructor
+    public static class ReceiveDigitsActionBuilder extends ActionBuilder<ReceiveDigitsActionBuilder, ReceiveDigitsAction> {
+        private Action digitsRecevedAction;
+        private ParticipantTag participantTag;
+        private String inputDigitsRegex;
+        private Integer inBetweenDigitsDurationInMilliseconds;
+        private Integer flushDigitsDurationInMilliseconds;
+
+        public ReceiveDigitsActionBuilder withDigitsRecevedAction(Action action) {
+            this.digitsRecevedAction = action;
+            return this;
+        }
+        
+        public ReceiveDigitsActionBuilder withParticipantTag(ParticipantTag value) {
+            this.participantTag = value;
+            return this;
+        }
+
+        public ReceiveDigitsActionBuilder withInputDigitsRegex(String value) {
+            this.inputDigitsRegex = value;
+            return this;
+        }
+
+        public ReceiveDigitsActionBuilder withInBetweenDigitsDurationInMilliseconds(Integer value) {
+            this.inBetweenDigitsDurationInMilliseconds = value;
+            return this;
+        }
+
+        public ReceiveDigitsActionBuilder withFlushDigitsDurationInMilliseconds(Integer value) {
+            this.flushDigitsDurationInMilliseconds = value;
+            return this;
+        }
+        
+        @Override
+        protected ReceiveDigitsAction buildImpl() {
+            return new ReceiveDigitsAction(digitsRecevedAction, participantTag, inputDigitsRegex, inBetweenDigitsDurationInMilliseconds, flushDigitsDurationInMilliseconds);
+        }
+
+    }
+
+    @Override
+    public ResponseActionType getActionType() {
+        return ResponseActionType.ReceiveDigits;
+    }
+
+}

@@ -1,0 +1,218 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  AWS Chime Voice SDK SMA
+
+Parameters:
+  VOICEIDEN:
+    Description: The voice used for LEX and prompt generation for English
+    Type: String
+    Default: Joanna
+    AllowedValues: # https://docs.aws.amazon.com/polly/latest/dg/ntts-voices-main.html
+        - Ivy      # Female (child)
+        - Joanna   # Female
+        - Kendra   # Female
+        - Kimberly # Female
+        - Salli    # Female
+        - Joey     # Male
+        - Justin   # Male (child)
+        - Kevin    # Male (child)
+        - Matthew  # Male
+        - Ruth     # Female
+        - Stephen  # Male
+  VOICEIDES:
+    Description: The voice used for LEX and prompt generation for Spanish
+    Type: String
+    Default: Lupe
+    AllowedValues:
+        - Mia      # Female (Mexican)
+        - Andrés   # Male (Mexican)
+        - Lupe     # Female (US)
+        - Pedro    # Male (US)
+  NAMEENGLISH:
+    Description: First Name for transferring calls to in English
+    Type: String
+    Default: Representative
+  NAMESPANISH:
+    Description: First Name for transferring calls to in Spanish
+    Type: String
+    Default: Representante
+  TRANSFERNUMBER:
+    Description: Phone Number to transfer calls to for a person
+    Type: String
+    Default: '+18004444444'
+       
+
+Globals:
+  Function:
+    Runtime: java11
+    Timeout: 30
+    MemorySize: 3009
+    Architectures:  # SnapStart on Java 11 requires x86
+        - x86_64
+
+Resources:
+                      
+  PromptBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PromptBucket
+      PolicyDocument:  
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowChimeAccess
+            Effect: Allow
+            Principal:
+              Service: voiceconnector.chime.amazonaws.com
+            Action:
+              - s3:GetObject
+            Resource:
+              - !GetAtt PromptBucket.Arn
+              - !Join [ "", [ !GetAtt PromptBucket.Arn , '/*' ] ]
+            Condition:
+              StringEquals:
+                "aws:SourceAccount": !Sub "${AWS::AccountId}"
+                
+ 
+  PromptCreator:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-PromptCreator
+      Description: Creates Static prompts to be used in Chime Voice SDK
+      Handler: cloud.cleo.chimesma.PollyPromptGenerator
+      CodeUri: ./PollyPromptCreation
+      Environment: 
+        Variables:
+            PROMPT_BUCKET: !Ref PromptBucket
+      Policies: 
+        - S3CrudPolicy:
+            BucketName: !Ref PromptBucket
+        - Version: '2012-10-17' 
+          Statement:
+            - Effect: Allow
+              Action:
+                - polly:SynthesizeSpeech
+              Resource: '*'
+            
+  
+  MainPrompt:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: main.wav
+        PromptText: |
+            Welcome to CLEO Cloud Solutions, thank you for calling.
+
+  SpanishPrompt:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDES
+        PromptName: spanish.wav
+        PromptText: |
+            Para español, marca dos.
+
+  LexPromptEnglish:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: lex-en-US.wav
+        PromptText: How can I help today?
+
+  LexPromptSpanish:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDES
+        PromptName: lex-es-US.wav
+        PromptText: ¿Cómo puedo ayudar hoy?
+        
+  TransferPromptEnglish:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: transfer-en-US.wav
+        PromptText: !Sub Transferring to ${NAMEENGLISH}
+
+  TransferPromptSpanish:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDES
+        PromptName: transfer-es-US_.wav
+        PromptText: !Sub Transferencia a ${NAMESPANISH}
+        
+  ErrorPromptEnglish:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: error-en-US.wav
+        PromptText: I'm sorry there is an error calling the Bot, please try again later
+
+  ErrorPromptSpanish:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDES
+        PromptName: error-es-US.wav
+        PromptText: Lo siento, hay un error al llamar al Bot, inténtalo de nuevo más tarde.
+        
+  ClosingPromptEnglish:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: closing-en-US.wav
+        PromptText: Thank you for calling, good bye
+        
+  ClosingPromptSpanish:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDES
+        PromptName: closing-es-US.wav
+        PromptText: Gracias por llamar, adiós.
+        
+            
+                
+  ChimeSMA:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ChimeSMA
+      Description: Lex fullfilment that talks to ChatGPT service
+      Handler: cloud.cleo.chimesma.ExampleFlow
+      #AutoPublishAlias: SNAPSTART
+      CodeUri: ./ChimeSMA
+      Environment: 
+        Variables:
+          PROMPT_BUCKET: !Ref PromptBucket
+      #SnapStart:
+      #  ApplyOn: PublishedVersions
+  
+        
+  ChimeSMAPerm:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !Ref ChimeSMA
+        Action: lambda:InvokeFunction
+        Principal: voiceconnector.chime.amazonaws.com
+        SourceAccount: !Ref 'AWS::AccountId'
+  
+  #ChimeSMASnapPerm:
+  #    Type: AWS::Lambda::Permission
+  #    Properties:
+  #      FunctionName: !Ref ChimeSMA.Alias
+  #      Action: lambda:InvokeFunction
+  #      Principal: voiceconnector.chime.amazonaws.com
+  #      SourceAccount: !Ref 'AWS::AccountId'
+  
+  
+      
