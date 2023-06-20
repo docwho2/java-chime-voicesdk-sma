@@ -53,7 +53,17 @@ public class ExampleFlow extends AbstractFlow {
                 .withNextAction(start)
                 .withDigitsRecevedAction(hiddenMenu).build();
         
-        return digits;
+        
+        final var call = ConnectCallAndBridgeAction.builder()
+                .withUri("+15052162949")
+                .withRingbackToneKey("transfer.wav")
+                .build();
+        
+        final var precall = PlayAudioAction.builder()
+                .withKey("main.wav")
+                .withNextAction(call).build();
+        
+        return precall;
     }
 
     @Override

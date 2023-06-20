@@ -4,6 +4,10 @@ Description: >
   AWS Chime Voice SDK SMA
 
 Parameters:
+  CONNECTID:
+    Description: AWS Connect Instance ID (last part of the ARN)
+    Type: String
+    Default: f837ec93-b6e5-4429-acb7-f698fff0148c
   VOICEIDEN:
     Description: The voice used for LEX and prompt generation for English
     Type: String
@@ -107,6 +111,14 @@ Resources:
         PromptName: main.wav
         PromptText: |
             Welcome to CLEO Cloud Solutions, thank you for calling.
+            
+  TansferPrompt:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: transfer.wav
+        PromptText: Your call is now being transferred
 
   SpanishPrompt:
     Type: Custom::PromptCreator
@@ -194,6 +206,10 @@ Resources:
       Environment: 
         Variables:
           PROMPT_BUCKET: !Ref PromptBucket
+          CALLS_TABLE_NAME: !Ref CallTable
+      Policies: 
+        - DynamoDBWritePolicy:
+            TableName: !Ref CallTable
       #SnapStart:
       #  ApplyOn: PublishedVersions
   
@@ -215,4 +231,90 @@ Resources:
   #      SourceAccount: !Ref 'AWS::AccountId'
   
   
+  CallTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    Properties:
+      TableName: !Sub ${AWS::StackName}-calls
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: phoneNumber
+          AttributeType: S
+      KeySchema:
+        - AttributeName: phoneNumber
+          KeyType: HASH
+      TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+  
+  TransferCall:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-TransferCall
+      Description: Lambda that will send message to Chime SMA to indicate transfer
+      Handler: index.handler
+      Runtime: nodejs18.x
+      MemorySize: 512
+      Timeout: 5
+      Environment: 
+        Variables:
+          CALLS_TABLE_NAME: !Ref CallTable
+      Policies:
+        - !Ref ChimePolicy
+        - DynamoDBReadPolicy:
+            TableName: !Ref CallTable
+      InlineCode: |
+        const {ChimeClient, UpdateSipMediaApplicationCallCommand} = require("@aws-sdk/client-chime");
+        const chime = new ChimeClient();
+        const { DynamoDBClient, GetItemCommand } = require("@aws-sdk/client-dynamodb")
+        const ddb = new DynamoDBClient();
+        const regex = /(\+[0-9]+)/;
+        const table_name = process.env.CALLS_TABLE_NAME;
+        exports.handler = async function (event) {
+            console.log(JSON.stringify(event));
+            let match = event.Details.Parameters.Diversion.match(regex);
+            console.log('Extracted phone is ' + match[1] );
+            
+            const dparams = {
+                Key : {
+                  phoneNumber : {
+                    S: match[1]
+                  }
+                },
+                TableName: table_name
+            };
+            
+            const dresponse = await ddb.send(new GetItemCommand(dparams));
+            console.log(JSON.stringify(dresponse))
+            
+            const cparams = {
+                SipMediaApplicationId: dresponse.Item.sipMediaApplicationId.S,
+                TransactionId: dresponse.Item.transactionId.S,
+                Arguments: {
+                    phoneNumber: event.Details.Parameters.transferTo
+                }   
+            };
+            const cresponse = await chime.send(new UpdateSipMediaApplicationCallCommand(cparams));
+            console.log(JSON.stringify(cresponse));
+            return {status: 'OK'};
+        };
+            
+  TransferCallConnectIntegration:
+    Type: AWS::Connect::IntegrationAssociation
+    Properties:
+      InstanceId: !Sub arn:aws:connect:${AWS::Region}:${AWS::AccountId}:instance/${CONNECTID}
+      IntegrationType: LAMBDA_FUNCTION
+      IntegrationArn: !GetAtt TransferCall.Arn
+  
+  ChimePolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+        Description: Allow Lambda call Chime API to update SMA 
+        PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - chime:*
+                Resource: '*'
       

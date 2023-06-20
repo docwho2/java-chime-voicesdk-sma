@@ -55,6 +55,11 @@
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>polly</artifactId>
         </dependency>
+        
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>dynamodb-enhanced</artifactId>
+        </dependency>
 
 
         <dependency>

@@ -9,5 +9,5 @@ package cloud.cleo.chimesma.model;
  * @author sjensen
  */
  public enum ResponseActionType {
-    PlayAudio, Speak, Pause, Hangup, SendDigits, ReceiveDigits
+    PlayAudio, Speak, Pause, Hangup, SendDigits, ReceiveDigits, CallAndBridge, StartBotConversation
 }

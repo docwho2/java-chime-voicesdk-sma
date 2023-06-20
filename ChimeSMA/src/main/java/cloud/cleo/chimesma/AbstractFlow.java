@@ -7,7 +7,6 @@ package cloud.cleo.chimesma;
 import static cloud.cleo.chimesma.ReceiveDigitsAction.RECEIVE_DIGITS_ID;
 import static cloud.cleo.chimesma.SMAEvent.SMAEventType.DIGITS_RECEIVED;
 import cloud.cleo.chimesma.SMAEvent.Status;
-import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseHangup;
 import cloud.cleo.chimesma.model.SMAResponse;
 import com.amazonaws.services.lambda.runtime.Context;
@@ -41,7 +40,7 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
     private final static Map<Integer, Action> actions = new HashMap<>();
 
     private static final Set<Action> actSet = new HashSet<>();
-    
+
     private static volatile int idCounter = 0;
 
     public final static String CURRENT_ACTION_ID = "CurrentActionId";
@@ -59,14 +58,14 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
         }
     }
 
-    protected synchronized  final static void registerAction(Action action) {
+    protected synchronized final static void registerAction(Action action) {
         if (!actSet.contains(action)) {
             actSet.add(action);
             action.setId(idCounter);
             actions.put(idCounter++, action);
         }
     }
-    
+
     private void processActions(Action action, Integer id) {
         if (!actSet.contains(action)) {
             actSet.add(action);
@@ -151,17 +150,37 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
                     break;
 
                 case ACTION_SUCCESSFUL:
-
                     var action = getCurrentAction(event);
-                    if (action.getNextAction() != null) {
-                        actionList = getActions(action.getNextAction(), event);
-                        res = SMAResponse.builder().withTransactionAttributes(actionList.getLast().getTransactionAttributes())
-                                .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
-                        log.debug("Moving to next action " + actionList.getFirst());
+                    if (action instanceof CallAndBridgeAction) {
+                        
+                        final var attrs = action.getTransactionAttributes();
+                        final var hangupB = event.getActionData().get("Type").equals("Hangup")
+                                && ((Map<String,Object>)event.getActionData().get("Parameters")).get("ParticipantTag").equals("LEG-B");
+                        
+                        if (hangupB ) {
+                            log.debug("Diconnect on leg B associated with Disconnect and Transfer");
+                            ((CallAndBridgeAction) action).setUri((String)attrs.get("transferNumber"));
+                            res = SMAResponse.builder()
+                                    .withActions(List.of(action.getResponse()))
+                                    .withTransactionAttributes(attrs)
+                                    .build();
+                            break;
+                        }
+                        
+                        // When a call is bridged successfully don't do anything
+                        log.debug("CallAndBridge has connected call now, empty response");
+                        res = SMAResponse.builder().build();
                     } else {
-                        // If no action next, then end with hang up
-                        log.debug("No next action in flow, ending call with hangup");
-                        res = SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();
+                        if (action.getNextAction() != null) {
+                            actionList = getActions(action.getNextAction(), event);
+                            res = SMAResponse.builder().withTransactionAttributes(actionList.getLast().getTransactionAttributes())
+                                    .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
+                            log.debug("Moving to next action " + actionList.getFirst());
+                        } else {
+                            // If no action next, then end with hang up
+                            log.debug("No next action in flow, ending call with hangup");
+                            res = SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();
+                        }
                     }
                     break;
                 case DIGITS_RECEIVED:
@@ -200,13 +219,50 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
                     final var disconnectedBy = event.getCallDetails().getTransactionAttributes().getOrDefault("Disconnect", "Application");
                     log.debug("Call Was disconnected by [" + disconnectedBy + "], sending empty response");
                     action = getCurrentAction(event);
-                    try {
-                        hangupHandler(action);
-                    } catch (Exception e) {
-                        log.error("Exception in Hangup Handler", e);
+                    if (action instanceof CallAndBridgeAction && event.getCallDetails().getParticipants().size() > 1) {
+                        // We have two participants and one side has hung up (by caller or callee), so we should hang the other leg up as well
+                        final var participant = event.getCallDetails().getParticipants().stream()
+                                .filter(p -> p.getStatus().equals(Status.Connected))
+                                .findAny().orElse(null);
+                        if (participant != null) {
+                            res = SMAResponse.builder().withActions(List.of(ResponseHangup.builder().withParameters(ResponseHangup.Parameters.builder().withParticipantTag(participant.getParticipantTag()).build()).build())).build();
+                        } else {
+                            res = SMAResponse.builder().build();
+                        }
+                    } else {
+                        try {
+                            hangupHandler(action);
+                        } catch (Exception e) {
+                            log.error("Exception in Hangup Handler", e);
+                        }
+                        res = SMAResponse.builder().build();
                     }
-                    res = SMAResponse.builder().build();
                     break;
+                case CALL_UPDATE_REQUESTED:
+                    action = getCurrentAction(event);
+                    if (action instanceof CallAndBridgeAction) {
+                        final var attrs = action.getTransactionAttributes();
+
+                        final var params = event.getActionData().get("Parameters");
+                        if ( params != null && params instanceof Map) {
+                            final var args = ((Map)params).get("Arguments");
+                            if ( args != null && args instanceof Map) {
+                                final var phoneNumber = ((Map)args).get("phoneNumber");
+                                if ( phoneNumber != null ) {
+                                    log.debug("Update Requested with a transfer to number of " + phoneNumber);
+                                    attrs.put("transferNumber", phoneNumber);
+                                }
+                            }
+                        } 
+                        // Disconnect leg B
+                        final var diconnectLegB = ResponseHangup.builder().withParameters(ResponseHangup.Parameters.builder().withParticipantTag(ParticipantTag.LEG_B).build()).build();
+                        res = SMAResponse.builder()
+                                .withActions(List.of(diconnectLegB))
+                                .withTransactionAttributes(attrs)
+                                .build();
+                        break;
+                    }
+
                 default:
                     log.debug("Invocation type is unhandled, sending empty response " + event.getInvocationEventType());
                     res = SMAResponse.builder().build();
