@@ -8,6 +8,7 @@ import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseActionType;
 import cloud.cleo.chimesma.model.ResponseSpeak;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.function.Function;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -27,6 +28,8 @@ public class SpeakAction extends Action {
 
     @JsonProperty(value = "Text")
     private String text;
+    private Function<SpeakAction,String> textFunction;
+    
     @JsonProperty(value = "Engine")
     private Engine engine;
     @JsonProperty(value = "LanguageCode")
@@ -42,7 +45,7 @@ public class SpeakAction extends Action {
                 .withCallId(callId)
                 .withEngine(engine)
                 .withLanguageCode(languageCode)
-                .withText(text)
+                .withText(textFunction != null ? textFunction.apply(this) : text)
                 .withTextType(textType)
                 .withVoiceId(voiceId)
                 .build();
@@ -68,6 +71,7 @@ public class SpeakAction extends Action {
     public static class SpeakActionBuilder extends ActionBuilder<SpeakActionBuilder,SpeakAction> {
 
         private String text;
+        private Function<SpeakAction,String> textFunction;
         private Engine engine;
         private LanguageCode languageCode;
         private TextType textType;
@@ -78,6 +82,11 @@ public class SpeakAction extends Action {
             return this;
         }
         
+        public SpeakActionBuilder withText(Function<SpeakAction,String> text) {
+            this.textFunction = text;
+            return this;
+        }
+        
         public SpeakActionBuilder withVoiceId(VoiceId voiceId) {
             this.voiceId = voiceId;
             return this;
@@ -85,7 +94,7 @@ public class SpeakAction extends Action {
         
         @Override
         protected SpeakAction buildImpl() {
-            return new SpeakAction(text,  engine, languageCode, textType, voiceId);
+            return new SpeakAction(text, textFunction, engine, languageCode, textType, voiceId);
         }
     }
 

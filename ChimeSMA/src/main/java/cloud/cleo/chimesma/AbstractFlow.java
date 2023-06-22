@@ -11,6 +11,7 @@ import cloud.cleo.chimesma.model.ResponseHangup;
 import cloud.cleo.chimesma.model.SMAResponse;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.services.lambda.serialization.JacksonPojoSerializer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import jdk.jshell.spi.ExecutionControl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -131,6 +133,10 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
 
     @Override
     public final SMAResponse handleRequest(SMAEvent event, Context cntxt) {
+        final boolean throwException = Boolean.valueOf(System.getenv("THROW_EXCEPTION"));
+        if ( throwException ) {
+            throw new RuntimeException("This region is down");
+        }
         try {
             log.debug(event);
 
@@ -170,6 +176,14 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
                         // When a call is bridged successfully don't do anything
                         log.debug("CallAndBridge has connected call now, empty response");
                         res = SMAResponse.builder().build();
+                    } else if ( action instanceof StartBotConversationAction ) {
+                        var sbaction = (StartBotConversationAction) getCurrentAction(event);
+                        log.debug("Lex Bot has returned results");
+                        log.debug( JacksonPojoSerializer.getInstance().getMapper().valueToTree(event.getActionData().get("IntentResult")).toString());
+                        log.debug("Intent is " + ((StartBotConversationAction) action).getIntent());
+                        actionList = getActions(sbaction.getIntentMatcher().apply(sbaction),event);
+                        res = SMAResponse.builder().withTransactionAttributes(actionList.getLast().getTransactionAttributes())
+                                    .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
                     } else {
                         if (action.getNextAction() != null) {
                             actionList = getActions(action.getNextAction(), event);
@@ -179,7 +193,7 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
                         } else {
                             // If no action next, then end with hang up
                             log.debug("No next action in flow, ending call with hangup");
-                            res = SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();
+                            res = hangup();
                         }
                     }
                     break;
@@ -269,11 +283,20 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
             }
 
             log.debug(res);
+            log.debug(JacksonPojoSerializer.getInstance().getMapper().valueToTree(res).toString());
             return res;
         } catch (Exception e) {
             log.error("Unhandled Exception", e);
             return SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();
         }
+    }
+    
+    /**
+     * Hangup LEG-A of the call (inbound call)
+     * @return 
+     */
+    private SMAResponse hangup() {
+        return SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();
     }
 
 //    public void handleRequest(InputStream in, OutputStream out, Context cntxt) throws IOException {

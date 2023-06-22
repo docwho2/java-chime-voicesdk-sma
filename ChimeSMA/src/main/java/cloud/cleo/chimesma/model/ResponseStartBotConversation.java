@@ -5,16 +5,15 @@
 package cloud.cleo.chimesma.model;
 
 import cloud.cleo.chimesma.ParticipantTag;
-import com.amazonaws.services.lambda.runtime.events.LexV2Event.SessionState;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import software.amazon.awssdk.services.polly.model.TextType;
 
 /**
  *
@@ -24,6 +23,7 @@ import software.amazon.awssdk.services.polly.model.TextType;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(value = JsonInclude.Include.NON_NULL)
 public class ResponseStartBotConversation implements ResponseAction, Serializable {
 
     private final ResponseActionType type = ResponseActionType.StartBotConversation;
@@ -55,28 +55,64 @@ public class ResponseStartBotConversation implements ResponseAction, Serializabl
         @Builder(setterPrefix = "with")
         @NoArgsConstructor
         @AllArgsConstructor
+        @JsonInclude(value = JsonInclude.Include.NON_NULL)
         public static class Configuration implements Serializable {
 
             @JsonProperty(value = "SessionState")
             private SessionState sessionState;
 
+            @Data
+            @Builder(setterPrefix = "with")
+            @NoArgsConstructor
+            @AllArgsConstructor
+            @JsonInclude(value = JsonInclude.Include.NON_NULL)
+            public static class SessionState implements Serializable {
+
+                @JsonProperty(value = "SessionAttributes")
+                private Map<String, String> sessionAttributes;
+                @JsonProperty(value = "DialogAction")
+                private DialogAction dialogAction;
+
+                @Data
+                @Builder(setterPrefix = "with")
+                @NoArgsConstructor
+                @AllArgsConstructor
+                @JsonInclude(value = JsonInclude.Include.NON_NULL)
+                public static class DialogAction implements Serializable {
+                    @JsonProperty(value = "Type")
+                    @Builder.Default
+                    private DialogActionType type = DialogActionType.ElicitIntent;
+                }
+
+            }
+
             @JsonProperty(value = "WelcomeMessages")
-            private WelcomeMessage welcomeMessages;
+            private List<WelcomeMessage> welcomeMessages;
 
             @Data
             @Builder(setterPrefix = "with")
             @NoArgsConstructor
             @AllArgsConstructor
+            @JsonInclude(value = JsonInclude.Include.NON_NULL)
             public static class WelcomeMessage implements Serializable {
 
                 @JsonProperty(value = "Content")
                 private String content;
                 @JsonProperty(value = "ContentType")
-                @JsonSerialize(using = ResponseSpeak.TextTypeSerializer.class)
-                private TextType contentType;
+                @Builder.Default
+                private TextType contentType = TextType.PlainText;
             }
 
         }
     }
 
+    public enum DialogActionType {
+        Delegate,
+        ElicitIntent
+    }
+    
+    public enum TextType {
+        PlainText,
+        SSML
+    }
 }

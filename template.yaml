@@ -1,5 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Transform: AWS::Serverless-2016-10-31
+Transform: 
+  - AWS::Serverless-2016-10-31
+
 Description: >
   AWS Chime Voice SDK SMA
 
@@ -8,6 +10,21 @@ Parameters:
     Description: AWS Connect Instance ID (last part of the ARN)
     Type: String
     Default: f837ec93-b6e5-4429-acb7-f698fff0148c
+  SMAID:
+    Description: Chime Voice Sip Media Application (SMA) ID
+    Type: String
+    Default: cf3e17cd-f4e5-44c3-ab04-325e6b3a6709
+  OPENAIAPIKEY:
+    Description: OpenAI Key stored in parameter store
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: OPENAI_API_KEY
+  OPENAIMODEL:
+    Description: OpenAI ChatGPT Model
+    Type: String
+    Default: gpt-3.5-turbo
+    AllowedValues: # https://platform.openai.com/docs/models/overview
+        - gpt-3.5-turbo
+        - gpt-4
   VOICEIDEN:
     Description: The voice used for LEX and prompt generation for English
     Type: String
@@ -118,7 +135,7 @@ Resources:
         ServiceToken: !GetAtt PromptCreator.Arn
         VoiceId: !Ref VOICEIDEN
         PromptName: transfer.wav
-        PromptText: Your call is now being transferred
+        PromptText: Transferring
 
   SpanishPrompt:
     Type: Custom::PromptCreator
@@ -207,6 +224,10 @@ Resources:
         Variables:
           PROMPT_BUCKET: !Ref PromptBucket
           CALLS_TABLE_NAME: !Ref CallTable
+          BOT_ALIAS_ARN: !GetAtt BotAlias.Arn
+          WEATHER_BOT_ALIAS_ARN: !GetAtt BotAliasWeather.Arn
+          CHATGPT_BOT_ALIAS_ARN: !GetAtt BotAliasGPT.Arn
+          THROW_EXCEPTION: false
       Policies: 
         - DynamoDBWritePolicy:
             TableName: !Ref CallTable
@@ -317,4 +338,420 @@ Resources:
                 Action:
                   - chime:*
                 Resource: '*'
+               
+  
+  
+            
+                
+  BotRuntimeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lexv2.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: LexRuntimeRolePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "polly:SynthesizeSpeech"
+                  - "comprehend:DetectSentiment"
+                  - "lambda:invokeFunction"
+                Resource: "*"
+  LexBot:
+    Type: AWS::Lex::Bot
+    Properties:
+      Name: !Sub ${AWS::StackName}-Lex-Bot-Main
+      Description: Main Bot
+      RoleArn: !GetAtt BotRuntimeRole.Arn
+      DataPrivacy:
+        ChildDirected: false
+      AutoBuildBotLocales: false
+      IdleSessionTTLInSeconds: 300
+      BotLocales:
+        - LocaleId: en_US
+          Description: Main Bot English
+          NluConfidenceThreshold: 0.40
+          VoiceSettings:
+            VoiceId: !Ref VOICEIDEN
+          Intents:
+            - Name: "Weather"
+              Description: "Play a help prompt"
+              SampleUtterances:
+                - Utterance: "One"
+                - Utterance: "weather"
+                - Utterance: "what is the forecast for today"
+                - Utterance: "weather forecast"
+                - Utterance: "weather conditions"
+            - Name: "Quit"
+              Description: "Hang Up the call"
+              SampleUtterances:
+                - Utterance: "quit"
+                - Utterance: "I'm done"
+                - Utterance: "good bye"
+                - Utterance: "talk to you later"
+                - Utterance: "see ya"
+                - Utterance: "later"
+                - Utterance: "exit"
+                - Utterance: "Thank you"
+                - Utterance: "all done"
+                - Utterance: "That's it'"
+                - Utterance: "nothing else"
+            - Name: "Transfer"
+              Description: "Send Call to a Person"
+              SampleUtterances:
+                - Utterance: "two"
+                - Utterance: "speak with someone"
+                - Utterance: "talk to someone"
+                - Utterance: "speak with a person"
+              InitialResponseSetting:
+                  InitialResponse:
+                      AllowInterrupt: false
+                      MessageGroupsList:
+                          - Message:
+                              PlainTextMessage:
+                                Value: "I'll transfer you to a person who can help"
+            - Name: "FallbackIntent"
+              Description: "Main Fallback"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+              InitialResponseSetting:
+                  InitialResponse:
+                      AllowInterrupt: false
+                      MessageGroupsList:
+                          - Message:
+                              PlainTextMessage:
+                                Value: "FallBack send to Chat GPT"
+          
+  BotVersion:
+    Type: AWS::Lex::BotVersion
+    Properties:
+      BotId: !Ref LexBot
+      BotVersionLocaleSpecification:
+        - LocaleId: en_US
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+      Description: Main Bot V1
+      
+  BotAlias:
+    Type: AWS::Lex::BotAlias
+    Properties:
+      BotId: !Ref LexBot
+      BotAliasName: "Latest"
+      BotVersion: !GetAtt BotVersion.BotVersion
+      SentimentAnalysisSettings:
+        DetectSentiment: false
+      BotAliasLocaleSettings:
+        - LocaleId: en_US
+          BotAliasLocaleSetting:
+            Enabled: true
+            
+            
+  LexBotWeather:
+    Type: AWS::Lex::Bot
+    Properties:
+      Name: !Sub ${AWS::StackName}-Lex-Bot-Weather
+      Description: Main Bot
+      RoleArn: !GetAtt BotRuntimeRole.Arn
+      DataPrivacy:
+        ChildDirected: false
+      AutoBuildBotLocales: false
+      IdleSessionTTLInSeconds: 300
+      BotLocales:
+        - LocaleId: en_US
+          Description: Weather Bot English
+          NluConfidenceThreshold: 0.40
+          VoiceSettings:
+            VoiceId: !Ref VOICEIDEN
+          Intents:
+            - Name: "Weather"
+              Description: "Report Weather Forcast"
+              SampleUtterances:
+                - Utterance: "weather"
+                - Utterance: "what is the forecast for today"
+                - Utterance: "weather forecast"
+                - Utterance: "weather conditions"
+              InitialResponseSetting:
+                  InitialResponse:
+                      AllowInterrupt: false
+                      MessageGroupsList:
+                          - Message:
+                              PlainTextMessage:
+                                Value: "The Weather looks clear and sunny with high's in the mid eighties"
+            - Name: "Quit"
+              Description: "Hang Up the call"
+              SampleUtterances:
+                - Utterance: "quit"
+                - Utterance: "I'm done"
+                - Utterance: "good bye"
+                - Utterance: "talk to you later"
+                - Utterance: "see ya"
+                - Utterance: "later"
+                - Utterance: "exit"
+                - Utterance: "Thank you"
+                - Utterance: "all done"
+                - Utterance: "That's it'"
+                - Utterance: "nothing else"
+            - Name: "FallbackIntent"
+              Description: "Weather Fallback"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+              InitialResponseSetting:
+                  InitialResponse:
+                      AllowInterrupt: false
+                      MessageGroupsList:
+                          - Message:
+                              PlainTextMessage:
+                                Value: "Fall Back on weather intent"
+          
+  BotVersionWeather:
+    Type: AWS::Lex::BotVersion
+    Properties:
+      BotId: !Ref LexBotWeather
+      BotVersionLocaleSpecification:
+        - LocaleId: en_US
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+      Description: Weather Bot V1
+      
+  BotAliasWeather:
+    Type: AWS::Lex::BotAlias
+    Properties:
+      BotId: !Ref LexBotWeather
+      BotAliasName: "Latest"
+      BotVersion: !GetAtt BotVersionWeather.BotVersion
+      SentimentAnalysisSettings:
+        DetectSentiment: false
+      BotAliasLocaleSettings:
+        - LocaleId: en_US
+          BotAliasLocaleSetting:
+            Enabled: true
+  
+  LexBotGPT:
+    Type: AWS::Lex::Bot
+    Properties:
+      Name: !Sub ${AWS::StackName}-Lex-Bot-GPT
+      Description: ChatGPT Bot 
+      RoleArn: !GetAtt BotRuntimeRole.Arn
+      DataPrivacy:
+        ChildDirected: false
+      AutoBuildBotLocales: false
+      IdleSessionTTLInSeconds: 300
+      BotLocales:
+        - LocaleId: en_US
+          Description: ChatGPT Bot English
+          NluConfidenceThreshold: 0.40
+          VoiceSettings:
+            VoiceId: !Ref VOICEIDEN
+          Intents:
+            - Name: "Quit"
+              Description: "Hang Up the call"
+              SampleUtterances:
+                - Utterance: "quit"
+                - Utterance: "I'm done"
+                - Utterance: "good bye"
+                - Utterance: "talk to you later"
+                - Utterance: "see ya"
+                - Utterance: "later"
+                - Utterance: "exit"
+                - Utterance: "Thank you"
+                - Utterance: "all done"
+                - Utterance: "That's it'"
+                - Utterance: "nothing else"
+            - Name: "FallbackIntent"
+              Description: "Default intent when no other intent matches, send to GPT"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+              FulfillmentCodeHook:
+                  Enabled: true
+              InitialResponseSetting:
+                  InitialResponse:
+                      AllowInterrupt: false
+                      MessageGroupsList:
+                          - Message:
+                              PlainTextMessage:
+                                Value: Thinking
+                            Variations:
+                              - PlainTextMessage:
+                                  Value: Working
+                              - PlainTextMessage:
+                                  Value: Processing                
+        
+  BotVersionGPT:
+    Type: AWS::Lex::BotVersion
+    Properties:
+      BotId: !Ref LexBotGPT
+      BotVersionLocaleSpecification:
+        - LocaleId: en_US
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+      Description: ChatGPT Bot V1
+      
+  BotAliasGPT:
+    Type: AWS::Lex::BotAlias
+    Properties:
+      BotId: !Ref LexBotGPT
+      BotAliasName: "Latest"
+      BotVersion: !GetAtt BotVersionGPT.BotVersion
+      SentimentAnalysisSettings:
+        DetectSentiment: false
+      BotAliasLocaleSettings:
+        - LocaleId: en_US
+          BotAliasLocaleSetting:
+            Enabled: true
+            CodeHookSpecification:
+              LambdaCodeHook:
+                CodeHookInterfaceVersion: "1.0"
+                LambdaArn: !Ref ChatGPT.Alias
+
+  ChatGPT:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ChatGPT
+      Description: Lex fullfilment that talks to ChatGPT service
+      Handler: cloud.cleo.connectgpt.ChatGPTLambda
+      AutoPublishAlias: SNAPSTART
+      CodeUri: ./ChatGPT
+      Environment: 
+        Variables:
+          OPENAI_MODEL: !Ref OPENAIMODEL
+          OPENAI_API_KEY: !Ref OPENAIAPIKEY
+          SESSION_TABLE_NAME: !Ref SessionTable
+      SnapStart:
+        ApplyOn: PublishedVersions
+      Policies: 
+        - DynamoDBReadPolicy:
+            TableName: !Ref SessionTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref SessionTable
+  
+  
+        
+  LexToChatGPTPerm:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !Ref ChatGPT
+        Action: lambda:InvokeFunction
+        Principal: lexv2.amazonaws.com
+        SourceAccount: !Ref 'AWS::AccountId'
+  
+  LexToChatGPTSnapPerm:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !Ref ChatGPT.Alias
+        Action: lambda:InvokeFunction
+        Principal: lexv2.amazonaws.com
+        SourceAccount: !Ref 'AWS::AccountId'
+  
+  SessionTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    Properties:
+      TableName: !Sub ${AWS::StackName}-session
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: phoneNumber
+          AttributeType: S
+        - AttributeName: date
+          AttributeType: S
+      KeySchema:
+        - AttributeName: phoneNumber
+          KeyType: HASH
+        - AttributeName: date
+          KeyType: RANGE
+      TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+            
+            
+  ChimeCallLexMain:
+    Type: 'AWS::Lex::ResourcePolicy'
+    Properties:
+      ResourceArn: !GetAtt BotAlias.Arn
+      Policy:
+       {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+            "Sid": "AllowChimePstnAudioUseBot",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "voiceconnector.chime.amazonaws.com"
+            },
+            "Action": "lex:StartConversation",
+            "Resource": !Sub "${BotAlias.Arn}",
+            "Condition": {
+                "StringEquals": {
+                    "AWS:SourceAccount": !Sub "${AWS::AccountId}"
+                    },
+                    "ArnEquals": {
+                    "AWS:SourceArn": !Sub "arn:aws:voiceconnector:${AWS::Region}:${AWS::AccountId}:sma/${SMAID}"
+                    }
+                }
+              }
+            ]
+      }
+  
+  ChimeCallLexWeather:
+    Type: 'AWS::Lex::ResourcePolicy'
+    Properties:
+      ResourceArn: !GetAtt BotAliasWeather.Arn
+      Policy:
+       {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+           "Sid": "AllowChimePstnAudioUseBot",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "voiceconnector.chime.amazonaws.com"
+            },
+            "Action": "lex:StartConversation",
+            "Resource": !Sub "${BotAliasWeather.Arn}",
+            "Condition": {
+                "StringEquals": {
+                    "AWS:SourceAccount": !Sub "${AWS::AccountId}"
+                    },
+                    "ArnEquals": {
+                    "AWS:SourceArn": !Sub "arn:aws:voiceconnector:${AWS::Region}:${AWS::AccountId}:sma/${SMAID}"
+                    }
+                }
+              }
+            ]
+      }
+      
+  ChimeCallLexGPT:
+    Type: 'AWS::Lex::ResourcePolicy'
+    Properties:
+      ResourceArn: !GetAtt BotAliasGPT.Arn
+      Policy:
+       {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+           "Sid": "AllowChimePstnAudioUseBot",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "voiceconnector.chime.amazonaws.com"
+            },
+            "Action": "lex:StartConversation",
+            "Resource": !Sub "${BotAliasGPT.Arn}",
+            "Condition": {
+                "StringEquals": {
+                    "AWS:SourceAccount": !Sub "${AWS::AccountId}"
+                    },
+                    "ArnEquals": {
+                    "AWS:SourceArn": !Sub "arn:aws:voiceconnector:${AWS::Region}:${AWS::AccountId}:sma/${SMAID}"
+                    }
+                }
+              }
+            ]
+      }
+      
       
