@@ -87,7 +87,7 @@ public class ExampleFlow extends AbstractFlow {
                         case "Weather":
                             return weatherBot;
                         case "Transfer":
-                            return call;
+                            return connect;
                         case "Quit":
                             return goodbye;
                         default:
@@ -124,7 +124,7 @@ public class ExampleFlow extends AbstractFlow {
                 .withKey("main.wav")
                 .withNextAction(region).build();
 
-        return precall;
+        return region;
     }
 
     @Override

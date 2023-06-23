@@ -18,9 +18,12 @@ lint = true
 
 [default.deploy]
 [default.deploy.parameters]
+region = "us-east-1"
+parameter_overrides = "SMAID=\"cf3e17cd-f4e5-44c3-ab04-325e6b3a6709\" CONNECTID=\"f837ec93-b6e5-4429-acb7-f698fff0148c\""
 capabilities = "CAPABILITY_IAM"
-confirm_changeset = true
+confirm_changeset = false
 resolve_s3 = true
+profile = "CLEO"
 
 [default.package]
 [default.package.parameters]
@@ -37,3 +40,41 @@ warm_containers = "EAGER"
 [default.local_start_lambda]
 [default.local_start_lambda.parameters]
 warm_containers = "EAGER"
+
+
+[west.deploy]
+[west.deploy.parameters]
+region = "us-west-2"
+parameter_overrides = "SMAID=\"f6fb2553-e7e0-4900-866b-1b51b91f575a\" CONNECTID=\"e8fac445-d291-407e-8fd7-c6296395c2ab\""
+stack_name = "chime-voicesdk-sma"
+resolve_s3 = true
+s3_prefix = "chime-voicesdk-sma"
+profile = "CLEO"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
+
+[frankfurt.deploy]
+[frankfurt.deploy.parameters]
+region = "eu-central-1"
+parameter_overrides = "CALLSTABLENAME=\"chime-voicesdk-sma-frankfurt-calls\" REGIONS=\"eu-central-1,eu-west-2\" SMAID=\"dbfa4d4d-9b94-440f-b471-77d8e14c7d1e\" CONNECTID=\"969f16af-aab2-45d8-83ce-250f934d24a1\""
+stack_name = "chime-voicesdk-sma"
+resolve_s3 = true
+s3_prefix = "chime-voicesdk-sma"
+profile = "CLEO"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
+
+[london.deploy]
+[london.deploy.parameters]
+region = "eu-west-2"
+parameter_overrides = "CALLSTABLENAME=\"chime-voicesdk-sma-frankfurt-calls\" REGIONS=\"eu-central-1,eu-west-2\" SMAID=\"ce1681cf-e71a-448c-a1ea-7d0fde81b0dd\" CONNECTID=\"54ba6427-2c42-4224-a2ea-e8c0298a0339\""
+stack_name = "chime-voicesdk-sma"
+resolve_s3 = true
+s3_prefix = "chime-voicesdk-sma"
+profile = "CLEO"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
+
