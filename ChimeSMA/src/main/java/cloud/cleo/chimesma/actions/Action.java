@@ -2,11 +2,14 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package cloud.cleo.chimesma;
+package cloud.cleo.chimesma.actions;
 
-import static cloud.cleo.chimesma.AbstractFlow.CURRENT_ACTION_ID;
+
+import static cloud.cleo.chimesma.actions.AbstractFlow.CURRENT_ACTION_ID;
 import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseActionType;
+import cloud.cleo.chimesma.model.ResponseSpeak;
+import cloud.cleo.chimesma.model.ResponseStartBotConversation;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Data;
@@ -71,6 +74,26 @@ public abstract class Action implements Cloneable {
         return clone;
     }
 
+    /**
+     * Given message content, determine if the message is SSML or just plain text
+     * 
+     * @param message
+     * @return 
+     */
+    protected static ResponseStartBotConversation.TextType getBotContentType(String message) {
+        if ( message != null ) {
+            return message.toLowerCase().contains("<ssml>") ? ResponseStartBotConversation.TextType.SSML : ResponseStartBotConversation.TextType.PlainText ;
+        }
+        return ResponseStartBotConversation.TextType.PlainText;
+    }
+    
+    protected static ResponseSpeak.TextType getSpeakContentType(String message) {
+        if ( message != null ) {
+            return message.toLowerCase().contains("<ssml>") ? ResponseSpeak.TextType.ssml : ResponseSpeak.TextType.text ;
+        }
+        return ResponseSpeak.TextType.text;
+    }
+    
     protected static abstract class ActionBuilder<T extends ActionBuilder,F extends Action> {
         private String callId;
         private String description;

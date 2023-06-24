@@ -5,15 +5,8 @@
     <artifactId>generate-poly-prompt</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
-    <name>Polly Prompt Generator</name>
-    <organization>
-        <name>CLEO Cloud Solutions</name>
-        <url>https://cleo.cloud</url>
-    </organization>
-    <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-    </properties>
+    <name>Chime Polly Prompt Generator</name>
+    <description>Chime Polly Prompt generation to S3 Bucket</description>
 
     <parent>
         <groupId>cloud.cleo.chimesma</groupId>

@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package cloud.cleo.chimesma;
+package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseCallAndBridge;
@@ -24,11 +24,13 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
 /**
- *
+ * Special Call And Bridge that generates a key and stores SMA call info in Dynamo Table
+ * When the call is transferred the receiving instance (like Amazon Conenect) can then
+ * inspect the Diversion header and use it to retrieve call info and call Chime API to update the call 
  * @author sjensen
  */
 @Data
-public class ConnectCallAndBridgeAction extends CallAndBridgeAction {
+public class CallAndBridgeActionTBTDiversion extends CallAndBridgeAction {
 
     final static TableSchema<SMACall> schema = TableSchema.fromBean(SMACall.class);
 
@@ -37,7 +39,7 @@ public class ConnectCallAndBridgeAction extends CallAndBridgeAction {
 
     final static DynamoDbTable<SMACall> calls = enhancedClient.table(System.getenv("CALLS_TABLE_NAME"), schema);
 
-    public ConnectCallAndBridgeAction(Integer callTimeoutSeconds, String callerIdNumber, Map<String, String> sipHeaders, ResponseCallAndBridge.BridgeEndpointType bridgeEndpointType, String arn, String uri, String bucketName, String key) {
+    public CallAndBridgeActionTBTDiversion(Integer callTimeoutSeconds, String callerIdNumber, Map<String, String> sipHeaders, ResponseCallAndBridge.BridgeEndpointType bridgeEndpointType, String arn, String uri, String bucketName, String key) {
         super(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key);
     }
 
@@ -60,25 +62,21 @@ public class ConnectCallAndBridgeAction extends CallAndBridgeAction {
             sipHeaders = new HashMap<>();
         }
 
-        // Place Info aboue this SMA into the SIP headers
-        sipHeaders.put("x-sma-AwsRegion", cd.getAwsRegion());
-        sipHeaders.put("x-sma-SipMediaApplicationId", cd.getSipMediaApplicationId());
-        sipHeaders.put("x-sma-TransactionId", cd.getTransactionId());
-        sipHeaders.put("User-To-User", cd.getTransactionId());
+        // Place Info about this SMA into the Diversion Header
         sipHeaders.put("Diversion", "sip:" + phoneNumKey + "@0.0.0.0");
 
         return super.getResponse();
     }
     
-    public static ConnectCallAndBridgeActionBuilder builder() {
-        return new ConnectCallAndBridgeActionBuilder();
+    public static CallAndBridgeActionTBTDiversionBuilder builder() {
+        return new CallAndBridgeActionTBTDiversionBuilder();
     }
     
-    public static class ConnectCallAndBridgeActionBuilder extends CallAndBridgeActionBuilder {
+    public static class CallAndBridgeActionTBTDiversionBuilder extends CallAndBridgeActionBuilder {
         
         @Override
-        protected ConnectCallAndBridgeAction buildImpl() {
-            return new ConnectCallAndBridgeAction(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key);
+        protected CallAndBridgeActionTBTDiversion buildImpl() {
+            return new CallAndBridgeActionTBTDiversion(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key);
         }
     }
 

@@ -6,15 +6,8 @@
     <version>1.0</version>
     <packaging>jar</packaging>
     <name>Chime SDK SMA</name>
-    <organization>
-        <name>CLEO Cloud Solutions</name>
-        <url>https://cleo.cloud</url>
-    </organization>
-    <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-    </properties>
-
+    <description>Chime Voice Session Media Application (SMA)</description>
+    
     <parent>
         <groupId>cloud.cleo.chimesma</groupId>
         <artifactId>parent-pom</artifactId>

@@ -28,9 +28,11 @@ public class SMAResponse implements Serializable {
 
     @JsonProperty("SchemaVersion")
     private final String schemaVersion = "1.0";
+    
     @JsonProperty("Actions")
     @Builder.Default
     private List<ResponseAction> actions = List.of();
+    
     @JsonProperty("TransactionAttributes")
     @JsonInclude(Include.NON_NULL)
     private Map<String, Object> transactionAttributes;

@@ -5,6 +5,7 @@
 package cloud.cleo.chimesma.model;
 
 import cloud.cleo.chimesma.actions.ParticipantTag;
+import cloud.cleo.chimesma.model.ResponsePlayAudio.Parameters.AudioSource;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
@@ -22,9 +23,10 @@ import lombok.NoArgsConstructor;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResponsePlayAudio implements ResponseAction, Serializable {
+public class ResponsePlayAudioAndGetDigits implements ResponseAction, Serializable {
+
+    private final ResponseActionType type = ResponseActionType.PlayAudioAndGetDigits;
     
-    private final ResponseActionType type = ResponseActionType.PlayAudio;
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
 
@@ -40,28 +42,34 @@ public class ResponsePlayAudio implements ResponseAction, Serializable {
         @JsonProperty(value = "ParticipantTag")
         @Builder.Default
         private ParticipantTag participantTag = ParticipantTag.LEG_A;
-        @JsonProperty(value = "PlaybackTerminators")
-        private List<String> playbackTerminators;
-        @JsonProperty(value = "Repeat")
-        private Integer repeat;
+
+        @JsonProperty(value = "InputDigitsRegex")
+        private String inputDigitsRegex;
+
         @JsonProperty(value = "AudioSource")
         private AudioSource audioSource;
 
-        @Data
-        @Builder(setterPrefix = "with")
-        @NoArgsConstructor
-        @AllArgsConstructor
-        public static class AudioSource implements Serializable {
+        @JsonProperty(value = "FailureAudioSource")
+        private AudioSource failureAudioSource;
 
-            @JsonProperty(value = "Type")
-            private final String type = "S3";
-            
-            @JsonProperty(value = "BucketName")
-            @Builder.Default
-            private String bucketName = System.getenv("PROMPT_BUCKET");
-            @JsonProperty(value = "Key")
-            private String key;
-        }
+        @JsonProperty(value = "MinNumberOfDigits")
+        private Integer minNumberOfDigits;
+
+        @JsonProperty(value = "MaxNumberOfDigits")
+        private Integer maxNumberOfDigits;
+
+        @JsonProperty(value = "TerminatorDigits")
+        private List<String> terminatorDigits;
+
+        @JsonProperty(value = "InBetweenDigitsDurationInMilliseconds")
+        private Integer inBetweenDigitsDurationInMilliseconds;
+        
+        @JsonProperty(value = "Repeat")
+        private Integer repeat;
+        
+        @JsonProperty(value = "RepeatDurationInMilliseconds")
+        private Integer repeatDurationInMilliseconds;
+
     }
-    
+
 }

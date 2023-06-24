@@ -2,11 +2,12 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package cloud.cleo.chimesma;
+package cloud.cleo.chimesma.flows;
 
-import cloud.cleo.chimesma.model.ResponseStartBotConversation.DialogActionType;
-import java.time.LocalDate;
-import software.amazon.awssdk.services.polly.model.VoiceId;
+
+import cloud.cleo.chimesma.actions.*;
+import cloud.cleo.chimesma.model.ResponseSpeak.VoiceId;
+
 
 /**
  *
@@ -21,12 +22,12 @@ public class ExampleFlow extends AbstractFlow {
                 .withDescription("This is my last step").build();
 
         final var goodbye = PlayAudioAction.builder()
-                .withKey("closing-en-US.wav")
+                .withKey("goodbye.wav")
                 .build();
 
         final var speak3 = SpeakAction.builder()
                 .withText("This is the last part")
-                .withVoiceId(VoiceId.EMMA)
+                .withVoiceId(VoiceId.Emma)
                 //.withNextAction(hangup)
                 .build();
 
@@ -36,7 +37,7 @@ public class ExampleFlow extends AbstractFlow {
 
         final var speak = SpeakAction.builder()
                 .withText("Welcome to the new age")
-                .withVoiceId(VoiceId.SALLI)
+                .withVoiceId(VoiceId.Salli)
                 .withNextAction(speak2).build();
 
         final var start = PlayAudioAction.builder()
@@ -45,10 +46,11 @@ public class ExampleFlow extends AbstractFlow {
 
         final var hiddenMenu = SpeakAction.builder()
                 .withText("You have reached the special Hidden menu!")
-                .withVoiceId(VoiceId.SALLI)
+                .withVoiceId(VoiceId.Salli)
                 .withNextAction(start)
                 .build();
 
+        
         final var digits = ReceiveDigitsAction.builder()
                 .withInBetweenDigitsDurationInMilliseconds(700)
                 .withFlushDigitsDurationInMilliseconds(2000)
@@ -56,7 +58,7 @@ public class ExampleFlow extends AbstractFlow {
                 .withNextAction(start)
                 .withDigitsRecevedAction(hiddenMenu).build();
 
-        final var connect = ConnectCallAndBridgeAction.builder()
+        final var connect = CallAndBridgeActionTBTDiversion.builder()
                 .withUri("+15052162949")
                 .withRingbackToneKey("transfer.wav")
                 .build();
@@ -69,18 +71,15 @@ public class ExampleFlow extends AbstractFlow {
         final var weatherBot = StartBotConversationAction.builder()
                 .withBotAliasArn(System.getenv("WEATHER_BOT_ALIAS_ARN"))
                 .withContent("You are now at the weather lex bot")
-                .withDialogActionType(DialogActionType.ElicitIntent)
                 .build();
 
         final var chatGptBot = StartBotConversationAction.builder()
                 .withBotAliasArn(System.getenv("CHATGPT_BOT_ALIAS_ARN"))
                 .withContent("Go ahead ask Chat GPT anything")
-                .withDialogActionType(DialogActionType.ElicitIntent)
                 .build();
 
-        var lexBot = StartBotConversationAction.builder()
+        final var lexBot = StartBotConversationAction.builder()
                 .withContent("Press One for Weather, Two for for Representative, or simply tell me how I can help?")
-                .withDialogActionType(DialogActionType.ElicitIntent)
                 .withNextAction(speak3)
                 .withIntentMatcher(a -> {
                     switch (a.getIntent()) {
@@ -114,15 +113,24 @@ public class ExampleFlow extends AbstractFlow {
             }
         });
 
-        final var region = SpeakAction.builder()
-                .withText(f -> "The region is " + System.getenv("AWS_REGION").replace("-", " ").toUpperCase())
-                .withVoiceId(VoiceId.SALLI)
+        
+        final var speakGetDigits = SpeakAndGetDigitsAction.builder()
+                .withSpeechParameters(SpeakAndGetDigitsAction.SpeechParameters.builder()
+                .withText("Plese enter some digits").build())
+                .withFailureSpeechParameters(SpeakAndGetDigitsAction.SpeechParameters.builder()
+                .withText("Plese try again").build())
+                .withRepeatDurationInMilliseconds(3000)
+                .withRepeat(2)
+                .withInputDigitsRegex("^\\d{2}")
                 .withNextAction(lexBot)
                 .build();
+        
+        final var region = SpeakAction.builder()
+                .withText(f -> "The region is " + System.getenv("AWS_REGION").replace("-", " ").toUpperCase())
+                .withVoiceId(VoiceId.Salli)
+                .withNextAction(speakGetDigits)
+                .build();
 
-        final var precall = PlayAudioAction.builder()
-                .withKey("main.wav")
-                .withNextAction(region).build();
 
         return region;
     }

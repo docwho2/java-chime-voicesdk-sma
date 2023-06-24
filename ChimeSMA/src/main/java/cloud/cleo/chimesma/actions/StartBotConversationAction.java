@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package cloud.cleo.chimesma;
+package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseActionType;
@@ -47,15 +47,24 @@ public class StartBotConversationAction extends Action {
     @JsonProperty(value = "IntentMatcher")
     private Function<StartBotConversationAction, Action> intentMatcher;
 
+    
+    
     @Override
     public ResponseAction getResponse() {
 
-        WelcomeMessage welcome = null;
+        String myContent = null;
         if (content != null || contentFunction != null) {
+            myContent = contentFunction != null ? contentFunction.apply(this) : content;
+        }
+        
+        WelcomeMessage welcome = null;
+        if (myContent != null) {
             welcome = ResponseStartBotConversation.Parameters.Configuration.WelcomeMessage.builder()
-                    .withContent(contentFunction != null ? contentFunction.apply(this) : content)
-                    .withContentType(contentType)
+                    .withContent(myContent)
+                    .withContentType(Action.getBotContentType(myContent))
                     .build();
+            // When a welcome message is set, Dialog Action must be set to IllicitIntent
+            dialogActionType = DialogActionType.ElicitIntent;
         }
 
         DialogAction da = null;

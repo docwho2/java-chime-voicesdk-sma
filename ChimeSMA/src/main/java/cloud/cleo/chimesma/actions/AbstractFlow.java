@@ -2,11 +2,12 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package cloud.cleo.chimesma;
+package cloud.cleo.chimesma.actions;
 
-import static cloud.cleo.chimesma.ReceiveDigitsAction.RECEIVE_DIGITS_ID;
-import static cloud.cleo.chimesma.SMAEvent.SMAEventType.DIGITS_RECEIVED;
-import cloud.cleo.chimesma.SMAEvent.Status;
+
+
+import static cloud.cleo.chimesma.actions.ReceiveDigitsAction.RECEIVE_DIGITS_ID;
+import cloud.cleo.chimesma.actions.SMAEvent.Status;
 import cloud.cleo.chimesma.model.ResponseHangup;
 import cloud.cleo.chimesma.model.SMAResponse;
 import com.amazonaws.services.lambda.runtime.Context;
@@ -19,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import jdk.jshell.spi.ExecutionControl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -68,19 +68,7 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
         }
     }
 
-    private void processActions(Action action, Integer id) {
-        if (!actSet.contains(action)) {
-            actSet.add(action);
-            action.setId(id);
-            actions.put(id, action);
-            log.debug("Adding [" + action.getActionType() + " as " + action + " to Map with ID " + id);
-            if (action.getNextAction() != null) {
-                processActions(action.getNextAction(), ++id);
-            }
-        } else {
-            log.debug("Action " + action + " already processed and has ID " + action.getId());
-        }
-    }
+    
 
     protected abstract Action getInitialAction();
 
@@ -114,8 +102,7 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
 
     private Action getCurrentAction(SMAEvent event) throws CloneNotSupportedException {
         final var attrs = event.getCallDetails().getTransactionAttributes();
-        //log.debug("Incoming Transaction Attributes");
-        //attrs.forEach((k, v) -> log.debug("key=[" + k + "] value=[" + v + "]"));
+
         String actionIdStr;
         switch (event.getInvocationEventType()) {
             case DIGITS_RECEIVED:

@@ -6,20 +6,11 @@ package cloud.cleo.chimesma.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import java.io.IOException;
 import java.io.Serializable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import software.amazon.awssdk.services.polly.model.Engine;
-import software.amazon.awssdk.services.polly.model.LanguageCode;
-import software.amazon.awssdk.services.polly.model.TextType;
-import software.amazon.awssdk.services.polly.model.VoiceId;
 
 /**
  *
@@ -46,66 +37,40 @@ public class ResponseSpeak implements ResponseAction, Serializable {
         private String text;
         @JsonProperty(value = "CallId")
         private String callId;
+        
         @JsonProperty(value = "Engine")
-        @JsonSerialize(using = EngineSerializer.class)
         private Engine engine;
+        
         @JsonProperty(value = "LanguageCode")
-        @JsonSerialize(using = LanguageCodeSerializer.class)
-        private LanguageCode languageCode;
+        private String languageCode;
+        
         @JsonProperty(value = "TextType")
-        @JsonSerialize(using = TextTypeSerializer.class)
         private TextType textType;
+        
         @JsonProperty(value = "VoiceId")
-        @JsonSerialize(using = VoiceIdSerializer.class)
         private VoiceId voiceId;
     }
 
-    static class EngineSerializer extends StdSerializer<Engine> {
-
-        public EngineSerializer() {
-            super(Engine.class);
-        }
-
-        @Override
-        public void serialize(Engine val, JsonGenerator jg, SerializerProvider sp) throws IOException {
-            jg.writeString(val.toString());
-        }
+    public enum Engine {
+        standard,
+        neural
     }
 
-    static class LanguageCodeSerializer extends StdSerializer<LanguageCode> {
-
-        public LanguageCodeSerializer() {
-            super(LanguageCode.class);
-        }
-
-        @Override
-        public void serialize(LanguageCode val, JsonGenerator jg, SerializerProvider sp) throws IOException {
-            jg.writeString(val.toString());
-        }
+    public enum TextType {
+        ssml,
+        text
     }
 
-    static class TextTypeSerializer extends StdSerializer<TextType> {
-
-        public TextTypeSerializer() {
-            super(TextType.class);
-        }
-
-        @Override
-        public void serialize(TextType val, JsonGenerator jg, SerializerProvider sp) throws IOException {
-            jg.writeString(val.toString());
-        }
+   /**
+    * https://docs.aws.amazon.com/polly/latest/dg/API_SynthesizeSpeech.html#polly-SynthesizeSpeech-request-VoiceId
+    */
+    public enum VoiceId {
+        Aditi, Amy, Astrid, Bianca, Brian, Camila, Carla, Carmen, Celine, Chantal,
+        Conchita, Cristiano, Dora, Emma, Enrique, Ewa, Filiz, Gabrielle, Geraint,
+        Giorgio, Gwyneth, Hans, Ines, Ivy, Jacek, Jan, Joanna, Joey, Justin, Karl,
+        Kendra, Kevin, Kimberly, Lea, Liv, Lotte, Lucia, Lupe, Mads, Maja, Marlene,
+        Mathieu, Matthew, Maxim, Mia, Miguel, Mizuki, Naja, Nicole, Olivia, Penelope,
+        Raveena, Ricardo, Ruben, Russell, Salli, Seoyeon, Takumi, Tatyana, Vicki,
+        Vitoria, Zeina, Zhiyu, Aria, Ayanda
     }
-
-    static class VoiceIdSerializer extends StdSerializer<VoiceId> {
-
-        public VoiceIdSerializer() {
-            super(VoiceId.class);
-        }
-
-        @Override
-        public void serialize(VoiceId voiceId, JsonGenerator jg, SerializerProvider sp) throws IOException {
-            jg.writeString(voiceId.toString());
-        }
-    }
-
 }

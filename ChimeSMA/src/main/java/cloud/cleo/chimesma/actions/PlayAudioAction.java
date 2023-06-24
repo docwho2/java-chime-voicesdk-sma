@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package cloud.cleo.chimesma;
+package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseActionType;
@@ -27,7 +27,7 @@ public class PlayAudioAction extends Action {
     @JsonProperty(value = "PlaybackTerminators")
     private List<String> playbackTerminators;
     @JsonProperty(value = "Repeat")
-    private String repeat;
+    private Integer repeat;
 
     @JsonProperty(value = "BucketName")
     private String bucketName = System.getenv("PROMPT_BUCKET");
@@ -67,7 +67,7 @@ public class PlayAudioAction extends Action {
 
         private ParticipantTag participantTag;
         private List<String> playbackTerminators;
-        private String repeat;
+        private Integer repeat;
 
         private String bucketName = System.getenv("PROMPT_BUCKET");
         private String key;
@@ -82,7 +82,7 @@ public class PlayAudioAction extends Action {
             return this;
         }
 
-        public PlayAudioActionBuilder withRepeat(String value) {
+        public PlayAudioActionBuilder withRepeat(Integer value) {
             this.repeat = value;
             return this;
         }

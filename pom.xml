@@ -6,21 +6,36 @@
     <packaging>pom</packaging>
     <version>1.0</version>
     <name>Chime SMA Parent POM</name>
-    <description>Top Level POM</description>
+    <description>Top Level POM for Chime Project</description>
+    
     <organization>
         <name>CLEO Cloud Solutions</name>
         <url>https://cleo.cloud</url>
     </organization>
+    
     <developers>
         <developer>
             <name>Steve Jensen</name>
             <email>steve@cleo.cloud</email>
             <organization>CLEO Cloud Solutions</organization>
-            <organizationUrl>https://cleo.cloud</organizationUrl>
+            <organizationUrl>https://www.cleo.cloud</organizationUrl>
         </developer>
     </developers>
     
+    <properties>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+    </properties>
     
+    <modules>
+        <module>PollyPromptCreation</module>
+        <module>ChimeSMA</module>
+        <module>ChatGPT</module>
+        <!-- These are needed for lex events and JSON processing -->
+        <module>LambdaEventsV4/aws-lambda-java-serialization</module>
+        <module>LambdaEventsV4/aws-lambda-java-events</module>
+    </modules>
+
     <dependencyManagement>
         <dependencies>
             

@@ -153,80 +153,18 @@ Resources:
         ServiceToken: !GetAtt PromptCreator.Arn
         VoiceId: !Ref VOICEIDEN
         PromptName: transfer.wav
-        PromptText: Transferring
-
-  SpanishPrompt:
-    Type: Custom::PromptCreator
-    Properties:
-        ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDES
-        PromptName: spanish.wav
         PromptText: |
-            Para español, marca dos.
-
-  LexPromptEnglish:
-    Type: Custom::PromptCreator
-    Properties:
-        ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDEN
-        PromptName: lex-en-US.wav
-        PromptText: How can I help today?
-
-  LexPromptSpanish:
-    Type: Custom::PromptCreator
-    Properties:
-        ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDES
-        PromptName: lex-es-US.wav
-        PromptText: ¿Cómo puedo ayudar hoy?
+            <speak>
+                Transferring <break time="10s"/>
+            </speak>
         
-  TransferPromptEnglish:
+  GoodbyePrompt:
     Type: Custom::PromptCreator
     Properties:
         ServiceToken: !GetAtt PromptCreator.Arn
         VoiceId: !Ref VOICEIDEN
-        PromptName: transfer-en-US.wav
-        PromptText: !Sub Transferring to ${NAMEENGLISH}
-
-  TransferPromptSpanish:
-    Type: Custom::PromptCreator
-    Properties:
-        ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDES
-        PromptName: transfer-es-US_.wav
-        PromptText: !Sub Transferencia a ${NAMESPANISH}
-        
-  ErrorPromptEnglish:
-    Type: Custom::PromptCreator
-    Properties:
-        ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDEN
-        PromptName: error-en-US.wav
-        PromptText: I'm sorry there is an error calling the Bot, please try again later
-
-  ErrorPromptSpanish:
-    Type: Custom::PromptCreator
-    Properties:
-        ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDES
-        PromptName: error-es-US.wav
-        PromptText: Lo siento, hay un error al llamar al Bot, inténtalo de nuevo más tarde.
-        
-  ClosingPromptEnglish:
-    Type: Custom::PromptCreator
-    Properties:
-        ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDEN
-        PromptName: closing-en-US.wav
+        PromptName: goodbye.wav
         PromptText: Thank you for calling, good bye
-        
-  ClosingPromptSpanish:
-    Type: Custom::PromptCreator
-    Properties:
-        ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDES
-        PromptName: closing-es-US.wav
-        PromptText: Gracias por llamar, adiós.
         
             
                 
@@ -235,7 +173,7 @@ Resources:
     Properties:
       FunctionName: !Sub ${AWS::StackName}-ChimeSMA
       Description: Chime SMA Call FLow Director
-      Handler: cloud.cleo.chimesma.ExampleFlow
+      Handler: cloud.cleo.chimesma.flows.ExampleFlow
       #AutoPublishAlias: SNAPSTART
       CodeUri: ./ChimeSMA
       Environment: 
