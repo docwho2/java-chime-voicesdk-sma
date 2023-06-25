@@ -191,7 +191,7 @@ Resources:
         PromptName: goodbye.wav
         PromptText: Thank you for calling, good bye
         
-  GoodbyePrompt:
+  GoodbyePromptEN:
     Type: Custom::PromptCreator
     Properties:
         ServiceToken: !GetAtt PromptCreator.Arn
@@ -199,7 +199,7 @@ Resources:
         PromptName: goodbye-en-US.wav
         PromptText: Thank you for calling, good bye.
         
-  GoodbyePrompt:
+  GoodbyePromptES:
     Type: Custom::PromptCreator
     Properties:
         ServiceToken: !GetAtt PromptCreator.Arn
