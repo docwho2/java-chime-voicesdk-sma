@@ -7,7 +7,6 @@ package cloud.cleo.chimesma.actions;
 import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseActionType;
 import cloud.cleo.chimesma.model.ResponsePlayAudio;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,18 +19,13 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PlayAudioAction extends Action {
+public class PlayAudioAction extends Action<PlayAudioAction> {
 
-    @JsonProperty(value = "ParticipantTag")
     private ParticipantTag participantTag;
-    @JsonProperty(value = "PlaybackTerminators")
     private List<String> playbackTerminators;
-    @JsonProperty(value = "Repeat")
     private Integer repeat;
 
-    @JsonProperty(value = "BucketName")
     private String bucketName = System.getenv("PROMPT_BUCKET");
-    @JsonProperty(value = "Key")
     private String key;
 
     @Override

@@ -4,14 +4,15 @@
  */
 package cloud.cleo.chimesma.actions;
 
+import static cloud.cleo.chimesma.actions.AbstractFlow.voice_map;
 import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseActionType;
 import cloud.cleo.chimesma.model.ResponseSpeak.Engine;
-import cloud.cleo.chimesma.model.ResponseSpeak.TextType;
 import cloud.cleo.chimesma.model.ResponseSpeak.VoiceId;
 import cloud.cleo.chimesma.model.ResponseSpeakAndGetDigits;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,7 +26,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SpeakAndGetDigitsAction extends Action {
+public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction> implements ReceivedDigits {
 
     private String inputDigitsRegex;
 
@@ -33,15 +34,10 @@ public class SpeakAndGetDigitsAction extends Action {
     SpeechParameters failureSpeechParameters;
 
     private Integer minNumberOfDigits;
-
     private Integer maxNumberOfDigits;
-
     private List<String> terminatorDigits;
-
     private Integer inBetweenDigitsDurationInMilliseconds;
-
     private Integer repeat;
-
     private Integer repeatDurationInMilliseconds;
 
     @Override
@@ -49,13 +45,15 @@ public class SpeakAndGetDigitsAction extends Action {
 
         final List<ResponseSpeakAndGetDigits.Parameters.SpeechParameter> resp = new LinkedList<>();
         for (final SpeechParameters sp : List.of(speechParameters, failureSpeechParameters)) {
-            var myContent = sp.textFunction != null ? sp.textFunction.apply(this) : sp.text;
+            final var myContent = sp.textFunction != null ? sp.textFunction.apply(this) : sp.text;
+            final var locale = sp.locale != null ? sp.locale : getLocale();
             final var speechParam = ResponseSpeakAndGetDigits.Parameters.SpeechParameter.builder()
                     .withText(myContent)
                     .withTextType(Action.getSpeakContentType(myContent))
                     .withEngine(sp.engine)
-                    .withLanguageCode(sp.languageCode)
-                    .withVoiceId(sp.voiceId)
+                    // If set on the builder, use that, otherwise our the Actions locale
+                    .withLanguageCode(locale.toLanguageTag())
+                    .withVoiceId(sp.voiceId != null ? sp.voiceId : voice_map.get(locale))
                     .build();
          
              resp.add(speechParam);
@@ -77,6 +75,11 @@ public class SpeakAndGetDigitsAction extends Action {
         return ResponseSpeakAndGetDigits.builder().withParameters(params).build();
     }
 
+    @Override
+    public String getReceivedDigits() {
+       return getRecievedDigitsFromAction();
+    }
+    
     @Override
     public ResponseActionType getActionType() {
         return ResponseActionType.SpeakAndGetDigits;
@@ -169,8 +172,7 @@ public class SpeakAndGetDigitsAction extends Action {
         private String text;
         private Function<SpeakAndGetDigitsAction, String> textFunction;
         private Engine engine;
-        private String languageCode;
-        private TextType textType;
+        private Locale locale;
         private VoiceId voiceId;
     }
 

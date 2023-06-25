@@ -104,7 +104,7 @@ public class CallAndBridgeActionTBTDiversion extends CallAndBridgeAction {
         }
     }
 
-    private String generateRandomPhoneNumber() {
+    private static String generateRandomPhoneNumber() {
         final var rand = new Random();
         DecimalFormat df = new DecimalFormat("+16122000000");
         // This generates a random number between 0 (inclusive) and 1000000000 (exclusive), ensuring 9 digits.

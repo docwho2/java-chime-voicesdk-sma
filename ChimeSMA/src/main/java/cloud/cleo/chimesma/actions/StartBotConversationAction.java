@@ -12,8 +12,6 @@ import cloud.cleo.chimesma.model.ResponseStartBotConversation.Parameters.Configu
 import cloud.cleo.chimesma.model.ResponseStartBotConversation.Parameters.Configuration.SessionState.DialogAction;
 import cloud.cleo.chimesma.model.ResponseStartBotConversation.Parameters.Configuration.WelcomeMessage;
 import cloud.cleo.chimesma.model.ResponseStartBotConversation.TextType;
-import com.amazonaws.services.lambda.serialization.JacksonPojoSerializer;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.Map;
@@ -29,11 +27,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class StartBotConversationAction extends Action {
+public class StartBotConversationAction extends Action<StartBotConversationAction> {
 
     private ParticipantTag participantTag;
     private String botAliasArn = System.getenv("BOT_ALIAS_ARN");
-    private String localeId;
 
     private Map<String, String> sessionAttributes;
 
@@ -41,14 +38,9 @@ public class StartBotConversationAction extends Action {
 
     private String content;
     private Function<StartBotConversationAction, String> contentFunction;
-    
+
     private TextType contentType = TextType.PlainText;
 
-    @JsonProperty(value = "IntentMatcher")
-    private Function<StartBotConversationAction, Action> intentMatcher;
-
-    
-    
     @Override
     public ResponseAction getResponse() {
 
@@ -56,7 +48,7 @@ public class StartBotConversationAction extends Action {
         if (content != null || contentFunction != null) {
             myContent = contentFunction != null ? contentFunction.apply(this) : content;
         }
-        
+
         WelcomeMessage welcome = null;
         if (myContent != null) {
             welcome = ResponseStartBotConversation.Parameters.Configuration.WelcomeMessage.builder()
@@ -90,17 +82,26 @@ public class StartBotConversationAction extends Action {
                 .withParticipantTag(participantTag)
                 .withBotAliasArn(botAliasArn)
                 .withConfiguration(config)
-                .withLocaleId(localeId)
+                // Bots use Java syntax with underscore and not tag format with dash
+                .withLocaleId(getLocale().toString())
                 .build();
         return ResponseStartBotConversation.builder().withParameters(params).build();
     }
 
     public String getIntent() {
-        JsonNode json = JacksonPojoSerializer.getInstance().getMapper().valueToTree(getEvent().getActionData().get("IntentResult"));
-        return json.findValue("SessionState").findValue("Intent").findValue("Name").asText();
+        String intent = "";
+        try {
+            final var intentResult = getEvent().getActionData().get("IntentResult");
+            if (intentResult != null) {
+                JsonNode json = mapper.valueToTree(intentResult);
+                intent = json.findValue("SessionState").findValue("Intent").findValue("Name").asText();
+            }
+        } catch (Exception e) {
+            log.error("Error getting Intent from Event reponse", e);
+        }
+        return intent;
     }
-    
-    
+
     @Override
     protected StringBuilder getDebugSummary() {
         return super.getDebugSummary()
@@ -116,14 +117,11 @@ public class StartBotConversationAction extends Action {
 
         private ParticipantTag participantTag;
         private String botAliasArn = System.getenv("BOT_ALIAS_ARN");
-        private String localeId;
         private Map<String, String> sessionAttributes;
         private DialogActionType dialogActionType;
         private String content;
         private Function<StartBotConversationAction, String> contentFunction;
         private TextType contentType = TextType.PlainText;
-
-        private Function<StartBotConversationAction, Action> intentMatcher;
 
         public StartBotConversationActionBuilder withParticipantTag(ParticipantTag value) {
             this.participantTag = value;
@@ -132,11 +130,6 @@ public class StartBotConversationAction extends Action {
 
         public StartBotConversationActionBuilder withBotAliasArn(String value) {
             this.botAliasArn = value;
-            return this;
-        }
-
-        public StartBotConversationActionBuilder withLocaleId(String value) {
-            this.localeId = value;
             return this;
         }
 
@@ -154,7 +147,7 @@ public class StartBotConversationAction extends Action {
             this.content = value;
             return this;
         }
-        
+
         public StartBotConversationActionBuilder withContent(Function<StartBotConversationAction, String> value) {
             this.contentFunction = value;
             return this;
@@ -164,20 +157,16 @@ public class StartBotConversationAction extends Action {
             this.contentType = value;
             return this;
         }
-        
-        public StartBotConversationActionBuilder withIntentMatcher(Function<StartBotConversationAction, Action> value) {
-            this.intentMatcher = value;
-            return this;
-        }
 
         @Override
         protected StartBotConversationAction buildImpl() {
-            return new StartBotConversationAction(participantTag, botAliasArn, localeId, sessionAttributes, dialogActionType, content, contentFunction, contentType, intentMatcher);
+            return new StartBotConversationAction(participantTag, botAliasArn, sessionAttributes, dialogActionType, content, contentFunction, contentType);
         }
     }
-    
+
     /**
      * Bot results need to be checked and SMA won't allow actions after when sending back multiple actions
+     *
      * @return
      */
     @Override

@@ -1,6 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 
   - AWS::Serverless-2016-10-31
+  - AWS::LanguageExtensions
 
 Description: >
   AWS Chime Voice SDK SMA
@@ -184,6 +185,12 @@ Resources:
           WEATHER_BOT_ALIAS_ARN: !GetAtt BotAliasWeather.Arn
           CHATGPT_BOT_ALIAS_ARN: !GetAtt BotAliasGPT.Arn
           THROW_EXCEPTION: false
+          LANGUAGE_VOICE_MAP:
+              Fn::ToJsonString:
+                  - Locale: en-US
+                    VoiceId: !Ref VOICEIDEN
+                  - Locale: es-US
+                    VoiceId: !Ref VOICEIDES
       Policies: 
         - DynamoDBWritePolicy:
             TableName: !Ref CALLSTABLENAME
@@ -545,7 +552,58 @@ Resources:
                               - PlainTextMessage:
                                   Value: Working
                               - PlainTextMessage:
-                                  Value: Processing                
+                                  Value: Processing
+        - LocaleId: es_US
+          Description: ChatGPT Bot Spanish
+          NluConfidenceThreshold: 0.40
+          VoiceSettings:
+            VoiceId: !Ref VOICEIDES
+          Intents:
+            - Name: "About"
+              Description: "Play a help prompt"
+              SampleUtterances:
+                - Utterance: "Estoy confundida"
+                - Utterance: "ayuda"
+                - Utterance: "¿Qué puede hacer esto?"
+                - Utterance: "qué puedo decir"
+                - Utterance: "dame algunos ejemplos"
+                - Utterance: "Ayudame aqui"
+                - Utterance: "necesito ayuda"
+            - Name: "Quit"
+              Description: "Hang Up the call"
+              SampleUtterances:
+                - Utterance: "abandonar"
+                - Utterance: "He terminado"
+                - Utterance: "adiós"
+                - Utterance: "Hablaré contigo más tarde"
+                - Utterance: "salida"
+                - Utterance: "gracias"
+            - Name: !Ref NAMEENGLISH
+              Description: !Sub "Send Call to ${NAMEENGLISH}"
+              SampleUtterances:
+                - Utterance: !Sub "${NAMEENGLISH}"
+                - Utterance: !Sub "${NAMESPANISH}"
+                - Utterance: !Sub "quiero hablar con ${NAMEENGLISH}"
+                - Utterance: !Sub "quiero hablar con ${NAMESPANISH}"
+                - Utterance: "hablar con alguien"
+                - Utterance: "hablar con una persona"
+            - Name: "FallbackIntent"
+              Description: "Default intent when no other intent matches, send to GPT"
+              ParentIntentSignature: "AMAZON.FallbackIntent"
+              FulfillmentCodeHook:
+                  Enabled: true
+              InitialResponseSetting:
+                  InitialResponse:
+                      AllowInterrupt: false
+                      MessageGroupsList:
+                          - Message:
+                              PlainTextMessage:
+                                Value: Pensamiento
+                            Variations:
+                              - PlainTextMessage:
+                                  Value: trabajador
+                              - PlainTextMessage:
+                                  Value: "la transformación"
         
   BotVersionGPT:
     Type: AWS::Lex::BotVersion
@@ -553,6 +611,9 @@ Resources:
       BotId: !Ref LexBotGPT
       BotVersionLocaleSpecification:
         - LocaleId: en_US
+          BotVersionLocaleDetails:
+            SourceBotVersion: DRAFT
+        - LocaleId: es_US
           BotVersionLocaleDetails:
             SourceBotVersion: DRAFT
       Description: ChatGPT Bot V1
@@ -567,6 +628,13 @@ Resources:
         DetectSentiment: false
       BotAliasLocaleSettings:
         - LocaleId: en_US
+          BotAliasLocaleSetting:
+            Enabled: true
+            CodeHookSpecification:
+              LambdaCodeHook:
+                CodeHookInterfaceVersion: "1.0"
+                LambdaArn: !Ref ChatGPT.Alias
+        - LocaleId: es_US
           BotAliasLocaleSetting:
             Enabled: true
             CodeHookSpecification:

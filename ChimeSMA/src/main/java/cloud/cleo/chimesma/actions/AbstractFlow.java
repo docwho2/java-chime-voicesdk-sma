@@ -4,22 +4,29 @@
  */
 package cloud.cleo.chimesma.actions;
 
-
-
 import static cloud.cleo.chimesma.actions.ReceiveDigitsAction.RECEIVE_DIGITS_ID;
+import static cloud.cleo.chimesma.actions.SMAEvent.SMAEventType.ACTION_SUCCESSFUL;
 import cloud.cleo.chimesma.actions.SMAEvent.Status;
+import static cloud.cleo.chimesma.actions.SMAEvent.Status.Disconnected;
 import cloud.cleo.chimesma.model.ResponseHangup;
+import cloud.cleo.chimesma.model.ResponseSpeak;
 import cloud.cleo.chimesma.model.SMAResponse;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.serialization.JacksonPojoSerializer;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -30,7 +37,9 @@ import org.apache.logging.log4j.Logger;
 public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMAResponse> {
 
     // Initialize the Log4j logger.
-    protected Logger log = LogManager.getLogger();
+    protected final static Logger log = LogManager.getLogger();
+
+    private final static ObjectMapper mapper = JacksonPojoSerializer.getInstance().getMapper();
 
     // The first action in the call start
     private static Action startAction;
@@ -41,7 +50,9 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
     // Map of action Ids
     private final static Map<Integer, Action> actions = new HashMap<>();
 
-    private static final Set<Action> actSet = new HashSet<>();
+    private final static Set<Action> actSet = new HashSet<>();
+
+    protected final static Map<Locale, ResponseSpeak.VoiceId> voice_map = new HashMap<>();
 
     private static volatile int idCounter = 0;
 
@@ -58,6 +69,44 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
             errorAction = getErrorAction();
             log.debug("Error Action is " + errorAction.getDebugSummary());
         }
+
+        final var vmapStr = System.getenv("LANGUAGE_VOICE_MAP");
+        if (vmapStr != null && voice_map.isEmpty()) {
+            log.debug("Processing Locale to VoiceId mapping from ENV " + vmapStr);
+            try {
+                List<LocaleVoiceId> list = mapper.readerForListOf(LocaleVoiceId.class).readValue(vmapStr);
+                for (var map : list) {
+                    if (map.locale != null && map.voiceId != null) {
+                        log.debug("Adding Locale [" + map.locale + "] with VoiceId [" + map.voiceId + "]");
+                        voice_map.put(Locale.forLanguageTag(map.locale), ResponseSpeak.VoiceId.valueOf(map.voiceId));
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error processing Locale to Voice mappings from ENV", e);
+            }
+        }
+
+        final var vmap = getLanguageToVoiceIdMap();
+        if (vmap != null) {
+            log.debug("Flow has provided Lang to VoiceId mapping, adding...");
+            voice_map.putAll(vmap);
+        }
+
+    }
+
+    /**
+     * JSON Object for Locale and VoiceId placed in the Environment Example: [ { "Locale": "en-US", "VoiceId": "Joanna"
+     * } , {"Locale": "es-US", "VoiceId": "Lupe" } ]
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    private static class LocaleVoiceId {
+
+        @JsonProperty(value = "Locale", required = true)
+        private String locale;
+        @JsonProperty(value = "VoiceId", required = true)
+        private String voiceId;
     }
 
     protected synchronized final static void registerAction(Action action) {
@@ -68,8 +117,6 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
         }
     }
 
-    
-
     protected abstract Action getInitialAction();
 
     protected abstract Action getErrorAction();
@@ -77,6 +124,10 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
     protected abstract void newCallHandler(Action action);
 
     protected abstract void hangupHandler(Action action);
+
+    protected Map<Locale, ResponseSpeak.VoiceId> getLanguageToVoiceIdMap() {
+        return null;
+    }
 
     private LinkedList<Action> getActions(Action initialAction, SMAEvent event) throws CloneNotSupportedException {
         var list = new LinkedList<Action>();
@@ -87,9 +138,9 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
         final var attrs = action.getTransactionAttributes();
         log.debug("Adding action " + action.getDebugSummary());
 
-        while (action.getNextAction() != null && action.isChainable()) {
+        while (action.getNextRoutingAction() != null && action.isChainable()) {
             // We have a next action
-            final var nextAction = action.getNextAction().clone(event);
+            final var nextAction = action.getNextRoutingAction().clone(event);
             list.add(nextAction);
             attrs.putAll(nextAction.getTransactionAttributes());
             log.debug("Chaining action " + nextAction.getDebugSummary());
@@ -120,8 +171,8 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
 
     @Override
     public final SMAResponse handleRequest(SMAEvent event, Context cntxt) {
-        final boolean throwException = Boolean.valueOf(System.getenv("THROW_EXCEPTION"));
-        if ( throwException ) {
+        final boolean throwException = Boolean.parseBoolean(System.getenv("THROW_EXCEPTION"));
+        if (throwException) {
             throw new RuntimeException("This region is down");
         }
         try {
@@ -145,43 +196,32 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
                 case ACTION_SUCCESSFUL:
                     var action = getCurrentAction(event);
                     if (action instanceof CallAndBridgeAction) {
-                        
+
                         final var attrs = action.getTransactionAttributes();
                         final var hangupB = event.getActionData().get("Type").equals("Hangup")
-                                && ((Map<String,Object>)event.getActionData().get("Parameters")).get("ParticipantTag").equals("LEG-B");
-                        
-                        if (hangupB ) {
+                                && ((Map<String, Object>) event.getActionData().get("Parameters")).get("ParticipantTag").equals("LEG-B");
+
+                        if (hangupB) {
                             log.debug("Diconnect on leg B associated with Disconnect and Transfer");
-                            ((CallAndBridgeAction) action).setUri((String)attrs.get("transferNumber"));
+                            ((CallAndBridgeAction) action).setUri((String) attrs.get("transferNumber"));
                             res = SMAResponse.builder()
                                     .withActions(List.of(action.getResponse()))
                                     .withTransactionAttributes(attrs)
                                     .build();
                             break;
                         }
-                        
+
                         // When a call is bridged successfully don't do anything
                         log.debug("CallAndBridge has connected call now, empty response");
                         res = SMAResponse.builder().build();
-                    } else if ( action instanceof StartBotConversationAction ) {
-                        var sbaction = (StartBotConversationAction) getCurrentAction(event);
-                        log.debug("Lex Bot has returned results");
-                        log.debug( JacksonPojoSerializer.getInstance().getMapper().valueToTree(event.getActionData().get("IntentResult")).toString());
-                        log.debug("Intent is " + ((StartBotConversationAction) action).getIntent());
-                        actionList = getActions(sbaction.getIntentMatcher().apply(sbaction),event);
-                        res = SMAResponse.builder().withTransactionAttributes(actionList.getLast().getTransactionAttributes())
-                                    .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
+                    } else if (action instanceof StartBotConversationAction) {
+                        // Always put last intent matched int the session
+                        final var sbaction = (StartBotConversationAction) action;
+                        log.debug("Lex Bot has finished and Intent is " + sbaction.getIntent());
+                        action.getTransactionAttributes().put("LexLastMatchedIntent", sbaction.getIntent());
+                        res = defaultResponse(action, event);
                     } else {
-                        if (action.getNextAction() != null) {
-                            actionList = getActions(action.getNextAction(), event);
-                            res = SMAResponse.builder().withTransactionAttributes(actionList.getLast().getTransactionAttributes())
-                                    .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
-                            log.debug("Moving to next action " + actionList.getFirst());
-                        } else {
-                            // If no action next, then end with hang up
-                            log.debug("No next action in flow, ending call with hangup");
-                            res = hangup();
-                        }
+                        res = defaultResponse(action, event);
                     }
                     break;
                 case DIGITS_RECEIVED:
@@ -193,16 +233,7 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
                                 .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
                         log.debug("Moving to digits received action " + actionList.getFirst());
                     } else {
-                        if (action.getNextAction() != null) {
-                            actionList = getActions(action.getNextAction(), event);
-                            res = SMAResponse.builder().withTransactionAttributes(actionList.getLast().getTransactionAttributes())
-                                    .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
-                            log.debug("Moving to next action " + actionList.getFirst());
-                        } else {
-                            // If no action next, then end with hang up
-                            log.debug("No next action in flow, ending call with hangup");
-                            res = SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();
-                        }
+                        res = defaultResponse(action, event);
                     }
                     break;
                 case ACTION_FAILED:
@@ -245,16 +276,16 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
                         final var attrs = action.getTransactionAttributes();
 
                         final var params = event.getActionData().get("Parameters");
-                        if ( params != null && params instanceof Map) {
-                            final var args = ((Map)params).get("Arguments");
-                            if ( args != null && args instanceof Map) {
-                                final var phoneNumber = ((Map)args).get("phoneNumber");
-                                if ( phoneNumber != null ) {
+                        if (params != null && params instanceof Map) {
+                            final var args = ((Map) params).get("Arguments");
+                            if (args != null && args instanceof Map) {
+                                final var phoneNumber = ((Map) args).get("phoneNumber");
+                                if (phoneNumber != null) {
                                     log.debug("Update Requested with a transfer to number of " + phoneNumber);
                                     attrs.put("transferNumber", phoneNumber);
                                 }
                             }
-                        } 
+                        }
                         // Disconnect leg B
                         final var diconnectLegB = ResponseHangup.builder().withParameters(ResponseHangup.Parameters.builder().withParticipantTag(ParticipantTag.LEG_B).build()).build();
                         res = SMAResponse.builder()
@@ -269,18 +300,38 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
                     res = SMAResponse.builder().build();
             }
 
-            log.debug(res);
-            log.debug(JacksonPojoSerializer.getInstance().getMapper().valueToTree(res).toString());
+            //log.debug(res);
+            log.debug(mapper.valueToTree(res).toString());
             return res;
         } catch (Exception e) {
             log.error("Unhandled Exception", e);
             return SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();
         }
     }
-    
+
+    private SMAResponse defaultResponse(Action action, SMAEvent event) throws CloneNotSupportedException {
+        SMAResponse res;
+        if (event.getInvocationEventType().equals(ACTION_SUCCESSFUL) && event.getCallDetails().getParticipants().get(0).getStatus().equals(Disconnected)) {
+            // We are just getting a success on the last Action while caller hung up, so we can't go to next action
+            log.debug("Call is Disconnected on ACTION_SUCCESSFUL, so empty response");
+            res = SMAResponse.builder().build();
+        } else if (action.getNextRoutingAction() != null) {
+            final var actionList = getActions(action.getNextRoutingAction(), event);
+            res = SMAResponse.builder().withTransactionAttributes(actionList.getLast().getTransactionAttributes())
+                    .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
+            log.debug("Moving to next action: " + actionList.getFirst().getDebugSummary());
+        } else {
+            // If no action next, then end with hang up
+            log.debug("No next action in flow, ending call with hangup");
+            res = SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();
+        }
+        return res;
+    }
+
     /**
      * Hangup LEG-A of the call (inbound call)
-     * @return 
+     *
+     * @return
      */
     private SMAResponse hangup() {
         return SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();

@@ -4,11 +4,11 @@
  */
 package cloud.cleo.chimesma.actions;
 
+import static cloud.cleo.chimesma.actions.AbstractFlow.voice_map;
 import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseActionType;
 import cloud.cleo.chimesma.model.ResponseSpeak;
 import cloud.cleo.chimesma.model.ResponseSpeak.Engine;
-import cloud.cleo.chimesma.model.ResponseSpeak.TextType;
 import cloud.cleo.chimesma.model.ResponseSpeak.VoiceId;
 import java.util.function.Function;
 import lombok.AllArgsConstructor;
@@ -23,16 +23,12 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SpeakAction extends Action {
+public class SpeakAction extends Action<SpeakAction> {
 
     private String text;
     private Function<SpeakAction,String> textFunction;
 
     private Engine engine;
-    private String languageCode;
-    
-
-    private TextType textType;
     private VoiceId voiceId;
 
     @Override
@@ -41,10 +37,10 @@ public class SpeakAction extends Action {
         final var params = ResponseSpeak.Parameters.builder()
                 .withCallId(callId)
                 .withEngine(engine)
-                .withLanguageCode(languageCode)
+                .withLanguageCode(getLocale().toLanguageTag())
                 .withText(myContent)
                 .withTextType(Action.getSpeakContentType(myContent))
-                .withVoiceId(voiceId)
+                .withVoiceId(voiceId != null ? voiceId : voice_map.get(getLocale()))
                 .build();
         return ResponseSpeak.builder().withParameters(params).build();
     }
@@ -70,7 +66,6 @@ public class SpeakAction extends Action {
         private String text;
         private Function<SpeakAction,String> textFunction;
         private Engine engine;
-        private String languageCode;
         private VoiceId voiceId;
         
         public SpeakActionBuilder withText(String text) {
@@ -88,11 +83,6 @@ public class SpeakAction extends Action {
             return this;
         }
         
-        public SpeakActionBuilder withLanguageCode(String text) {
-            this.languageCode = text;
-            return this;
-        }
-        
         
         public SpeakActionBuilder withVoiceId(VoiceId voiceId) {
             this.voiceId = voiceId;
@@ -101,7 +91,7 @@ public class SpeakAction extends Action {
         
         @Override
         protected SpeakAction buildImpl() {
-            return new SpeakAction(text, textFunction, engine, languageCode, null, voiceId);
+            return new SpeakAction(text, textFunction, engine, voiceId);
         }
     }
 

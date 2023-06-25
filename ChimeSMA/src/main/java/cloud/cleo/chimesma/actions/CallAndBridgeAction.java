@@ -8,7 +8,6 @@ import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseActionType;
 import cloud.cleo.chimesma.model.ResponseCallAndBridge;
 import cloud.cleo.chimesma.model.ResponsePlayAudio;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -22,27 +21,20 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CallAndBridgeAction extends Action {
+public class CallAndBridgeAction extends Action<CallAndBridgeAction> {
 
-    @JsonProperty(value = "CallTimeoutSeconds")
+
     private Integer callTimeoutSeconds;
-    @JsonProperty(value = "CallerIdNumber")
     private String callerIdNumber;
 
-    @JsonProperty(value = "SipHeaders")
     protected  Map<String, String> sipHeaders;
 
-    @JsonProperty(value = "BridgeEndpointType")
     private ResponseCallAndBridge.BridgeEndpointType bridgeEndpointType = ResponseCallAndBridge.BridgeEndpointType.PSTN;
-    @JsonProperty(value = "Arn")
     private String arn;
-    @JsonProperty(value = "Uri")
     private String uri;
 
     // RingbackTone
-    @JsonProperty(value = "BucketName")
     private String bucketName = System.getenv("PROMPT_BUCKET");
-    @JsonProperty(value = "Key")
     private String key;
 
     @Override

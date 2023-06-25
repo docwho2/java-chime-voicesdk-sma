@@ -19,12 +19,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class HangupAction extends Action {
+public class HangupAction extends Action<HangupAction> {
 
-    @JsonProperty(value = "ParticipantTag")
+
     private ParticipantTag participantTag;
-
-    @JsonProperty(value = "sipResponseCode")
     private Integer sipResponseCode;
 
     @Override

@@ -4,10 +4,9 @@
  */
 package cloud.cleo.chimesma.flows;
 
-
 import cloud.cleo.chimesma.actions.*;
 import cloud.cleo.chimesma.model.ResponseSpeak.VoiceId;
-
+import java.util.Locale;
 
 /**
  *
@@ -50,7 +49,6 @@ public class ExampleFlow extends AbstractFlow {
                 .withNextAction(start)
                 .build();
 
-        
         final var digits = ReceiveDigitsAction.builder()
                 .withInBetweenDigitsDurationInMilliseconds(700)
                 .withFlushDigitsDurationInMilliseconds(2000)
@@ -76,12 +74,13 @@ public class ExampleFlow extends AbstractFlow {
         final var chatGptBot = StartBotConversationAction.builder()
                 .withBotAliasArn(System.getenv("CHATGPT_BOT_ALIAS_ARN"))
                 .withContent("Go ahead ask Chat GPT anything")
+                .withLocale(Locale.forLanguageTag("en-US"))
                 .build();
 
         final var lexBot = StartBotConversationAction.builder()
                 .withContent("Press One for Weather, Two for for Representative, or simply tell me how I can help?")
                 .withNextAction(speak3)
-                .withIntentMatcher(a -> {
+                .withNextAction(a -> {
                     switch (a.getIntent()) {
                         case "Weather":
                             return weatherBot;
@@ -95,7 +94,7 @@ public class ExampleFlow extends AbstractFlow {
                 })
                 .build();
 
-        chatGptBot.setIntentMatcher(a -> {
+        chatGptBot.setNextActionFunction(a -> {
             switch (a.getIntent()) {
                 case "Quit":
                     return goodbye;
@@ -104,7 +103,7 @@ public class ExampleFlow extends AbstractFlow {
             }
         });
 
-        weatherBot.setIntentMatcher(a -> {
+        weatherBot.setNextActionFunction((a) -> {
             switch (a.getIntent()) {
                 case "Quit":
                     return goodbye;
@@ -113,24 +112,22 @@ public class ExampleFlow extends AbstractFlow {
             }
         });
 
-        
         final var speakGetDigits = SpeakAndGetDigitsAction.builder()
                 .withSpeechParameters(SpeakAndGetDigitsAction.SpeechParameters.builder()
-                .withText("Plese enter some digits").build())
+                        .withText("Plese enter some digits").build())
                 .withFailureSpeechParameters(SpeakAndGetDigitsAction.SpeechParameters.builder()
-                .withText("Plese try again").build())
+                        .withText("Plese try again").build())
                 .withRepeatDurationInMilliseconds(3000)
                 .withRepeat(2)
                 .withInputDigitsRegex("^\\d{2}")
                 .withNextAction(lexBot)
                 .build();
-        
+
         final var region = SpeakAction.builder()
                 .withText(f -> "The region is " + System.getenv("AWS_REGION").replace("-", " ").toUpperCase())
                 .withVoiceId(VoiceId.Salli)
                 .withNextAction(speakGetDigits)
                 .build();
-
 
         return region;
     }

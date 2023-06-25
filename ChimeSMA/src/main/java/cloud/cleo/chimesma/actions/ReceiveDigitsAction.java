@@ -7,7 +7,6 @@ package cloud.cleo.chimesma.actions;
 import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseActionType;
 import cloud.cleo.chimesma.model.ResponseReceiveDigits;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,23 +18,18 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReceiveDigitsAction extends Action {
+public class ReceiveDigitsAction extends Action<ReceiveDigitsAction> implements ReceivedDigits {
 
     // We will need to push our ID because we can be called anytime in the flow
     public final static String RECEIVE_DIGITS_ID = "RecvDigitsID";
     
-    // Where to get the Digits entered from the ActionData
-    public final static String RECEIVED_DIGITS = "ReceivedDigits";
+    
 
     private Action digitsRecevedAction;
     
-    @JsonProperty(value = "ParticipantTag")
     private ParticipantTag participantTag;
-    @JsonProperty(value = "InputDigitsRegex")
     private String inputDigitsRegex;
-    @JsonProperty(value = "InBetweenDigitsDurationInMilliseconds")
     private Integer inBetweenDigitsDurationInMilliseconds;
-    @JsonProperty(value = "FlushDigitsDurationInMilliseconds")
     private Integer flushDigitsDurationInMilliseconds;
 
     
@@ -52,12 +46,9 @@ public class ReceiveDigitsAction extends Action {
                 .append(" [").append(getInputDigitsRegex()).append(']');
     }
     
+    @Override
     public String getReceivedDigits() {
-        final var ad = getEvent().getActionData();
-        if ( ad == null ) {
-            return "";
-        }
-        return ad.getOrDefault(RECEIVED_DIGITS, "").toString();
+       return getRecievedDigitsFromAction();
     }
     
     @Override
