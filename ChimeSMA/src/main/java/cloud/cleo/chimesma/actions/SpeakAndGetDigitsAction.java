@@ -28,17 +28,17 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction> implements ReceivedDigits {
 
-    private String inputDigitsRegex;
+    protected String inputDigitsRegex;
 
-    SpeechParameters speechParameters;
-    SpeechParameters failureSpeechParameters;
+    protected SpeechParameters speechParameters;
+    protected SpeechParameters failureSpeechParameters;
 
-    private Integer minNumberOfDigits;
-    private Integer maxNumberOfDigits;
-    private List<String> terminatorDigits;
-    private Integer inBetweenDigitsDurationInMilliseconds;
-    private Integer repeat;
-    private Integer repeatDurationInMilliseconds;
+    protected Integer minNumberOfDigits;
+    protected Integer maxNumberOfDigits;
+    protected List<String> terminatorDigits;
+    protected Integer inBetweenDigitsDurationInMilliseconds;
+    protected Integer repeat;
+    protected Integer repeatDurationInMilliseconds;
 
     @Override
     public ResponseAction getResponse() {

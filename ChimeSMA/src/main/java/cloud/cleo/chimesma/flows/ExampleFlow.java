@@ -21,7 +21,7 @@ public class ExampleFlow extends AbstractFlow {
                 .withDescription("This is my last step").build();
 
         final var goodbye = PlayAudioAction.builder()
-                .withKey("goodbye.wav")
+                .withKeyLocale("goodbye")
                 .build();
 
         final var speak3 = SpeakAction.builder()

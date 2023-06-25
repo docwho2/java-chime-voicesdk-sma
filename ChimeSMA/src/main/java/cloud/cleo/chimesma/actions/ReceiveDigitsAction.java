@@ -25,12 +25,12 @@ public class ReceiveDigitsAction extends Action<ReceiveDigitsAction> implements 
     
     
 
-    private Action digitsRecevedAction;
+    protected Action digitsRecevedAction;
     
-    private ParticipantTag participantTag;
-    private String inputDigitsRegex;
-    private Integer inBetweenDigitsDurationInMilliseconds;
-    private Integer flushDigitsDurationInMilliseconds;
+    protected ParticipantTag participantTag;
+    protected String inputDigitsRegex;
+    protected Integer inBetweenDigitsDurationInMilliseconds;
+    protected Integer flushDigitsDurationInMilliseconds;
 
     
     @Override

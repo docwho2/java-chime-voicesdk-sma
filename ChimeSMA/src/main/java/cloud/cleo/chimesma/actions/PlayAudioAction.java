@@ -21,19 +21,26 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PlayAudioAction extends Action<PlayAudioAction> {
 
-    private ParticipantTag participantTag;
-    private List<String> playbackTerminators;
-    private Integer repeat;
+    protected ParticipantTag participantTag;
+    protected List<String> playbackTerminators;
+    protected Integer repeat;
 
-    private String bucketName = System.getenv("PROMPT_BUCKET");
-    private String key;
+    protected String bucketName = System.getenv("PROMPT_BUCKET");
+    protected String key;
+    protected String keyLocale;
 
     @Override
     public ResponseAction getResponse() {
-
+        final String myKey;
+        if ( keyLocale != null ) {
+            myKey = keyLocale + "-" + getLocale().toLanguageTag() + ".wav";
+        } else {
+            myKey = key;
+        }
+        
         final var audioSource = ResponsePlayAudio.Parameters.AudioSource.builder()
                 .withBucketName(bucketName)
-                .withKey(key)
+                .withKey(myKey)
                 .build();
 
         final var params = ResponsePlayAudio.Parameters.builder()
@@ -59,12 +66,13 @@ public class PlayAudioAction extends Action<PlayAudioAction> {
     @NoArgsConstructor
     public static class PlayAudioActionBuilder extends ActionBuilder<PlayAudioActionBuilder, PlayAudioAction> {
 
-        private ParticipantTag participantTag;
-        private List<String> playbackTerminators;
-        private Integer repeat;
+        protected ParticipantTag participantTag;
+        protected List<String> playbackTerminators;
+        protected Integer repeat;
 
-        private String bucketName = System.getenv("PROMPT_BUCKET");
-        private String key;
+        protected String bucketName = System.getenv("PROMPT_BUCKET");
+        protected String key;
+        protected String keyLocale;
 
         public PlayAudioActionBuilder withParticipantTag(ParticipantTag value) {
             this.participantTag = value;
@@ -90,10 +98,15 @@ public class PlayAudioAction extends Action<PlayAudioAction> {
             this.key = value;
             return this;
         }
+        
+        public PlayAudioActionBuilder withKeyLocale(String value) {
+            this.keyLocale = value;
+            return this;
+        }
 
         @Override
         protected PlayAudioAction buildImpl() {
-            return new PlayAudioAction(participantTag, playbackTerminators, repeat, bucketName, key);
+            return new PlayAudioAction(participantTag, playbackTerminators, repeat, bucketName, key, keyLocale);
         }
     }
 

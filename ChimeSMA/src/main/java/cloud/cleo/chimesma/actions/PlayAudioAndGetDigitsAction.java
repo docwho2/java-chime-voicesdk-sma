@@ -11,6 +11,7 @@ import cloud.cleo.chimesma.model.ResponsePlayAudioAndGetDigits;
 import java.util.LinkedList;
 import java.util.List;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -23,27 +24,33 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAction> implements ReceivedDigits {
 
-    private ParticipantTag participantTag;
+    protected ParticipantTag participantTag;
 
-    private String inputDigitsRegex;
-    AudioSource audioSource;
-    AudioSource failureAudioSource;
+    protected String inputDigitsRegex;
+    protected AudioSourceLocale audioSource;
+    protected AudioSourceLocale failureAudioSource;
 
-    private Integer minNumberOfDigits;
-    private Integer maxNumberOfDigits;
-    private List<String> terminatorDigits;
-    private Integer inBetweenDigitsDurationInMilliseconds;
-    private Integer repeat;
-    private Integer repeatDurationInMilliseconds;
+    protected Integer minNumberOfDigits;
+    protected Integer maxNumberOfDigits;
+    protected List<String> terminatorDigits;
+    protected Integer inBetweenDigitsDurationInMilliseconds;
+    protected Integer repeat;
+    protected Integer repeatDurationInMilliseconds;
 
     @Override
     public ResponseAction getResponse() {
 
         final List<AudioSource> resp = new LinkedList<>();
-        for (final AudioSource as : List.of(audioSource, failureAudioSource)) {
+        for (final AudioSourceLocale as : List.of(audioSource, failureAudioSource)) {
+            final String myKey;
+            if (as.keyLocale != null) {
+                myKey = as.keyLocale + "-" + getLocale().toLanguageTag() + ".wav";
+            } else {
+                myKey = as.getKey();
+            }
             final var audio = AudioSource.builder()
                     .withBucketName(as.getBucketName())
-                    .withKey(as.getKey())
+                    .withKey(myKey)
                     .build();
 
             resp.add(audio);
@@ -91,8 +98,8 @@ public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAct
         private ParticipantTag participantTag;
 
         private String inputDigitsRegex;
-        AudioSource audioSource;
-        AudioSource failureAudioSource;
+        AudioSourceLocale audioSource;
+        AudioSourceLocale failureAudioSource;
 
         private Integer minNumberOfDigits;
         private Integer maxNumberOfDigits;
@@ -111,12 +118,12 @@ public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAct
             return this;
         }
 
-        public PlayAudioAndGetDigitsActionBuilder withAudioSource(AudioSource value) {
+        public PlayAudioAndGetDigitsActionBuilder withAudioSource(AudioSourceLocale value) {
             this.audioSource = value;
             return this;
         }
 
-        public PlayAudioAndGetDigitsActionBuilder withFailureAudioSource(AudioSource value) {
+        public PlayAudioAndGetDigitsActionBuilder withFailureAudioSource(AudioSourceLocale value) {
             this.failureAudioSource = value;
             return this;
         }
@@ -162,4 +169,14 @@ public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAct
         return ResponseActionType.PlayAudioAndGetDigits;
     }
 
+    @Data
+    @Builder(setterPrefix = "with")
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AudioSourceLocale  {
+        @Builder.Default
+        private String bucketName = System.getenv("PROMPT_BUCKET");
+        private String key;
+        private String keyLocale;
+    }
 }

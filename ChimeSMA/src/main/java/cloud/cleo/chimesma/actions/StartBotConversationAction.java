@@ -29,17 +29,17 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class StartBotConversationAction extends Action<StartBotConversationAction> {
 
-    private ParticipantTag participantTag;
-    private String botAliasArn = System.getenv("BOT_ALIAS_ARN");
+    protected ParticipantTag participantTag;
+    protected String botAliasArn = System.getenv("BOT_ALIAS_ARN");
 
-    private Map<String, String> sessionAttributes;
+    protected Map<String, String> sessionAttributes;
 
-    private DialogActionType dialogActionType;
+    protected DialogActionType dialogActionType;
 
-    private String content;
-    private Function<StartBotConversationAction, String> contentFunction;
+    protected String content;
+    protected Function<StartBotConversationAction, String> contentFunction;
 
-    private TextType contentType = TextType.PlainText;
+    protected TextType contentType = TextType.PlainText;
 
     @Override
     public ResponseAction getResponse() {

@@ -25,11 +25,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SpeakAction extends Action<SpeakAction> {
 
-    private String text;
-    private Function<SpeakAction,String> textFunction;
+    protected String text;
+    protected Function<SpeakAction,String> textFunction;
 
-    private Engine engine;
-    private VoiceId voiceId;
+    protected Engine engine;
+    protected VoiceId voiceId;
 
     @Override
     public ResponseAction getResponse() {

@@ -18,8 +18,8 @@ import lombok.Data;
 @Data
 public class CallAndBridgeActionTBTSIP extends CallAndBridgeAction {
 
-    public CallAndBridgeActionTBTSIP(Integer callTimeoutSeconds, String callerIdNumber, Map<String, String> sipHeaders, ResponseCallAndBridge.BridgeEndpointType bridgeEndpointType, String arn, String uri, String bucketName, String key) {
-        super(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key);
+    public CallAndBridgeActionTBTSIP(Integer callTimeoutSeconds, String callerIdNumber, Map<String, String> sipHeaders, ResponseCallAndBridge.BridgeEndpointType bridgeEndpointType, String arn, String uri, String bucketName, String key, String keyLocale) {
+        super(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key, keyLocale);
     }
 
     
@@ -47,7 +47,7 @@ public class CallAndBridgeActionTBTSIP extends CallAndBridgeAction {
         
         @Override
         protected CallAndBridgeActionTBTSIP buildImpl() {
-            return new CallAndBridgeActionTBTSIP(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key);
+            return new CallAndBridgeActionTBTSIP(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key, keyLocale);
         }
     }
 

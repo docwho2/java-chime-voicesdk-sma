@@ -39,8 +39,8 @@ public class CallAndBridgeActionTBTDiversion extends CallAndBridgeAction {
 
     final static DynamoDbTable<SMACall> calls = enhancedClient.table(System.getenv("CALLS_TABLE_NAME"), schema);
 
-    public CallAndBridgeActionTBTDiversion(Integer callTimeoutSeconds, String callerIdNumber, Map<String, String> sipHeaders, ResponseCallAndBridge.BridgeEndpointType bridgeEndpointType, String arn, String uri, String bucketName, String key) {
-        super(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key);
+    public CallAndBridgeActionTBTDiversion(Integer callTimeoutSeconds, String callerIdNumber, Map<String, String> sipHeaders, ResponseCallAndBridge.BridgeEndpointType bridgeEndpointType, String arn, String uri, String bucketName, String key, String keyLocale) {
+        super(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key, keyLocale);
     }
 
     
@@ -76,7 +76,7 @@ public class CallAndBridgeActionTBTDiversion extends CallAndBridgeAction {
         
         @Override
         protected CallAndBridgeActionTBTDiversion buildImpl() {
-            return new CallAndBridgeActionTBTDiversion(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key);
+            return new CallAndBridgeActionTBTDiversion(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key, keyLocale);
         }
     }
 

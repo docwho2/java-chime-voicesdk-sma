@@ -97,14 +97,14 @@ Resources:
     Type: AWS::S3::Bucket
     DeletionPolicy: Delete
     
-  BucketPolicy:
+  PromptBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref PromptBucket
       PolicyDocument:  
         Version: 2012-10-17
         Statement:
-          - Sid: AllowChimeAccess
+          - Sid: AllowChimeAccessRead
             Effect: Allow
             Principal:
               Service: voiceconnector.chime.amazonaws.com
@@ -116,7 +116,31 @@ Resources:
             Condition:
               StringEquals:
                 "aws:SourceAccount": !Sub "${AWS::AccountId}"
-                
+  
+  RecordBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    
+  RecordBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref RecordBucket
+      PolicyDocument:  
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowChimeAccessRecord
+            Effect: Allow
+            Principal:
+              Service: voiceconnector.chime.amazonaws.com
+            Action:
+              - s3:PutObject
+              - s3:PutObjectAcl
+            Resource:
+              - !GetAtt RecordBucket.Arn
+              - !Join [ "", [ !GetAtt RecordBucket.Arn , '/*' ] ]
+            Condition:
+              StringEquals:
+                "aws:SourceAccount": !Sub "${AWS::AccountId}"                
  
   PromptCreator:
     Type: AWS::Serverless::Function
@@ -167,7 +191,21 @@ Resources:
         PromptName: goodbye.wav
         PromptText: Thank you for calling, good bye
         
-            
+  GoodbyePrompt:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: goodbye-en-US.wav
+        PromptText: Thank you for calling, good bye.
+        
+  GoodbyePrompt:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDES
+        PromptName: goodbye-es-US.wav
+        PromptText: Gracias por llamar, adiós.
                 
   ChimeSMA:
     Type: AWS::Serverless::Function
@@ -180,6 +218,7 @@ Resources:
       Environment: 
         Variables:
           PROMPT_BUCKET: !Ref PromptBucket
+          RECORD_BUCKET: !Ref RecordBucket
           CALLS_TABLE_NAME: !Ref CALLSTABLENAME
           BOT_ALIAS_ARN: !GetAtt BotAlias.Arn
           WEATHER_BOT_ALIAS_ARN: !GetAtt BotAliasWeather.Arn

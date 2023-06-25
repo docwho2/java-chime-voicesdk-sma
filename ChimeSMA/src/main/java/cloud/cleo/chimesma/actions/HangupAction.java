@@ -22,8 +22,8 @@ import lombok.NoArgsConstructor;
 public class HangupAction extends Action<HangupAction> {
 
 
-    private ParticipantTag participantTag;
-    private Integer sipResponseCode;
+    protected ParticipantTag participantTag;
+    protected Integer sipResponseCode;
 
     @Override
     public ResponseAction getResponse() {

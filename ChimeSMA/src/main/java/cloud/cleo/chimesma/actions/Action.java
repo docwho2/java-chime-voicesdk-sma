@@ -36,7 +36,7 @@ public abstract class Action<A extends Action> implements Cloneable {
     private Integer id;
 
     // Description to use in debug logs
-    private String description;
+    protected String description;
 
     protected String callId;
     private Action nextAction;
@@ -45,7 +45,7 @@ public abstract class Action<A extends Action> implements Cloneable {
     private SMAEvent event;
 
     // Always maintain a Language
-    private Locale locale;
+    protected Locale locale;
 
     protected Map<String, Object> transactionAttributes;
 

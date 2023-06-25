@@ -23,28 +23,36 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CallAndBridgeAction extends Action<CallAndBridgeAction> {
 
+    protected Integer callTimeoutSeconds;
+    protected String callerIdNumber;
 
-    private Integer callTimeoutSeconds;
-    private String callerIdNumber;
+    protected Map<String, String> sipHeaders;
 
-    protected  Map<String, String> sipHeaders;
-
-    private ResponseCallAndBridge.BridgeEndpointType bridgeEndpointType = ResponseCallAndBridge.BridgeEndpointType.PSTN;
-    private String arn;
-    private String uri;
+    protected ResponseCallAndBridge.BridgeEndpointType bridgeEndpointType = ResponseCallAndBridge.BridgeEndpointType.PSTN;
+    protected String arn;
+    protected String uri;
 
     // RingbackTone
-    private String bucketName = System.getenv("PROMPT_BUCKET");
-    private String key;
+    protected String bucketName = System.getenv("PROMPT_BUCKET");
+    protected String key;
+    protected String keyLocale;
 
     @Override
     public ResponseAction getResponse() {
-        
+
         ResponsePlayAudio.Parameters.AudioSource audioSource = null;
-        if (key != null && bucketName != null) {
+        if ((key != null || keyLocale != null) && bucketName != null) {
+
+            final String myKey;
+            if (keyLocale != null) {
+                myKey = keyLocale + "-" + getLocale().toLanguageTag() + ".wav";
+            } else {
+                myKey = key;
+            }
+
             audioSource = ResponsePlayAudio.Parameters.AudioSource.builder()
                     .withBucketName(bucketName)
-                    .withKey(key)
+                    .withKey(myKey)
                     .build();
         }
 
@@ -92,6 +100,7 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction> {
 
         protected String bucketName = System.getenv("PROMPT_BUCKET");
         protected String key;
+        protected String keyLocale;
 
         public CallAndBridgeActionBuilder withCallTimeoutSeconds(Integer value) {
             this.callTimeoutSeconds = value;
@@ -133,9 +142,14 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction> {
             return this;
         }
 
+        public CallAndBridgeActionBuilder withRingbackToneKeyLocale(String value) {
+            this.keyLocale = value;
+            return this;
+        }
+
         @Override
         protected CallAndBridgeAction buildImpl() {
-            return new CallAndBridgeAction(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key);
+            return new CallAndBridgeAction(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key, keyLocale);
         }
     }
 
