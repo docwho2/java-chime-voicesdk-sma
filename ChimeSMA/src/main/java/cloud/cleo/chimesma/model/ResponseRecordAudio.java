@@ -7,6 +7,7 @@ package cloud.cleo.chimesma.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,9 +21,9 @@ import lombok.NoArgsConstructor;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResponseStartCallRecording implements ResponseAction, Serializable {
+public class ResponseRecordAudio implements ResponseAction, Serializable {
 
-    private final ResponseActionType type = ResponseActionType.StartCallRecording;
+    private final ResponseActionType type = ResponseActionType.RecordAudio;
 
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
@@ -36,33 +37,38 @@ public class ResponseStartCallRecording implements ResponseAction, Serializable 
 
         @JsonProperty(value = "CallId")
         private String callId;
-        
-        @JsonProperty(value = "Track")
-        private Track track;
-        
-        
-        @JsonProperty(value = "Destination")
-        private Destination destination;
+
+        @JsonProperty(value = "DurationInSeconds")
+        private Integer durationInSeconds;
+
+        @JsonProperty(value = "SilenceDurationInSeconds")
+        private Integer silenceDurationInSeconds;
+
+        @JsonProperty(value = "SilenceThreshold")
+        private Integer silenceThreshold;
+
+        @JsonProperty(value = "RecordingTerminators")
+        private List<Character> recordingTerminators;
+
+        @JsonProperty(value = "RecordingDestination")
+        private RecordingDestination recordingDestination;
 
         @Data
         @Builder(setterPrefix = "with")
         @NoArgsConstructor
         @AllArgsConstructor
-        public static class Destination implements Serializable {
+        public static class RecordingDestination implements Serializable {
 
             @JsonProperty(value = "Type")
             private final String type = "S3";
 
-            @JsonProperty(value = "Location")
+            @JsonProperty(value = "BucketName")
             @Builder.Default
-            private String location = System.getenv("RECORD_BUCKET");
-           
+            private String bucketName = System.getenv("RECORD_BUCKET");
+
+            @JsonProperty(value = "Prefix")
+            private String prefix;
         }
     }
 
-    public enum Track {
-        BOTH, 
-        INCOMING,
-        OUTGOING
-    }
 }

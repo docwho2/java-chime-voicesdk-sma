@@ -5,11 +5,9 @@
 package cloud.cleo.chimesma.actions;
 
 import static cloud.cleo.chimesma.actions.AbstractFlow.voice_map;
-import cloud.cleo.chimesma.model.ResponseAction;
-import cloud.cleo.chimesma.model.ResponseActionType;
+import cloud.cleo.chimesma.model.*;
 import cloud.cleo.chimesma.model.ResponseSpeak.Engine;
 import cloud.cleo.chimesma.model.ResponseSpeak.VoiceId;
-import cloud.cleo.chimesma.model.ResponseSpeakAndGetDigits;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -35,7 +33,7 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction> imp
 
     protected Integer minNumberOfDigits;
     protected Integer maxNumberOfDigits;
-    protected List<String> terminatorDigits;
+    protected List<Character> terminatorDigits;
     protected Integer inBetweenDigitsDurationInMilliseconds;
     protected Integer repeat;
     protected Integer repeatDurationInMilliseconds;
@@ -87,8 +85,32 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction> imp
 
     @Override
     protected StringBuilder getDebugSummary() {
-        return super.getDebugSummary()
-                .append(" [").append(getInputDigitsRegex()).append(']');
+        final var sb = super.getDebugSummary();
+
+        if (speechParameters.textFunction != null) {
+            // Guard against function erroring
+            try {
+                sb.append(" textF=[").append(speechParameters.textFunction.apply(this)).append(']');
+            } catch (Exception e) {
+                log.error(this.getClass() + " function error", e);
+            }
+        } else if (speechParameters.text != null) {
+            sb.append(" text=[").append(speechParameters.text).append(']');
+        }
+        
+        if ( inputDigitsRegex != null ) {
+            sb.append(" re=[").append(getInputDigitsRegex()).append(']');
+        }
+
+        if (speechParameters.engine != null) {
+            sb.append(" engine=[").append(speechParameters.engine).append(']');
+        }
+
+        if (speechParameters.voiceId != null) {
+            sb.append(" vid=[").append(speechParameters.voiceId).append(']');
+        }
+
+        return sb;
     }
 
     @Override
@@ -108,7 +130,7 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction> imp
         SpeechParameters failureSpeechParameters;
         private Integer minNumberOfDigits;
         private Integer maxNumberOfDigits;
-        private List<String> terminatorDigits;
+        private List<Character> terminatorDigits;
         private Integer inBetweenDigitsDurationInMilliseconds;
         private Integer repeat;
         private Integer repeatDurationInMilliseconds;
@@ -138,7 +160,7 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction> imp
             return this;
         }
 
-        public SpeakAndGetDigitsActionBuilder withTerminatorDigits(List<String> value) {
+        public SpeakAndGetDigitsActionBuilder withTerminatorDigits(List<Character> value) {
             this.terminatorDigits = value;
             return this;
         }

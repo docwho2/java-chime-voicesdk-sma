@@ -4,10 +4,7 @@
  */
 package cloud.cleo.chimesma.actions;
 
-import cloud.cleo.chimesma.model.ResponseAction;
-import cloud.cleo.chimesma.model.ResponseActionType;
-import cloud.cleo.chimesma.model.ResponseHangup;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import cloud.cleo.chimesma.model.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -42,10 +39,7 @@ public class HangupAction extends Action<HangupAction> {
     @NoArgsConstructor
     public static class HangupActionBuilder extends ActionBuilder<HangupActionBuilder, HangupAction> {
 
-        @JsonProperty(value = "ParticipantTag")
         private ParticipantTag participantTag;
-
-        @JsonProperty(value = "sipResponseCode")
         private Integer sipResponseCode;
 
         public HangupActionBuilder withParticipantTag(ParticipantTag value) {

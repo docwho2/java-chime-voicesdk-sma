@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package cloud.cleo.chimesma.actions;
+package cloud.cleo.chimesma.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -27,7 +27,7 @@ import java.util.Map;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class SMAEvent implements Serializable {
+public class SMARequest implements Serializable {
 
     @JsonProperty("SchemaVersion")
     private String schemaVersion;

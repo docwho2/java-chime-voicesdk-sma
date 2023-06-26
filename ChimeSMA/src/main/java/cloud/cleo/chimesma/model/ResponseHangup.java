@@ -4,7 +4,6 @@
  */
 package cloud.cleo.chimesma.model;
 
-import cloud.cleo.chimesma.actions.ParticipantTag;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;

@@ -4,10 +4,8 @@
  */
 package cloud.cleo.chimesma.actions;
 
-import cloud.cleo.chimesma.model.ResponseAction;
-import cloud.cleo.chimesma.model.ResponseActionType;
+import cloud.cleo.chimesma.model.*;
 import cloud.cleo.chimesma.model.ResponsePlayAudio.Parameters.AudioSource;
-import cloud.cleo.chimesma.model.ResponsePlayAudioAndGetDigits;
 import java.util.LinkedList;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -32,7 +30,7 @@ public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAct
 
     protected Integer minNumberOfDigits;
     protected Integer maxNumberOfDigits;
-    protected List<String> terminatorDigits;
+    protected List<Character> terminatorDigits;
     protected Integer inBetweenDigitsDurationInMilliseconds;
     protected Integer repeat;
     protected Integer repeatDurationInMilliseconds;
@@ -103,7 +101,7 @@ public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAct
 
         private Integer minNumberOfDigits;
         private Integer maxNumberOfDigits;
-        private List<String> terminatorDigits;
+        private List<Character> terminatorDigits;
         private Integer inBetweenDigitsDurationInMilliseconds;
         private Integer repeat;
         private Integer repeatDurationInMilliseconds;
@@ -138,7 +136,7 @@ public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAct
             return this;
         }
 
-        public PlayAudioAndGetDigitsActionBuilder withTerminatorDigits(List<String> value) {
+        public PlayAudioAndGetDigitsActionBuilder withTerminatorDigits(List<Character> value) {
             this.terminatorDigits = value;
             return this;
         }

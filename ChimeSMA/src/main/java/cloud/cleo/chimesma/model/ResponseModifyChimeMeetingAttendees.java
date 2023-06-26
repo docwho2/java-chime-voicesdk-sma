@@ -7,6 +7,7 @@ package cloud.cleo.chimesma.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,9 +21,10 @@ import lombok.NoArgsConstructor;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResponseReceiveDigits implements ResponseAction, Serializable {
-    
-    private final ResponseActionType type = ResponseActionType.ReceiveDigits;
+public class ResponseModifyChimeMeetingAttendees implements ResponseAction, Serializable {
+
+    private final ResponseActionType type = ResponseActionType.ModifyChimeMeetingAttendees;
+
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
 
@@ -33,17 +35,26 @@ public class ResponseReceiveDigits implements ResponseAction, Serializable {
     @JsonInclude(value = JsonInclude.Include.NON_NULL)
     public static class Parameters implements Serializable {
 
+        @JsonProperty(value = "Operation")
+        private Operation operation;
+
+        @JsonProperty(value = "MeetingId")
+        private String meetingId;
+
         @JsonProperty(value = "CallId")
         private String callId;
+
         @JsonProperty(value = "ParticipantTag")
         @Builder.Default
         private ParticipantTag participantTag = ParticipantTag.LEG_A;
-        @JsonProperty(value = "InputDigitsRegex")
-        private String inputDigitsRegex;
-        @JsonProperty(value = "InBetweenDigitsDurationInMilliseconds")
-        private Integer inBetweenDigitsDurationInMilliseconds;
-        @JsonProperty(value = "FlushDigitsDurationInMilliseconds")
-        private Integer flushDigitsDurationInMilliseconds;
+
+        @JsonProperty(value = "AttendeeList")
+        private List<String> attendeeList;
+        
     }
-    
+
+    public static enum Operation {
+        Mute,
+        Unmute
+    }
 }

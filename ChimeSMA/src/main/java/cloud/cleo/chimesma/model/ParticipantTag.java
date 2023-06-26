@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package cloud.cleo.chimesma.actions;
+package cloud.cleo.chimesma.model;
 
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -14,7 +14,9 @@ import com.fasterxml.jackson.databind.util.StdConverter;
 import java.io.IOException;
 
 /**
- *
+ * Since regular enums can't have dashes in the name, we need to 
+ * have custom serialize and de-serialization
+ * 
  * @author sjensen
  */
 @JsonSerialize(using = ParticipantTag.ParticipantTagSerializer.class)

@@ -4,9 +4,7 @@
  */
 package cloud.cleo.chimesma.actions;
 
-import cloud.cleo.chimesma.model.ResponseAction;
-import cloud.cleo.chimesma.model.ResponseActionType;
-import cloud.cleo.chimesma.model.ResponseStartBotConversation;
+import cloud.cleo.chimesma.model.*;
 import cloud.cleo.chimesma.model.ResponseStartBotConversation.DialogActionType;
 import cloud.cleo.chimesma.model.ResponseStartBotConversation.Parameters.Configuration.SessionState;
 import cloud.cleo.chimesma.model.ResponseStartBotConversation.Parameters.Configuration.SessionState.DialogAction;
@@ -104,8 +102,25 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
 
     @Override
     protected StringBuilder getDebugSummary() {
-        return super.getDebugSummary()
-                .append(" [").append(getBotAliasArn()).append(']');
+        final var sb = super.getDebugSummary();
+
+        if (dialogActionType != null) {
+            sb.append(" da=[").append(getDialogActionType()).append(']');
+        }
+
+        if (contentFunction != null) {
+            // Guard against function erroring
+            try {
+                sb.append(" textF=[").append(contentFunction.apply(this)).append(']');
+            } catch (Exception e) {
+                log.error(this.getClass() + " function error", e);
+            }
+        } else if (content != null) {
+            sb.append(" text=[").append(getContent()).append(']');
+        }
+
+        return sb;
+
     }
 
     public static StartBotConversationActionBuilder builder() {

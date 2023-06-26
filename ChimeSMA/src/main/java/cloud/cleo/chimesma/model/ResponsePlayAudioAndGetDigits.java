@@ -4,7 +4,7 @@
  */
 package cloud.cleo.chimesma.model;
 
-import cloud.cleo.chimesma.actions.ParticipantTag;
+
 import cloud.cleo.chimesma.model.ResponsePlayAudio.Parameters.AudioSource;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -59,7 +59,7 @@ public class ResponsePlayAudioAndGetDigits implements ResponseAction, Serializab
         private Integer maxNumberOfDigits;
 
         @JsonProperty(value = "TerminatorDigits")
-        private List<String> terminatorDigits;
+        private List<Character> terminatorDigits;
 
         @JsonProperty(value = "InBetweenDigitsDurationInMilliseconds")
         private Integer inBetweenDigitsDurationInMilliseconds;

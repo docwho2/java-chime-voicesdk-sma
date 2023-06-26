@@ -6,10 +6,7 @@ package cloud.cleo.chimesma.actions;
 
 import static cloud.cleo.chimesma.actions.AbstractFlow.CURRENT_ACTION_ID;
 import static cloud.cleo.chimesma.actions.ReceivedDigits.RECEIVED_DIGITS;
-import cloud.cleo.chimesma.model.ResponseAction;
-import cloud.cleo.chimesma.model.ResponseActionType;
-import cloud.cleo.chimesma.model.ResponseSpeak;
-import cloud.cleo.chimesma.model.ResponseStartBotConversation;
+import cloud.cleo.chimesma.model.*;
 import com.amazonaws.services.lambda.serialization.JacksonPojoSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
@@ -42,7 +39,7 @@ public abstract class Action<A extends Action> implements Cloneable {
     private Action nextAction;
     protected Function<A, Action> nextActionFunction;
 
-    private SMAEvent event;
+    private SMARequest event;
 
     // Always maintain a Language
     protected Locale locale;
@@ -83,12 +80,12 @@ public abstract class Action<A extends Action> implements Cloneable {
     protected StringBuilder getDebugSummary() {
         StringBuilder sb = new StringBuilder(getActionType().toString());
         if (getDescription() != null) {
-            sb.append(" [").append(getDescription()).append(']');
+            sb.append(" desc=[").append(getDescription()).append(']');
         }
         return sb;
     }
 
-    public Action clone(SMAEvent event) throws CloneNotSupportedException {
+    public Action clone(SMARequest event) throws CloneNotSupportedException {
         final var clone = (Action) super.clone();
 
         // We should always have a CallId on first participant

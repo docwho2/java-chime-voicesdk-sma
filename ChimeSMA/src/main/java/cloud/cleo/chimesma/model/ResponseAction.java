@@ -14,5 +14,5 @@ public interface ResponseAction {
 
     @JsonProperty(value = "Type")
     public ResponseActionType getType();
-    
+
 }

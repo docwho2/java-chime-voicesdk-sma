@@ -24,5 +24,8 @@ package cloud.cleo.chimesma.model;
     StartCallRecording,
     StopCallRecording,
     PauseCallRecording,
-    ResumeCallRecording
+    ResumeCallRecording,
+    // Chime Meetings
+    JoinChimeMeeting,
+    ModifyChimeMeetingAttendees,
 }

@@ -4,7 +4,6 @@
  */
 package cloud.cleo.chimesma.model;
 
-import cloud.cleo.chimesma.actions.ParticipantTag;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
@@ -25,6 +24,7 @@ import lombok.NoArgsConstructor;
 public class ResponsePlayAudio implements ResponseAction, Serializable {
     
     private final ResponseActionType type = ResponseActionType.PlayAudio;
+    
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
 
@@ -41,7 +41,7 @@ public class ResponsePlayAudio implements ResponseAction, Serializable {
         @Builder.Default
         private ParticipantTag participantTag = ParticipantTag.LEG_A;
         @JsonProperty(value = "PlaybackTerminators")
-        private List<String> playbackTerminators;
+        private List<Character> playbackTerminators;
         @JsonProperty(value = "Repeat")
         private Integer repeat;
         @JsonProperty(value = "AudioSource")

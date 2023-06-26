@@ -15,7 +15,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
 /**
  *
  * @author sjensen
@@ -26,7 +25,7 @@ import lombok.NoArgsConstructor;
 public class SpeakAction extends Action<SpeakAction> {
 
     protected String text;
-    protected Function<SpeakAction,String> textFunction;
+    protected Function<SpeakAction, String> textFunction;
 
     protected Engine engine;
     protected VoiceId voiceId;
@@ -49,11 +48,31 @@ public class SpeakAction extends Action<SpeakAction> {
     public ResponseActionType getActionType() {
         return ResponseActionType.Speak;
     }
-    
+
     @Override
     protected StringBuilder getDebugSummary() {
-        return super.getDebugSummary()
-                .append(" [").append(getText()).append(']');
+        final var sb = super.getDebugSummary();
+
+        if (textFunction != null) {
+            // Guard against function erroring
+            try {
+                sb.append(" textF=[").append(textFunction.apply(this)).append(']');
+            } catch (Exception e) {
+                log.error(this.getClass() + " function error", e);
+            }
+        } else if (text != null) {
+            sb.append(" text=[").append(getText()).append(']');
+        }
+
+        if (engine != null) {
+            sb.append(" engine=[").append(getEngine()).append(']');
+        }
+
+        if (voiceId != null) {
+            sb.append(" vid=[").append(getVoiceId()).append(']');
+        }
+
+        return sb;
     }
 
     public static SpeakActionBuilder builder() {
@@ -61,34 +80,33 @@ public class SpeakAction extends Action<SpeakAction> {
     }
 
     @NoArgsConstructor
-    public static class SpeakActionBuilder extends ActionBuilder<SpeakActionBuilder,SpeakAction> {
+    public static class SpeakActionBuilder extends ActionBuilder<SpeakActionBuilder, SpeakAction> {
 
         private String text;
-        private Function<SpeakAction,String> textFunction;
+        private Function<SpeakAction, String> textFunction;
         private Engine engine;
         private VoiceId voiceId;
-        
+
         public SpeakActionBuilder withText(String text) {
             this.text = text;
             return this;
         }
-        
-        public SpeakActionBuilder withText(Function<SpeakAction,String> text) {
+
+        public SpeakActionBuilder withText(Function<SpeakAction, String> text) {
             this.textFunction = text;
             return this;
         }
-        
+
         public SpeakActionBuilder withEngine(Engine text) {
             this.engine = text;
             return this;
         }
-        
-        
+
         public SpeakActionBuilder withVoiceId(VoiceId voiceId) {
             this.voiceId = voiceId;
             return this;
         }
-        
+
         @Override
         protected SpeakAction buildImpl() {
             return new SpeakAction(text, textFunction, engine, voiceId);

@@ -4,9 +4,7 @@
  */
 package cloud.cleo.chimesma.actions;
 
-import cloud.cleo.chimesma.model.ResponseAction;
-import cloud.cleo.chimesma.model.ResponseActionType;
-import cloud.cleo.chimesma.model.ResponseReceiveDigits;
+import cloud.cleo.chimesma.model.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -34,7 +32,7 @@ public class ReceiveDigitsAction extends Action<ReceiveDigitsAction> implements 
 
     
     @Override
-    public Action clone(SMAEvent event) throws CloneNotSupportedException {
+    public Action clone(SMARequest event) throws CloneNotSupportedException {
         var clone = super.clone(event);
         clone.transactionAttributes.put(RECEIVE_DIGITS_ID, getId().toString());
         return clone;

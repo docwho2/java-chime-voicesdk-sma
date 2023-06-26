@@ -5,12 +5,11 @@
 package cloud.cleo.chimesma.actions;
 
 import static cloud.cleo.chimesma.actions.ReceiveDigitsAction.RECEIVE_DIGITS_ID;
-import static cloud.cleo.chimesma.actions.SMAEvent.SMAEventType.ACTION_SUCCESSFUL;
-import cloud.cleo.chimesma.actions.SMAEvent.Status;
-import static cloud.cleo.chimesma.actions.SMAEvent.Status.Disconnected;
-import cloud.cleo.chimesma.model.ResponseHangup;
-import cloud.cleo.chimesma.model.ResponseSpeak;
-import cloud.cleo.chimesma.model.SMAResponse;
+
+import cloud.cleo.chimesma.model.*;
+import static cloud.cleo.chimesma.model.SMARequest.SMAEventType.*;
+import cloud.cleo.chimesma.model.SMARequest.Status;
+import static cloud.cleo.chimesma.model.SMARequest.Status.*;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.serialization.JacksonPojoSerializer;
@@ -34,7 +33,7 @@ import org.apache.logging.log4j.Logger;
  *
  * @author sjensen
  */
-public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMAResponse> {
+public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResponse> {
 
     // Initialize the Log4j logger.
     protected final static Logger log = LogManager.getLogger();
@@ -57,8 +56,9 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
     private static volatile int idCounter = 0;
 
     public final static String CURRENT_ACTION_ID = "CurrentActionId";
+    public final static String CURRENT_ACTION_ID_LIST = "CurrentActionIdList";
 
-    public AbstractFlow() {
+    protected AbstractFlow() {
         if (startAction == null) {
             log.debug("Starting to Build Static Flow");
             startAction = getInitialAction();
@@ -129,29 +129,37 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
         return null;
     }
 
-    private LinkedList<Action> getActions(Action initialAction, SMAEvent event) throws CloneNotSupportedException {
+    private LinkedList<Action> getActions(Action initialAction, SMARequest event) throws CloneNotSupportedException {
         var list = new LinkedList<Action>();
 
         // Add the first action always
         var action = initialAction.clone(event);
         list.add(action);
         final var attrs = action.getTransactionAttributes();
-        log.debug("Adding action " + action.getDebugSummary());
+        log.info("Adding action " + action.getDebugSummary());
 
-        while (action.getNextRoutingAction() != null && action.isChainable()) {
+        int counter = 1;  // Can only send max of 10 actions at a time
+        while (action.getNextRoutingAction() != null && action.isChainable() && counter < 10) {
             // We have a next action
             final var nextAction = action.getNextRoutingAction().clone(event);
             list.add(nextAction);
             attrs.putAll(nextAction.getTransactionAttributes());
-            log.debug("Chaining action " + nextAction.getDebugSummary());
+            log.info("Chaining action " + nextAction.getDebugSummary());
             action = nextAction;
+            counter++;
         }
+        
+        // When we chain a bunch of actions, we'll need to also know the list of
+        // ID's in order in case one errors in the middle of the list for example
+        attrs.put(CURRENT_ACTION_ID_LIST, 
+                list.stream().map(a -> a.getId().toString()).collect(Collectors.joining(",")) );
+        
         // The last Action will contain the summation of all the attrs
         list.getLast().setTransactionAttributes(attrs);
         return list;
     }
 
-    private Action getCurrentAction(SMAEvent event) throws CloneNotSupportedException {
+    private Action getCurrentAction(SMARequest event) throws CloneNotSupportedException {
         final var attrs = event.getCallDetails().getTransactionAttributes();
 
         String actionIdStr;
@@ -170,7 +178,7 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
     }
 
     @Override
-    public final SMAResponse handleRequest(SMAEvent event, Context cntxt) {
+    public final SMAResponse handleRequest(SMARequest event, Context cntxt) {
         final boolean throwException = Boolean.parseBoolean(System.getenv("THROW_EXCEPTION"));
         if (throwException) {
             throw new RuntimeException("This region is down");
@@ -219,6 +227,12 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
                         final var sbaction = (StartBotConversationAction) action;
                         log.debug("Lex Bot has finished and Intent is " + sbaction.getIntent());
                         action.getTransactionAttributes().put("LexLastMatchedIntent", sbaction.getIntent());
+                        res = defaultResponse(action, event);
+                    } else if (action instanceof StartCallRecordingAction) {
+                        final var crd = (Map<String,Object>) event.getActionData().get("CallRecordingDestination");
+                        final var loc = crd.get("Location");
+                        log.debug("Start Call Recording SUCCESS with file " + loc);
+                        action.getTransactionAttributes().put(StartCallRecordingAction.RECORDING_FILE_LOCATION, loc.toString() );
                         res = defaultResponse(action, event);
                     } else {
                         res = defaultResponse(action, event);
@@ -309,9 +323,9 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
         }
     }
 
-    private SMAResponse defaultResponse(Action action, SMAEvent event) throws CloneNotSupportedException {
+    private SMAResponse defaultResponse(Action action, SMARequest event) throws CloneNotSupportedException {
         SMAResponse res;
-        if (event.getInvocationEventType().equals(ACTION_SUCCESSFUL) && event.getCallDetails().getParticipants().get(0).getStatus().equals(Disconnected)) {
+        if (event.getInvocationEventType().equals(ACTION_SUCCESSFUL) && Disconnected.equals(event.getCallDetails().getParticipants().get(0).getStatus()) ) {
             // We are just getting a success on the last Action while caller hung up, so we can't go to next action
             log.debug("Call is Disconnected on ACTION_SUCCESSFUL, so empty response");
             res = SMAResponse.builder().build();
@@ -319,10 +333,10 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
             final var actionList = getActions(action.getNextRoutingAction(), event);
             res = SMAResponse.builder().withTransactionAttributes(actionList.getLast().getTransactionAttributes())
                     .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
-            log.debug("Moving to next action: " + actionList.getFirst().getDebugSummary());
+            log.info("Moving to next action: " + actionList.getFirst().getDebugSummary());
         } else {
             // If no action next, then end with hang up
-            log.debug("No next action in flow, ending call with hangup");
+            log.info("No next action in flow, ending call with hangup");
             res = SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();
         }
         return res;
@@ -333,7 +347,7 @@ public abstract class AbstractFlow implements RequestHandler<SMAEvent, SMARespon
      *
      * @return
      */
-    private SMAResponse hangup() {
+    private SMAResponse hangupLegA() {
         return SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();
     }
 

@@ -4,9 +4,7 @@
  */
 package cloud.cleo.chimesma.actions;
 
-import cloud.cleo.chimesma.model.ResponseAction;
-import cloud.cleo.chimesma.model.ResponseActionType;
-import cloud.cleo.chimesma.model.ResponsePlayAudio;
+import cloud.cleo.chimesma.model.*;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,7 +20,7 @@ import lombok.NoArgsConstructor;
 public class PlayAudioAction extends Action<PlayAudioAction> {
 
     protected ParticipantTag participantTag;
-    protected List<String> playbackTerminators;
+    protected List<Character> playbackTerminators;
     protected Integer repeat;
 
     protected String bucketName = System.getenv("PROMPT_BUCKET");
@@ -55,8 +53,21 @@ public class PlayAudioAction extends Action<PlayAudioAction> {
     
     @Override
     protected StringBuilder getDebugSummary() {
-        return super.getDebugSummary()
-                .append(" [").append(getKey()).append(']');
+        final var sb = super.getDebugSummary();
+        
+        if ( keyLocale != null ) {
+            sb.append(" keyL=[").append(getKeyLocale()).append(']');
+        }
+        
+        if ( key != null ) {
+            sb.append(" key=[").append(getKey()).append(']');
+        }
+        
+        if ( bucketName != null ) {
+            sb.append(" bucket=[").append(getKey()).append(']');
+        }
+        
+        return sb;       
     }
 
     public static PlayAudioActionBuilder builder() {
@@ -67,7 +78,7 @@ public class PlayAudioAction extends Action<PlayAudioAction> {
     public static class PlayAudioActionBuilder extends ActionBuilder<PlayAudioActionBuilder, PlayAudioAction> {
 
         protected ParticipantTag participantTag;
-        protected List<String> playbackTerminators;
+        protected List<Character> playbackTerminators;
         protected Integer repeat;
 
         protected String bucketName = System.getenv("PROMPT_BUCKET");
@@ -79,7 +90,7 @@ public class PlayAudioAction extends Action<PlayAudioAction> {
             return this;
         }
 
-        public PlayAudioActionBuilder withPlaybackTerminators(List<String> value) {
+        public PlayAudioActionBuilder withPlaybackTerminators(List<Character> value) {
             this.playbackTerminators = value;
             return this;
         }

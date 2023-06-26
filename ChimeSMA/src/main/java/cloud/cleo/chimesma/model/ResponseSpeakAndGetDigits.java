@@ -10,7 +10,6 @@ import cloud.cleo.chimesma.model.ResponseSpeak.TextType;
 import cloud.cleo.chimesma.model.ResponseSpeak.VoiceId;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.io.Serializable;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -62,7 +61,7 @@ public class ResponseSpeakAndGetDigits implements ResponseAction, Serializable {
         private Integer maxNumberOfDigits;
 
         @JsonProperty(value = "TerminatorDigits")
-        private List<String> terminatorDigits;
+        private List<Character> terminatorDigits;
 
         @JsonProperty(value = "InBetweenDigitsDurationInMilliseconds")
         private Integer inBetweenDigitsDurationInMilliseconds;
