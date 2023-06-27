@@ -29,6 +29,12 @@ public class ActionDataStartBotConversation implements ResponseAction, Serializa
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
 
+    // Set on ACTION_FAILED
+    @JsonProperty("ErrorType")
+    private String errorType;
+    @JsonProperty("ErrorMessage")
+    private String errorMessage;
+    
     @Data
     @NoArgsConstructor
     public static class IntentResult implements Serializable {

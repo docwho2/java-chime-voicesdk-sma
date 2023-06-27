@@ -72,12 +72,16 @@ public class ResponseStartBotConversation implements ResponseAction, Serializabl
                 @JsonProperty(value = "DialogAction")
                 private DialogAction dialogAction;
 
+                @JsonProperty(value = "Intent")
+                private ActionDataStartBotConversation.Intent intent;
+
                 @Data
                 @Builder(setterPrefix = "with")
                 @NoArgsConstructor
                 @AllArgsConstructor
                 @JsonInclude(value = JsonInclude.Include.NON_NULL)
                 public static class DialogAction implements Serializable {
+
                     @JsonProperty(value = "Type")
                     @Builder.Default
                     private DialogActionType type = DialogActionType.ElicitIntent;
@@ -109,7 +113,7 @@ public class ResponseStartBotConversation implements ResponseAction, Serializabl
         Delegate,
         ElicitIntent
     }
-    
+
     public enum TextType {
         PlainText,
         SSML
