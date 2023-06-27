@@ -398,7 +398,6 @@ Resources:
             - Name: "Weather"
               Description: "Play a help prompt"
               SampleUtterances:
-                - Utterance: "One"
                 - Utterance: "weather"
                 - Utterance: "what is the forecast for today"
                 - Utterance: "weather forecast"
@@ -417,13 +416,17 @@ Resources:
                 - Utterance: "all done"
                 - Utterance: "That's it'"
                 - Utterance: "nothing else"
+                - Utterance: "done"
+                - Utterance: "no"
             - Name: "Transfer"
               Description: "Send Call to a Person"
               SampleUtterances:
-                - Utterance: "two"
                 - Utterance: "speak with someone"
                 - Utterance: "talk to someone"
                 - Utterance: "speak with a person"
+                - Utterance: "Representative"
+                - Utterance: "real persion"
+                - Utterance: "someone real"
               InitialResponseSetting:
                   InitialResponse:
                       AllowInterrupt: false
