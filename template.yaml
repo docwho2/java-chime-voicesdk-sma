@@ -136,6 +136,7 @@ Resources:
             Action:
               - s3:PutObject
               - s3:PutObjectAcl
+              - s3:GetObject
             Resource:
               - !GetAtt RecordBucket.Arn
               - !Join [ "", [ !GetAtt RecordBucket.Arn , '/*' ] ]
@@ -212,10 +213,10 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-ChimeSMA
-      Description: Chime SMA Call FLow Director
-      Handler: cloud.cleo.chimesma.flows.ExampleFlow
+      Description: Chime SMA Call FLow Director Example
+      Handler: cloud.cleo.chimesma.examples.actions.ExampleFlow
       #AutoPublishAlias: SNAPSTART
-      CodeUri: ./ChimeSMA
+      CodeUri: ./Examples
       Environment: 
         Variables:
           PROMPT_BUCKET: !Ref PromptBucket

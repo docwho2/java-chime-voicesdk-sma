@@ -31,7 +31,7 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
 
     protected Map<String, String> sessionAttributes;
 
-    protected DialogActionType dialogActionType;
+    protected DialogActionType dialogActionType = ResponseStartBotConversation.DialogActionType.ElicitIntent;
 
     protected String content;
     protected Function<StartBotConversationAction, String> contentFunction;
@@ -132,7 +132,7 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
         private ParticipantTag participantTag;
         private String botAliasArn = System.getenv("BOT_ALIAS_ARN");
         private Map<String, String> sessionAttributes;
-        private DialogActionType dialogActionType;
+        private DialogActionType dialogActionType = ResponseStartBotConversation.DialogActionType.ElicitIntent;
         private String content;
         private Function<StartBotConversationAction, String> contentFunction;
         private TextType contentType = TextType.PlainText;

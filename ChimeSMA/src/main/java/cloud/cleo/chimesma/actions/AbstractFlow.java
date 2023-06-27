@@ -180,10 +180,6 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
 
     @Override
     public final SMAResponse handleRequest(SMARequest event, Context cntxt) {
-        final boolean throwException = Boolean.parseBoolean(System.getenv("THROW_EXCEPTION"));
-        if (throwException) {
-            throw new RuntimeException("This region is down");
-        }
         try {
             log.debug(event);
 
@@ -316,6 +312,8 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
             //log.debug(res);
             log.debug(mapper.valueToTree(res).toString());
             return res;
+        } catch (RuntimeFailureException e) {
+            throw e;  // Singal to error this lambda
         } catch (Exception e) {
             log.error("Unhandled Exception", e);
             return SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();

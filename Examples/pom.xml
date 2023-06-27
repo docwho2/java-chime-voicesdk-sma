@@ -2,11 +2,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>cloud.cleo.chimesma</groupId>
-    <artifactId>sma-lambda-lib</artifactId>
+    <artifactId>sma-examples</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
-    <name>Chime SDK SMA Library</name>
-    <description>Chime Voice SDK Session Media Application (SMA) Library/Framework</description>
+    <name>Chime SDK Examples</name>
+    <description>Chime Voice Session Media Application (SMA)</description>
     
     <parent>
         <groupId>cloud.cleo.chimesma</groupId>
@@ -14,18 +14,15 @@
         <version>1.0</version>
     </parent>
 
-    <dependencies>
 
+    <dependencies>
+        
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-lambda-java-serialization</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.code.gson</groupId>
-                    <artifactId>gson</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>cloud.cleo.chimesma</groupId>
+            <artifactId>sma-lambda-lib</artifactId>
+            <version>1.0</version>
         </dependency>
+        
         
         <dependency>
             <groupId>com.amazonaws</groupId>
@@ -43,8 +40,31 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j18-impl</artifactId>
         </dependency>
+        
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>dynamodb-enhanced</artifactId>
+        </dependency>
 
     </dependencies>
 
-    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <configuration>
+                    
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

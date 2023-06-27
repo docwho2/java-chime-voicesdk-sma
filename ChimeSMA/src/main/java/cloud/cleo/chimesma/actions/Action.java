@@ -124,14 +124,14 @@ public abstract class Action<A extends Action> implements Cloneable {
      */
     protected static ResponseStartBotConversation.TextType getBotContentType(String message) {
         if (message != null) {
-            return message.toLowerCase().contains("<ssml>") ? ResponseStartBotConversation.TextType.SSML : ResponseStartBotConversation.TextType.PlainText;
+            return message.toLowerCase().contains("<speak>") ? ResponseStartBotConversation.TextType.SSML : ResponseStartBotConversation.TextType.PlainText;
         }
         return ResponseStartBotConversation.TextType.PlainText;
     }
 
     protected static ResponseSpeak.TextType getSpeakContentType(String message) {
         if (message != null) {
-            return message.toLowerCase().contains("<ssml>") ? ResponseSpeak.TextType.ssml : ResponseSpeak.TextType.text;
+            return message.toLowerCase().contains("<speak>") ? ResponseSpeak.TextType.ssml : ResponseSpeak.TextType.text;
         }
         return ResponseSpeak.TextType.text;
     }

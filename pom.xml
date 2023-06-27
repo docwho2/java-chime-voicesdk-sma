@@ -31,6 +31,7 @@
         <module>PollyPromptCreation</module>
         <module>ChimeSMA</module>
         <module>ChatGPT</module>
+        <module>Examples</module>
         <!-- These are needed for lex events (bots) and JSON processing -->
         <module>LambdaEventsV4/aws-lambda-java-serialization</module>
         <module>LambdaEventsV4/aws-lambda-java-events</module>

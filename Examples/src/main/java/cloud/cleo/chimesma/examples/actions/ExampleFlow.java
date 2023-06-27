@@ -2,14 +2,12 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package cloud.cleo.chimesma.flows;
+package cloud.cleo.chimesma.examples.actions;
 
 import cloud.cleo.chimesma.actions.*;
 import cloud.cleo.chimesma.model.ResponseSpeak.VoiceId;
-import cloud.cleo.chimesma.model.ResponseStartBotConversation;
 import cloud.cleo.chimesma.model.ResponseStartCallRecording;
 import java.util.List;
-import java.util.Locale;
 
 /**
  *
@@ -80,13 +78,25 @@ public class ExampleFlow extends AbstractFlow {
         final var chatGptBot = StartBotConversationAction.builder()
                 .withDescription("ChatGPT Bot")
                 .withBotAliasArn(System.getenv("CHATGPT_BOT_ALIAS_ARN"))
-                .withDialogActionType(ResponseStartBotConversation.DialogActionType.Delegate)
-                .withLocale(Locale.forLanguageTag("en-US"))
+                .withContent(f -> "The region is " + System.getenv("AWS_REGION").replace("-", " ").toUpperCase() + ". What can I help you with?")
                 .build();
+       
+        
+        chatGptBot.setNextActionFunction(a -> {
+            switch (a.getIntent()) {
+                case "Quit":
+                    return goodbye;
+                default:
+                    return chatGptBot;
+            }
+        });
+        
+        
+        
         
         final var lexBot = StartBotConversationAction.builder()
                 .withDescription("Main Bot")
-                .withContent("Press One for Weather, Two for for Representative, or simply tell me how I can help?")
+                .withContent("What can I help you with?")
                 .withNextAction(a -> {
                     switch (a.getIntent()) {
                         case "Weather":
@@ -102,15 +112,7 @@ public class ExampleFlow extends AbstractFlow {
                 .build();
         
         lexBot.setNextAction(lexBot);
-        
-        chatGptBot.setNextActionFunction(a -> {
-            switch (a.getIntent()) {
-                case "Quit":
-                    return goodbye;
-                default:
-                    return lexBot;
-            }
-        });
+       
         
         weatherBot.setNextActionFunction((a) -> {
             switch (a.getIntent()) {
@@ -142,9 +144,9 @@ public class ExampleFlow extends AbstractFlow {
                 .build();
         
         final var region = SpeakAction.builder()
-                .withText(f -> "The region is " + System.getenv("AWS_REGION").replace("-", " ").toUpperCase())
+                .withText("The region is " + System.getenv("AWS_REGION").replace("-", " ").toUpperCase() + ". What can I help you with?")
                 .withVoiceId(VoiceId.Salli)
-                .withNextAction(getPauseActions(pauseRecording))
+                .withNextAction(chatGptBot)
                 .build();
         
         final var startRecording = StartCallRecordingAction.builder()
@@ -153,7 +155,7 @@ public class ExampleFlow extends AbstractFlow {
                 .withNextAction(region)
                 .build();
         
-        return startRecording;
+        return chatGptBot;
     }
     
     public Action getPauseActions(Action nextAction) {

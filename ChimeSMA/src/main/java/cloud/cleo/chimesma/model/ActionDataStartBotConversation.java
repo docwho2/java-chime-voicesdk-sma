@@ -10,6 +10,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -64,6 +66,8 @@ public class ActionDataStartBotConversation implements ResponseAction, Serializa
 
     @Data
     @NoArgsConstructor
+    @Builder(setterPrefix = "with")
+    @AllArgsConstructor
     public static class Intent implements Serializable {
 
         @JsonProperty(value = "Name")
