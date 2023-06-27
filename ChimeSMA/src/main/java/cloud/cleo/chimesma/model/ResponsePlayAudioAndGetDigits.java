@@ -5,6 +5,7 @@
 package cloud.cleo.chimesma.model;
 
 
+import cloud.cleo.chimesma.actions.ReceivedDigits;
 import cloud.cleo.chimesma.model.ResponsePlayAudio.Parameters.AudioSource;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -23,13 +24,18 @@ import lombok.NoArgsConstructor;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResponsePlayAudioAndGetDigits implements ResponseAction, Serializable {
+public class ResponsePlayAudioAndGetDigits implements ResponseAction, ReceivedDigits, Serializable {
 
     private final ResponseActionType type = ResponseActionType.PlayAudioAndGetDigits;
     
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
 
+     // This is used for the incoming ActionData
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    @JsonProperty(value = "ReceivedDigits", access = JsonProperty.Access.WRITE_ONLY)
+    private String receivedDigits;
+    
     @Data
     @Builder(setterPrefix = "with")
     @NoArgsConstructor

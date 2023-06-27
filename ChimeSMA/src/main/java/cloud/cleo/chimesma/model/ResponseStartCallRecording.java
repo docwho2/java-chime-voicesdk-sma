@@ -4,6 +4,7 @@
  */
 package cloud.cleo.chimesma.model;
 
+import cloud.cleo.chimesma.model.ResponseStartCallRecording.Parameters.Destination;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
@@ -26,6 +27,11 @@ public class ResponseStartCallRecording implements ResponseAction, Serializable 
 
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
+    
+    // This is used for the incoming ActionData
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    @JsonProperty(value = "CallRecordingDestination", access = JsonProperty.Access.WRITE_ONLY)
+    private Destination callRecordingDestination;
 
     @Data
     @Builder(setterPrefix = "with")

@@ -5,7 +5,6 @@
 package cloud.cleo.chimesma.actions;
 
 import static cloud.cleo.chimesma.actions.AbstractFlow.CURRENT_ACTION_ID;
-import static cloud.cleo.chimesma.actions.ReceivedDigits.RECEIVED_DIGITS;
 import cloud.cleo.chimesma.model.*;
 import com.amazonaws.services.lambda.serialization.JacksonPojoSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -111,10 +110,10 @@ public abstract class Action<A extends Action> implements Cloneable {
 
     protected String getRecievedDigitsFromAction() {
         final var ad = getEvent().getActionData();
-        if (ad == null) {
-            return "";
+        if (ad instanceof ReceivedDigits ) {
+            return ((ReceivedDigits) ad).getReceivedDigits();
         }
-        return ad.getOrDefault(RECEIVED_DIGITS, "").toString();
+        return "";
     }
 
     /**

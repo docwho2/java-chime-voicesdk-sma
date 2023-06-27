@@ -4,6 +4,7 @@
  */
 package cloud.cleo.chimesma.model;
 
+import cloud.cleo.chimesma.actions.ReceivedDigits;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
@@ -20,12 +21,17 @@ import lombok.NoArgsConstructor;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResponseReceiveDigits implements ResponseAction, Serializable {
+public class ResponseReceiveDigits implements ResponseAction, ReceivedDigits, Serializable {
     
     private final ResponseActionType type = ResponseActionType.ReceiveDigits;
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
 
+     // This is used for the incoming ActionData
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    @JsonProperty(value = "ReceivedDigits", access = JsonProperty.Access.WRITE_ONLY)
+    private String receivedDigits;
+    
     @Data
     @Builder(setterPrefix = "with")
     @NoArgsConstructor

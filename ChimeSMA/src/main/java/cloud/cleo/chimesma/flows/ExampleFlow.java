@@ -150,6 +150,7 @@ public class ExampleFlow extends AbstractFlow {
         
          final var startRecording = StartCallRecordingAction.builder()
                 .withTrack(ResponseStartCallRecording.Track.BOTH)
+                 .withStoreLocation()
                 .withNextAction(region)
                 .build();
 

@@ -10,7 +10,6 @@ import cloud.cleo.chimesma.model.ResponseStartBotConversation.Parameters.Configu
 import cloud.cleo.chimesma.model.ResponseStartBotConversation.Parameters.Configuration.SessionState.DialogAction;
 import cloud.cleo.chimesma.model.ResponseStartBotConversation.Parameters.Configuration.WelcomeMessage;
 import cloud.cleo.chimesma.model.ResponseStartBotConversation.TextType;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -87,12 +86,12 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
     }
 
     public String getIntent() {
-        String intent = "";
+        String intent = "NULL";
         try {
-            final var intentResult = getEvent().getActionData().get("IntentResult");
-            if (intentResult != null) {
-                JsonNode json = mapper.valueToTree(intentResult);
-                intent = json.findValue("SessionState").findValue("Intent").findValue("Name").asText();
+            final var ad = getEvent().getActionData();
+            if ( ad instanceof ActionDataStartBotConversation ) {
+                intent = ((ActionDataStartBotConversation) ad).getIntentResult()
+                        .getSessionState().getIntent().getName();
             }
         } catch (Exception e) {
             log.error("Error getting Intent from Event reponse", e);

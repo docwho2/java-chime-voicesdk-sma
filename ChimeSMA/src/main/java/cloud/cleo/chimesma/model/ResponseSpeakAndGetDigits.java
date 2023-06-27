@@ -4,7 +4,7 @@
  */
 package cloud.cleo.chimesma.model;
 
-
+import cloud.cleo.chimesma.actions.ReceivedDigits;
 import cloud.cleo.chimesma.model.ResponseSpeak.Engine;
 import cloud.cleo.chimesma.model.ResponseSpeak.TextType;
 import cloud.cleo.chimesma.model.ResponseSpeak.VoiceId;
@@ -17,8 +17,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
-
 /**
  *
  * @author sjensen
@@ -27,12 +25,17 @@ import lombok.NoArgsConstructor;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResponseSpeakAndGetDigits implements ResponseAction, Serializable {
+public class ResponseSpeakAndGetDigits implements ResponseAction, ReceivedDigits, Serializable {
 
     private final ResponseActionType type = ResponseActionType.SpeakAndGetDigits;
 
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
+
+    // This is used for the incoming ActionData
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    @JsonProperty(value = "ReceivedDigits", access = JsonProperty.Access.WRITE_ONLY)
+    private String receivedDigits;
 
     @Data
     @Builder(setterPrefix = "with")
@@ -52,8 +55,7 @@ public class ResponseSpeakAndGetDigits implements ResponseAction, Serializable {
 
         @JsonProperty(value = "FailureSpeechParameters")
         private SpeechParameter failureSpeechParameters;
-        
-        
+
         @JsonProperty(value = "MinNumberOfDigits")
         private Integer minNumberOfDigits;
 
@@ -65,13 +67,12 @@ public class ResponseSpeakAndGetDigits implements ResponseAction, Serializable {
 
         @JsonProperty(value = "InBetweenDigitsDurationInMilliseconds")
         private Integer inBetweenDigitsDurationInMilliseconds;
-        
+
         @JsonProperty(value = "Repeat")
         private Integer repeat;
-        
+
         @JsonProperty(value = "RepeatDurationInMilliseconds")
         private Integer repeatDurationInMilliseconds;
-        
 
         @Data
         @Builder(setterPrefix = "with")
@@ -85,16 +86,16 @@ public class ResponseSpeakAndGetDigits implements ResponseAction, Serializable {
 
             @JsonProperty(value = "Engine")
             private Engine engine;
-            
+
             @JsonProperty(value = "LanguageCode")
             private String languageCode;
-            
+
             @JsonProperty(value = "TextType")
             private TextType textType;
-            
+
             @JsonProperty(value = "VoiceId")
             private VoiceId voiceId;
-            
+
         }
     }
 

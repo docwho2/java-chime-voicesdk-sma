@@ -28,4 +28,6 @@ package cloud.cleo.chimesma.model;
     // Chime Meetings
     JoinChimeMeeting,
     ModifyChimeMeetingAttendees,
+    // Call Updates
+    CallUpdateRequest
 }

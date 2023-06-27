@@ -7,6 +7,7 @@ package cloud.cleo.chimesma.actions;
 import static cloud.cleo.chimesma.actions.ReceiveDigitsAction.RECEIVE_DIGITS_ID;
 
 import cloud.cleo.chimesma.model.*;
+import static cloud.cleo.chimesma.model.ParticipantTag.LEG_B;
 import static cloud.cleo.chimesma.model.SMARequest.SMAEventType.*;
 import cloud.cleo.chimesma.model.SMARequest.Status;
 import static cloud.cleo.chimesma.model.SMARequest.Status.*;
@@ -206,9 +207,9 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                     if (action instanceof CallAndBridgeAction) {
 
                         final var attrs = action.getTransactionAttributes();
-                        final var hangupB = event.getActionData().get("Type").equals("Hangup")
-                                && ((Map<String, Object>) event.getActionData().get("Parameters")).get("ParticipantTag").equals("LEG-B");
-
+                        final var hangupB = event.getActionData().getType().equals(ResponseActionType.Hangup)
+                                && ((ResponseHangup)event.getActionData()).getParameters().getParticipantTag().equals(LEG_B);
+                        
                         if (hangupB) {
                             log.debug("Diconnect on leg B associated with Disconnect and Transfer");
                             ((CallAndBridgeAction) action).setUri((String) attrs.get("transferNumber"));
@@ -229,10 +230,9 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                         action.getTransactionAttributes().put("LexLastMatchedIntent", sbaction.getIntent());
                         res = defaultResponse(action, event);
                     } else if (action instanceof StartCallRecordingAction) {
-                        final var crd = (Map<String,Object>) event.getActionData().get("CallRecordingDestination");
-                        final var loc = crd.get("Location");
+                        var loc = ((ResponseStartCallRecording)event.getActionData()).getCallRecordingDestination().getLocation();
                         log.debug("Start Call Recording SUCCESS with file " + loc);
-                        action.getTransactionAttributes().put(StartCallRecordingAction.RECORDING_FILE_LOCATION, loc.toString() );
+                        action.getTransactionAttributes().put(StartCallRecordingAction.RECORDING_FILE_LOCATION, loc );
                         res = defaultResponse(action, event);
                     } else {
                         res = defaultResponse(action, event);
@@ -288,18 +288,17 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                     action = getCurrentAction(event);
                     if (action instanceof CallAndBridgeAction) {
                         final var attrs = action.getTransactionAttributes();
-
-                        final var params = event.getActionData().get("Parameters");
-                        if (params != null && params instanceof Map) {
-                            final var args = ((Map) params).get("Arguments");
-                            if (args != null && args instanceof Map) {
-                                final var phoneNumber = ((Map) args).get("phoneNumber");
-                                if (phoneNumber != null) {
-                                    log.debug("Update Requested with a transfer to number of " + phoneNumber);
-                                    attrs.put("transferNumber", phoneNumber);
+                            final var params = ((ActionDataCallUpdateRequest)event.getActionData()).getParameters();
+                            if (params != null ) {
+                                final var args = params.getArguments();
+                                if (args != null ) {
+                                    final var phoneNumber = args.get("phoneNumber");
+                                    if (phoneNumber != null) {
+                                        log.debug("Update Requested with a transfer to number of " + phoneNumber);
+                                        attrs.put("transferNumber", phoneNumber);
+                                    }
                                 }
                             }
-                        }
                         // Disconnect leg B
                         final var diconnectLegB = ResponseHangup.builder().withParameters(ResponseHangup.Parameters.builder().withParticipantTag(ParticipantTag.LEG_B).build()).build();
                         res = SMAResponse.builder()

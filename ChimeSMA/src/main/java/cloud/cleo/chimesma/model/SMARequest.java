@@ -5,6 +5,8 @@
 package cloud.cleo.chimesma.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.util.StdConverter;
 import lombok.AllArgsConstructor;
@@ -44,8 +46,29 @@ public class SMARequest implements Serializable {
     @JsonProperty("ErrorMessage")
     private String errorMessage;
 
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "Type")
+    @JsonSubTypes({
+        @JsonSubTypes.Type(value = ResponseCallAndBridge.class, name = "CallAndBridge"),
+        @JsonSubTypes.Type(value = ResponseHangup.class, name = "Hangup"),
+        @JsonSubTypes.Type(value = ResponseJoinChimeMeeting.class, name = "JoinChimeMeeting"),
+        @JsonSubTypes.Type(value = ResponseModifyChimeMeetingAttendees.class, name = "ModifyChimeMeetingAttendees"),
+        @JsonSubTypes.Type(value = ResponsePause.class, name = "Pause"),
+        @JsonSubTypes.Type(value = ResponsePauseCallRecording.class, name = "PauseCallRecording"),
+        @JsonSubTypes.Type(value = ResponsePlayAudio.class, name = "PlayAudio"),
+        @JsonSubTypes.Type(value = ResponsePlayAudioAndGetDigits.class, name = "PlayAudioAndGetDigits"),
+        @JsonSubTypes.Type(value = ResponseReceiveDigits.class, name = "ReceiveDigits"),
+        @JsonSubTypes.Type(value = ResponseRecordAudio.class, name = "RecordAudio"),
+        @JsonSubTypes.Type(value = ResponseResumeCallRecording.class, name = "ResumeCallRecording"),
+        @JsonSubTypes.Type(value = ResponseSendDigits.class, name = "SendDigits"),
+        @JsonSubTypes.Type(value = ResponseSpeak.class, name = "Speak"),
+        @JsonSubTypes.Type(value = ResponseSpeakAndGetDigits.class, name = "SpeakAndGetDigits"),
+        @JsonSubTypes.Type(value = ActionDataStartBotConversation.class, name = "StartBotConversation"),
+        @JsonSubTypes.Type(value = ResponseStartCallRecording.class, name = "StartCallRecording"),
+        @JsonSubTypes.Type(value = ResponseStopCallRecording.class, name = "StopCallRecording"),
+        @JsonSubTypes.Type(value = ActionDataCallUpdateRequest.class, name = "CallUpdateRequest")
+    })
     @JsonProperty("ActionData")
-    private Map<String, Object> actionData;
+    private ResponseAction actionData;
 
     @Data
     @Builder(setterPrefix = "with")
