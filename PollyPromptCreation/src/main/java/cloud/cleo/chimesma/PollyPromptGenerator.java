@@ -70,7 +70,7 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
                     .voiceId(voice_id)
                     .sampleRate("8000")
                     .outputFormat(OutputFormat.PCM)
-                    .textType(name.contains("<speak>") ? TextType.SSML : TextType.TEXT)
+                    .textType(text.toLowerCase().contains("<speak>") ? TextType.SSML : TextType.TEXT)
                     .text(text).build();
 
             final var por = PutObjectRequest.builder()
