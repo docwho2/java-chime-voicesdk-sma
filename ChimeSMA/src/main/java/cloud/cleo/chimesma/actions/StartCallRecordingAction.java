@@ -6,28 +6,32 @@ package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.*;
 import cloud.cleo.chimesma.model.ResponseStartCallRecording.Track;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  *
  * @author sjensen
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(setterPrefix = "with")
 public class StartCallRecordingAction extends Action<StartCallRecordingAction,ResponseStartCallRecording> {
 
     // Key to store the the recording file in the Transaction Attributes
     public final static String RECORDING_FILE_LOCATION = "RecordingFileLocation";
     
-    protected Track track;
+    @Builder.Default
+    protected Track track = Track.BOTH;
+    
+    @Builder.Default
     protected String location = System.getenv("RECORD_BUCKET");
+    
+    @Builder.Default
     protected Boolean storeLocation = false;
 
     @Override
-    public ResponseAction getResponse() {
+    protected ResponseAction getResponse() {
         final var dest = ResponseStartCallRecording.Destination.builder()
                 .withLocation(location)
                 .build();
@@ -63,40 +67,7 @@ public class StartCallRecordingAction extends Action<StartCallRecordingAction,Re
         }
         return sb;       
     }
-
-    public static StartCallRecordingActionBuilder builder() {
-        return new StartCallRecordingActionBuilder();
-    }
-
-    @NoArgsConstructor
-    public static class StartCallRecordingActionBuilder extends ActionBuilder<StartCallRecordingActionBuilder, StartCallRecordingAction> {
-
-        private Track track;
-        private String location = System.getenv("RECORD_BUCKET");
-        private Boolean storeLocation = false;
-
-        public StartCallRecordingActionBuilder withTrack(Track value) {
-            this.track = value;
-            return this;
-        }
-
-        public StartCallRecordingActionBuilder withLocation(String value) {
-            this.location = value;
-            return this;
-        }
-        
-        public StartCallRecordingActionBuilder withStoreLocation() {
-            this.storeLocation = true;
-            return this;
-        }
-
-        @Override
-        protected StartCallRecordingAction buildImpl() {
-            return new StartCallRecordingAction(track, location,storeLocation);
-        }
-
-    }
-
+    
     @Override
     public ResponseActionType getActionType() {
         return ResponseActionType.StartCallRecording;

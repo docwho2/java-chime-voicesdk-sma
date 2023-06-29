@@ -11,27 +11,34 @@ import cloud.cleo.chimesma.model.ResponseSpeak;
 import cloud.cleo.chimesma.model.ResponseSpeak.Engine;
 import cloud.cleo.chimesma.model.ResponseSpeak.VoiceId;
 import java.util.function.Function;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 /**
  *
  * @author sjensen
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(setterPrefix = "with")
 public class SpeakAction extends Action<SpeakAction,ResponseSpeak> {
 
+    /**
+     * The text you want to Speak!
+     */
     protected String text;
+    /**
+     * The function you want to generate the text
+     */
     protected Function<SpeakAction, String> textFunction;
 
     protected Engine engine;
     protected VoiceId voiceId;
 
     @Override
-    public ResponseAction getResponse() {
+    protected ResponseAction getResponse() {
         var myContent = textFunction != null ? textFunction.apply(this) : text;
         final var params = ResponseSpeak.Parameters.builder()
                 .withCallId(getCallId())
@@ -73,44 +80,6 @@ public class SpeakAction extends Action<SpeakAction,ResponseSpeak> {
         }
 
         return sb;
-    }
-
-    public static SpeakActionBuilder builder() {
-        return new SpeakActionBuilder();
-    }
-
-    @NoArgsConstructor
-    public static class SpeakActionBuilder extends ActionBuilder<SpeakActionBuilder, SpeakAction> {
-
-        private String text;
-        private Function<SpeakAction, String> textFunction;
-        private Engine engine;
-        private VoiceId voiceId;
-
-        public SpeakActionBuilder withText(String text) {
-            this.text = text;
-            return this;
-        }
-
-        public SpeakActionBuilder withText(Function<SpeakAction, String> text) {
-            this.textFunction = text;
-            return this;
-        }
-
-        public SpeakActionBuilder withEngine(Engine text) {
-            this.engine = text;
-            return this;
-        }
-
-        public SpeakActionBuilder withVoiceId(VoiceId voiceId) {
-            this.voiceId = voiceId;
-            return this;
-        }
-
-        @Override
-        protected SpeakAction buildImpl() {
-            return new SpeakAction(text, textFunction, engine, voiceId);
-        }
     }
 
 }

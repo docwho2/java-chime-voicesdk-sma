@@ -7,28 +7,30 @@ package cloud.cleo.chimesma.actions;
 import cloud.cleo.chimesma.model.*;
 import java.util.List;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  *
  * @author sjensen
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(setterPrefix = "with")
 public class PlayAudioAction extends Action<PlayAudioAction,ResponsePlayAudio> {
 
     protected ParticipantTag participantTag;
     protected List<Character> playbackTerminators;
     protected Integer repeat;
 
+     @Builder.Default
     protected String bucketName = System.getenv("PROMPT_BUCKET");
     protected String key;
     protected String keyLocale;
 
     @Override
-    public ResponseAction getResponse() {
+    protected ResponseAction getResponse() {
         final String myKey;
         if ( keyLocale != null ) {
             myKey = keyLocale + "-" + getLocale().toLanguageTag() + ".wav";
@@ -68,57 +70,6 @@ public class PlayAudioAction extends Action<PlayAudioAction,ResponsePlayAudio> {
         }
         
         return sb;       
-    }
-
-    public static PlayAudioActionBuilder builder() {
-        return new PlayAudioActionBuilder();
-    }
-
-    @NoArgsConstructor
-    public static class PlayAudioActionBuilder extends ActionBuilder<PlayAudioActionBuilder, PlayAudioAction> {
-
-        protected ParticipantTag participantTag;
-        protected List<Character> playbackTerminators;
-        protected Integer repeat;
-
-        protected String bucketName = System.getenv("PROMPT_BUCKET");
-        protected String key;
-        protected String keyLocale;
-
-        public PlayAudioActionBuilder withParticipantTag(ParticipantTag value) {
-            this.participantTag = value;
-            return this;
-        }
-
-        public PlayAudioActionBuilder withPlaybackTerminators(List<Character> value) {
-            this.playbackTerminators = value;
-            return this;
-        }
-
-        public PlayAudioActionBuilder withRepeat(Integer value) {
-            this.repeat = value;
-            return this;
-        }
-
-        public PlayAudioActionBuilder withBucketName(String value) {
-            this.bucketName = value;
-            return this;
-        }
-
-        public PlayAudioActionBuilder withKey(String value) {
-            this.key = value;
-            return this;
-        }
-        
-        public PlayAudioActionBuilder withKeyLocale(String value) {
-            this.keyLocale = value;
-            return this;
-        }
-
-        @Override
-        protected PlayAudioAction buildImpl() {
-            return new PlayAudioAction(participantTag, playbackTerminators, repeat, bucketName, key, keyLocale);
-        }
     }
 
     @Override

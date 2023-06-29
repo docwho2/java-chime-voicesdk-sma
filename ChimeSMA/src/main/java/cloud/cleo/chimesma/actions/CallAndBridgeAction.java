@@ -10,48 +10,60 @@ import cloud.cleo.chimesma.model.ResponseCallAndBridge;
 import cloud.cleo.chimesma.model.ResponsePlayAudio;
 import java.util.List;
 import java.util.Map;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  *
  * @author sjensen
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class CallAndBridgeAction extends Action<CallAndBridgeAction,ResponseCallAndBridge> {
+@SuperBuilder(setterPrefix = "with")
+public class CallAndBridgeAction extends Action<CallAndBridgeAction, ResponseCallAndBridge> {
 
+    /**
+     * Description – The interval before a call times out. The timer starts at call setup.
+     *
+     * Allowed values – Between 1 and 120, inclusive
+     * Required – No
+     * Default value – 30
+     *
+     */
     protected Integer callTimeoutSeconds;
     protected String callerIdNumber;
 
     protected Map<String, String> sipHeaders;
 
+    @Builder.Default
     protected ResponseCallAndBridge.BridgeEndpointType bridgeEndpointType = ResponseCallAndBridge.BridgeEndpointType.PSTN;
     protected String arn;
     protected String uri;
 
     // RingbackTone
-    protected String bucketName = System.getenv("PROMPT_BUCKET");
-    protected String key;
-    protected String keyLocale;
-
+    @Builder.Default
+    protected String ringbackToneBucketName = System.getenv("PROMPT_BUCKET");
+    /**
+     * The Key !
+     */
+    protected String ringbackToneKey;
+    protected String ringbackToneKeyLocale;
+    
     @Override
-    public ResponseAction getResponse() {
+    protected ResponseAction getResponse() {
 
         ResponsePlayAudio.AudioSource audioSource = null;
-        if ((getKey() != null || getKeyLocale() != null) && getBucketName() != null) {
+        if ((getRingbackToneKey() != null || getRingbackToneKeyLocale() != null) && getRingbackToneBucketName() != null) {
 
             final String myKey;
-            if (getKeyLocale() != null) {
-                myKey = getKeyLocale() + "-" + getLocale().toLanguageTag() + ".wav";
+            if (getRingbackToneKeyLocale() != null) {
+                myKey = getRingbackToneKeyLocale() + "-" + getLocale().toLanguageTag() + ".wav";
             } else {
-                myKey = getKey();
+                myKey = getRingbackToneKey();
             }
 
             audioSource = ResponsePlayAudio.AudioSource.builder()
-                    .withBucketName(getBucketName())
+                    .withBucketName(getRingbackToneBucketName())
                     .withKey(myKey)
                     .build();
         }
@@ -64,7 +76,7 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction,ResponseCall
 
         if (getCallerIdNumber() == null) {
             // Set to from Number if not provided
-            setCallerIdNumber( getEvent().getCallDetails().getParticipants().get(0).getFrom());
+            setCallerIdNumber(getEvent().getCallDetails().getParticipants().get(0).getFrom());
         }
 
         final var params = ResponseCallAndBridge.Parameters.builder()
@@ -81,76 +93,6 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction,ResponseCall
     protected StringBuilder getDebugSummary() {
         return super.getDebugSummary()
                 .append(" [").append(getUri()).append(']');
-    }
-
-    public static CallAndBridgeActionBuilder builder() {
-        return new CallAndBridgeActionBuilder();
-    }
-
-    @NoArgsConstructor
-    public static class CallAndBridgeActionBuilder extends ActionBuilder<CallAndBridgeActionBuilder, CallAndBridgeAction> {
-
-        protected Integer callTimeoutSeconds;
-        protected String callerIdNumber;
-        protected Map<String, String> sipHeaders;
-
-        protected ResponseCallAndBridge.BridgeEndpointType bridgeEndpointType = ResponseCallAndBridge.BridgeEndpointType.PSTN;
-        protected String arn;
-        protected String uri;
-
-        protected String bucketName = System.getenv("PROMPT_BUCKET");
-        protected String key;
-        protected String keyLocale;
-
-        public CallAndBridgeActionBuilder withCallTimeoutSeconds(Integer value) {
-            this.callTimeoutSeconds = value;
-            return this;
-        }
-
-        public CallAndBridgeActionBuilder withCallerIdNumber(String value) {
-            this.callerIdNumber = value;
-            return this;
-        }
-
-        public CallAndBridgeActionBuilder withSipHeaders(Map<String, String> value) {
-            this.sipHeaders = value;
-            return this;
-        }
-
-        public CallAndBridgeActionBuilder withBridgeEndpointType(ResponseCallAndBridge.BridgeEndpointType value) {
-            this.bridgeEndpointType = value;
-            return this;
-        }
-
-        public CallAndBridgeActionBuilder withArn(String value) {
-            this.arn = value;
-            return this;
-        }
-
-        public CallAndBridgeActionBuilder withUri(String value) {
-            this.uri = value;
-            return this;
-        }
-
-        public CallAndBridgeActionBuilder withRingbackToneBucketName(String value) {
-            this.bucketName = value;
-            return this;
-        }
-
-        public CallAndBridgeActionBuilder withRingbackToneKey(String value) {
-            this.key = value;
-            return this;
-        }
-
-        public CallAndBridgeActionBuilder withRingbackToneKeyLocale(String value) {
-            this.keyLocale = value;
-            return this;
-        }
-
-        @Override
-        protected CallAndBridgeAction buildImpl() {
-            return new CallAndBridgeAction(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key, keyLocale);
-        }
     }
 
     @Override

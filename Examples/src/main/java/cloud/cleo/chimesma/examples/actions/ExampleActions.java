@@ -49,7 +49,7 @@ public class ExampleActions extends AbstractFlow {
          * This will say the current time when the flow executes per call since it is evaluated in the flow
          */
         SpeakAction.builder()
-                .withText(action -> "Hello the time is " + LocalTime.now().truncatedTo(MINUTES).format(DateTimeFormatter.ISO_LOCAL_TIME));
+                .withTextFunction(action -> "Hello the time is " + LocalTime.now().truncatedTo(MINUTES).format(DateTimeFormatter.ISO_LOCAL_TIME));
 
         /**
          * This is OK, no need to use a function because the region can never change
@@ -65,7 +65,7 @@ public class ExampleActions extends AbstractFlow {
                 .withRepeat(2)
                 .withSpeechParameters(SpeechParameters.builder().withText("Pleast enter One or Two").build())
                 .withFailureSpeechParameters(SpeechParameters.builder().withText("Pleast try again").build())
-                .withNextAction((a) -> {
+                .withNextActionFunction((a) -> {
                     switch (a.getReceivedDigits()) {
                         case "1":
                             return SpeakAction.builder().withText("You Pressed One !").build();
@@ -84,7 +84,7 @@ public class ExampleActions extends AbstractFlow {
                 .withRepeat(2)
                 .withSpeechParameters(SpeechParameters.builder().withText("Pleast enter One or Two").build())
                 .withFailureSpeechParameters(SpeechParameters.builder().withText("Pleast try again").build())
-                .withNextAction((a) -> {
+                .withNextActionFunction((a) -> {
                     String pressed;
                     switch (a.getReceivedDigits()) {
                         case "1":
@@ -96,7 +96,7 @@ public class ExampleActions extends AbstractFlow {
                         default:
                             pressed = "nothing";
                     }
-                    return SpeakAction.builder().withText(ac -> "You Pressed " + pressed).build();
+                    return SpeakAction.builder().withTextFunction(ac -> "You Pressed " + pressed).build();
                 });
 
         // Another more concise variation
@@ -107,8 +107,8 @@ public class ExampleActions extends AbstractFlow {
                 .withRepeat(2)
                 .withSpeechParameters(SpeechParameters.builder().withText("Pleast enter One or Two").build())
                 .withFailureSpeechParameters(SpeechParameters.builder().withText("Pleast try again").build())
-                .withNextAction((a) -> {
-                    return SpeakAction.builder().withText(ac -> "You Pressed " + (a.getReceivedDigits().isBlank() ? "Nothing" : a.getReceivedDigits())).build();
+                .withNextActionFunction((a) -> {
+                    return SpeakAction.builder().withTextFunction(ac -> "You Pressed " + (a.getReceivedDigits().isBlank() ? "Nothing" : a.getReceivedDigits())).build();
                 });
 
         /**
@@ -117,7 +117,7 @@ public class ExampleActions extends AbstractFlow {
          */
         StartBotConversationAction.builder()
                 .withContent("Welcome to the Bot, how can I help you today?")
-                .withNextAction((a) -> {
+                .withNextActionFunction((a) -> {
                     switch (a.getIntentName()) {
                         case "Quit":
                             return SpeakAction.builder().withText("Thanks for calling, goodbye").build();
@@ -142,7 +142,7 @@ public class ExampleActions extends AbstractFlow {
          */
         StartBotConversationAction.builder()
                 .withContent("Welcome to the Bot, how can I help you today?")
-                .withNextAction((a) -> {
+                .withNextActionFunction((a) -> {
                     final var startTime = a.getEvent().getCallDetails().getParticipants().get(0).getStartTime();
                     if (Duration.between(startTime, Instant.now()).compareTo(Duration.ofMinutes(5)) > 0) {
                         // Caller is has been here over 5 minutes, eject them
@@ -193,13 +193,13 @@ public class ExampleActions extends AbstractFlow {
          */
         StartBotConversationAction.builder()
                 .withContent("Welcome to the Bot, how can I help you today?")
-                .withNextAction(new LogicFunction());        
+                .withNextActionFunction(new LogicFunction());        
         
         /**
          * Use a class that takes a parameter
          */
         SpeakAction.builder().withText("Thanks for calling, You will be hung up on or transferred")
-                .withNextAction(new HangupOrTransferFunction("+18004444444"));        
+                .withNextActionFunction(new HangupOrTransferFunction("+18004444444"));        
        
 
         return new HangupAction();

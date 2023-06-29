@@ -7,34 +7,22 @@ package cloud.cleo.chimesma.actions;
 import cloud.cleo.chimesma.model.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  *
  * @author sjensen
  */
 @Data
+@SuperBuilder(setterPrefix = "with")
 @NoArgsConstructor
 public class PauseCallRecordingAction extends Action<PauseCallRecordingAction,ResponsePauseCallRecording> {
 
 
     @Override
-    public ResponseAction getResponse() {
+    protected ResponseAction getResponse() {
         return ResponsePauseCallRecording.builder()
                 .withParameters(ResponsePauseCallRecording.Parameters.builder().withCallId(getCallId()).build()).build();
-    }
-
-    public static PauseCallRecordingActionBuilder builder() {
-        return new PauseCallRecordingActionBuilder();
-    }
-
-    @NoArgsConstructor
-    public static class PauseCallRecordingActionBuilder extends ActionBuilder<PauseCallRecordingActionBuilder, PauseCallRecordingAction> {
-
-        @Override
-        protected PauseCallRecordingAction buildImpl() {
-            return new PauseCallRecordingAction();
-        }
-
     }
 
     @Override

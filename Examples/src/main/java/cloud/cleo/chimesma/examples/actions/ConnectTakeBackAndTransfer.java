@@ -30,12 +30,14 @@ public class ConnectTakeBackAndTransfer extends AbstractFlow  {
                 .withArn("+18004444444") // This would be a phone number that goes to AWS Connect
                 .build();
         
+        
+        
         /**
          * A simple bot definition that has an "Agent" intent that will then trigger a call out to AWS Connect
          */
         final var bot = StartBotConversationAction.builder()
                 .withContent("Welcome, how can I can I help today?")
-                .withNextAction((a) -> {
+                .withNextActionFunction((a) -> {
                     switch (a.getIntentName()) {
                         case "Quit":
                             return SpeakAction.builder().withText("Thanks for calling, goodbye").build();

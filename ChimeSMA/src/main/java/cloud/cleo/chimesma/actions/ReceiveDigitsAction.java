@@ -5,17 +5,16 @@
 package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  *
  * @author sjensen
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(setterPrefix = "with")
 public class ReceiveDigitsAction extends Action<ReceiveDigitsAction,ResponseReceiveDigits> implements ReceivedDigits {
 
     // We will need to push our ID because we can be called anytime in the flow
@@ -50,7 +49,7 @@ public class ReceiveDigitsAction extends Action<ReceiveDigitsAction,ResponseRece
     }
     
     @Override
-    public ResponseAction getResponse() {
+    protected ResponseAction getResponse() {
         final var params = ResponseReceiveDigits.Parameters.builder()
                 .withCallId(getCallId())
                 .withParticipantTag(participantTag)
@@ -59,50 +58,6 @@ public class ReceiveDigitsAction extends Action<ReceiveDigitsAction,ResponseRece
                 .withFlushDigitsDurationInMilliseconds(flushDigitsDurationInMilliseconds)
                 .build();
         return ResponseReceiveDigits.builder().withParameters(params).build();
-    }
-
-     public static ReceiveDigitsActionBuilder builder() {
-        return new ReceiveDigitsActionBuilder();
-    }
-    
-    @NoArgsConstructor
-    public static class ReceiveDigitsActionBuilder extends ActionBuilder<ReceiveDigitsActionBuilder, ReceiveDigitsAction> {
-        private Action digitsRecevedAction;
-        private ParticipantTag participantTag;
-        private String inputDigitsRegex;
-        private Integer inBetweenDigitsDurationInMilliseconds;
-        private Integer flushDigitsDurationInMilliseconds;
-
-        public ReceiveDigitsActionBuilder withDigitsRecevedAction(Action action) {
-            this.digitsRecevedAction = action;
-            return this;
-        }
-        
-        public ReceiveDigitsActionBuilder withParticipantTag(ParticipantTag value) {
-            this.participantTag = value;
-            return this;
-        }
-
-        public ReceiveDigitsActionBuilder withInputDigitsRegex(String value) {
-            this.inputDigitsRegex = value;
-            return this;
-        }
-
-        public ReceiveDigitsActionBuilder withInBetweenDigitsDurationInMilliseconds(Integer value) {
-            this.inBetweenDigitsDurationInMilliseconds = value;
-            return this;
-        }
-
-        public ReceiveDigitsActionBuilder withFlushDigitsDurationInMilliseconds(Integer value) {
-            this.flushDigitsDurationInMilliseconds = value;
-            return this;
-        }
-        
-        @Override
-        protected ReceiveDigitsAction buildImpl() {
-            return new ReceiveDigitsAction(digitsRecevedAction, participantTag, inputDigitsRegex, inBetweenDigitsDurationInMilliseconds, flushDigitsDurationInMilliseconds);
-        }
-
     }
 
     @Override

@@ -110,12 +110,16 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
         private String voiceId;
     }
 
-    protected synchronized final static void registerAction(Action action) {
+    protected synchronized final static Integer registerAction(Action action) {
         if (!actSet.contains(action)) {
             actSet.add(action);
-            action.setId(idCounter);
-            actions.put(idCounter++, action);
+            log.debug("Registering ID  " + idCounter + " as " + action.getClass().getName());
+            actions.put(idCounter, action);
+            return idCounter++;
+        } else {
+            log.error("ACTION ALREADY REGISTERED");
         }
+        return 0;
     }
 
     protected abstract Action getInitialAction();

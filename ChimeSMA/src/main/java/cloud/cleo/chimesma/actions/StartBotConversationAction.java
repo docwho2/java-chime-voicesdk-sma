@@ -9,20 +9,20 @@ import cloud.cleo.chimesma.model.ResponseStartBotConversation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  *
  * @author sjensen
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(setterPrefix = "with")
 public class StartBotConversationAction extends Action<StartBotConversationAction, ActionDataStartBotConversation> {
 
     protected ParticipantTag participantTag;
+    @Builder.Default
     protected String botAliasArn = System.getenv("BOT_ALIAS_ARN");
 
     protected Map<String, String> sessionAttributes;
@@ -35,7 +35,7 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
     protected TextType contentType = TextType.PlainText;
 
     @Override
-    public ResponseAction getResponse() {
+    protected ResponseAction getResponse() {
 
         String myContent = null;
         if (content != null || contentFunction != null) {
@@ -130,62 +130,6 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
 
         return sb;
 
-    }
-
-    public static StartBotConversationActionBuilder builder() {
-        return new StartBotConversationActionBuilder();
-    }
-
-    @NoArgsConstructor
-    public static class StartBotConversationActionBuilder extends ActionBuilder<StartBotConversationActionBuilder, StartBotConversationAction> {
-
-        private ParticipantTag participantTag;
-        private String botAliasArn = System.getenv("BOT_ALIAS_ARN");
-        private Map<String, String> sessionAttributes;
-        private DialogActionType dialogActionType = ResponseStartBotConversation.DialogActionType.ElicitIntent;
-        private String content;
-        private Function<StartBotConversationAction, String> contentFunction;
-        private TextType contentType = TextType.PlainText;
-
-        public StartBotConversationActionBuilder withParticipantTag(ParticipantTag value) {
-            this.participantTag = value;
-            return this;
-        }
-
-        public StartBotConversationActionBuilder withBotAliasArn(String value) {
-            this.botAliasArn = value;
-            return this;
-        }
-
-        public StartBotConversationActionBuilder withSessionAttributes(Map<String, String> value) {
-            this.sessionAttributes = value;
-            return this;
-        }
-
-        public StartBotConversationActionBuilder withDialogActionType(DialogActionType value) {
-            this.dialogActionType = value;
-            return this;
-        }
-
-        public StartBotConversationActionBuilder withContent(String value) {
-            this.content = value;
-            return this;
-        }
-
-        public StartBotConversationActionBuilder withContent(Function<StartBotConversationAction, String> value) {
-            this.contentFunction = value;
-            return this;
-        }
-
-        public StartBotConversationActionBuilder withContentType(TextType value) {
-            this.contentType = value;
-            return this;
-        }
-
-        @Override
-        protected StartBotConversationAction buildImpl() {
-            return new StartBotConversationAction(participantTag, botAliasArn, sessionAttributes, dialogActionType, content, contentFunction, contentType);
-        }
     }
 
     /**

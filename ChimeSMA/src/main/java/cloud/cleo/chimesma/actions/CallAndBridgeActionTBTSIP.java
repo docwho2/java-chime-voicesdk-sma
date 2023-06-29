@@ -8,23 +8,22 @@ import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseCallAndBridge;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  * Special Call and Bridge Action that also populates SIP headers with SMA call details 
  * 
  * @author sjensen
  */
-@NoArgsConstructor
+@Data
+@SuperBuilder(setterPrefix = "with")
 public class CallAndBridgeActionTBTSIP extends CallAndBridgeAction {
-
-    public CallAndBridgeActionTBTSIP(Integer callTimeoutSeconds, String callerIdNumber, Map<String, String> sipHeaders, ResponseCallAndBridge.BridgeEndpointType bridgeEndpointType, String arn, String uri, String bucketName, String key, String keyLocale) {
-        super(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key, keyLocale);
-    }
 
     
     @Override
-    public ResponseAction getResponse() {
+    protected ResponseAction getResponse() {
         final var cd = getEvent().getCallDetails();
 
         var sh = getSipHeaders();
@@ -40,18 +39,5 @@ public class CallAndBridgeActionTBTSIP extends CallAndBridgeAction {
 
         return super.getResponse();
     }
-    
-    public static CallAndBridgeActionTBTSIPBuilder builder() {
-        return new CallAndBridgeActionTBTSIPBuilder();
-    }
-    
-    public static class CallAndBridgeActionTBTSIPBuilder extends CallAndBridgeActionBuilder {
-        
-        @Override
-        protected CallAndBridgeActionTBTSIP buildImpl() {
-            return new CallAndBridgeActionTBTSIP(callTimeoutSeconds, callerIdNumber, sipHeaders, bridgeEndpointType, arn, uri, bucketName, key, keyLocale);
-        }
-    }
-
 
 }

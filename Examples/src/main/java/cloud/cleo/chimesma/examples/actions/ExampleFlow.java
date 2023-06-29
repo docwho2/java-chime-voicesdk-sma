@@ -78,7 +78,7 @@ public class ExampleFlow extends AbstractFlow {
         final var chatGptBot = StartBotConversationAction.builder()
                 .withDescription("ChatGPT Bot")
                 .withBotAliasArn(System.getenv("CHATGPT_BOT_ALIAS_ARN"))
-                .withContent(f -> "The region is " + System.getenv("AWS_REGION").replace("-", " ").toUpperCase() + ". What can I help you with?")
+                .withContentFunction(f -> "The region is " + System.getenv("AWS_REGION").replace("-", " ").toUpperCase() + ". What can I help you with?")
                 .build();
        
         
@@ -97,7 +97,7 @@ public class ExampleFlow extends AbstractFlow {
         final var lexBot = StartBotConversationAction.builder()
                 .withDescription("Main Bot")
                 .withContent("What can I help you with?")
-                .withNextAction(a -> {
+                .withNextActionFunction(a -> {
                     switch (a.getIntentName()) {
                         case "Weather":
                             return weatherBot;
@@ -151,7 +151,7 @@ public class ExampleFlow extends AbstractFlow {
         
         final var startRecording = StartCallRecordingAction.builder()
                 .withTrack(ResponseStartCallRecording.Track.BOTH)
-                .withStoreLocation()
+                .withStoreLocation(Boolean.TRUE)
                 .withNextAction(region)
                 .build();
         

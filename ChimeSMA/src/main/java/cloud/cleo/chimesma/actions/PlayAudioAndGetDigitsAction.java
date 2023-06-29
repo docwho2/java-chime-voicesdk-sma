@@ -12,14 +12,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  *
  * @author sjensen
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(setterPrefix = "with")
 public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAction,ResponsePlayAudioAndGetDigits> implements ReceivedDigits {
 
     protected ParticipantTag participantTag;
@@ -36,7 +36,7 @@ public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAct
     protected Integer repeatDurationInMilliseconds;
 
     @Override
-    public ResponseAction getResponse() {
+    protected ResponseAction getResponse() {
 
         final List<AudioSource> resp = new LinkedList<>();
         for (final AudioSourceLocale as : List.of(audioSource, failureAudioSource)) {
@@ -86,81 +86,7 @@ public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAct
                 .append(" [").append(getInputDigitsRegex()).append(']');
     }
 
-    public static PlayAudioAndGetDigitsActionBuilder builder() {
-        return new PlayAudioAndGetDigitsActionBuilder();
-    }
-
-    @NoArgsConstructor
-    public static class PlayAudioAndGetDigitsActionBuilder extends ActionBuilder<PlayAudioAndGetDigitsActionBuilder, PlayAudioAndGetDigitsAction> {
-
-        private ParticipantTag participantTag;
-
-        private String inputDigitsRegex;
-        AudioSourceLocale audioSource;
-        AudioSourceLocale failureAudioSource;
-
-        private Integer minNumberOfDigits;
-        private Integer maxNumberOfDigits;
-        private List<Character> terminatorDigits;
-        private Integer inBetweenDigitsDurationInMilliseconds;
-        private Integer repeat;
-        private Integer repeatDurationInMilliseconds;
-
-        public PlayAudioAndGetDigitsActionBuilder withParticipantTag(ParticipantTag value) {
-            this.participantTag = value;
-            return this;
-        }
-
-        public PlayAudioAndGetDigitsActionBuilder withInputDigitsRegex(String text) {
-            this.inputDigitsRegex = text;
-            return this;
-        }
-
-        public PlayAudioAndGetDigitsActionBuilder withAudioSource(AudioSourceLocale value) {
-            this.audioSource = value;
-            return this;
-        }
-
-        public PlayAudioAndGetDigitsActionBuilder withFailureAudioSource(AudioSourceLocale value) {
-            this.failureAudioSource = value;
-            return this;
-        }
-
-        public PlayAudioAndGetDigitsActionBuilder withMinNumberOfDigits(Integer value) {
-            this.minNumberOfDigits = value;
-            return this;
-        }
-
-        public PlayAudioAndGetDigitsActionBuilder withMaxNumberOfDigits(Integer value) {
-            this.maxNumberOfDigits = value;
-            return this;
-        }
-
-        public PlayAudioAndGetDigitsActionBuilder withTerminatorDigits(List<Character> value) {
-            this.terminatorDigits = value;
-            return this;
-        }
-
-        public PlayAudioAndGetDigitsActionBuilder withInBetweenDigitsDurationInMilliseconds(Integer value) {
-            this.inBetweenDigitsDurationInMilliseconds = value;
-            return this;
-        }
-
-        public PlayAudioAndGetDigitsActionBuilder withRepeat(Integer value) {
-            this.repeat = value;
-            return this;
-        }
-
-        public PlayAudioAndGetDigitsActionBuilder withRepeatDurationInMilliseconds(Integer value) {
-            this.repeatDurationInMilliseconds = value;
-            return this;
-        }
-
-        @Override
-        protected PlayAudioAndGetDigitsAction buildImpl() {
-            return new PlayAudioAndGetDigitsAction(participantTag, inputDigitsRegex, audioSource, failureAudioSource, minNumberOfDigits, maxNumberOfDigits, terminatorDigits, inBetweenDigitsDurationInMilliseconds, repeat, repeatDurationInMilliseconds);
-        }
-    }
+    
 
     @Override
     public ResponseActionType getActionType() {
@@ -169,8 +95,6 @@ public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAct
 
     @Data
     @Builder(setterPrefix = "with")
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class AudioSourceLocale  {
         @Builder.Default
         private String bucketName = System.getenv("PROMPT_BUCKET");

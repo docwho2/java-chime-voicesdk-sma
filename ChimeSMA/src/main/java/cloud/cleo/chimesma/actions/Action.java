@@ -12,7 +12,11 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -23,6 +27,8 @@ import org.apache.logging.log4j.Logger;
  * @param <R>  The type that is returned in the ActionData for responses back from SMA
  */
 @Data
+@SuperBuilder(setterPrefix = "with")
+@NoArgsConstructor
 public abstract class Action<A extends Action, R extends ResponseAction> implements Cloneable {
 
     protected final static Logger log = LogManager.getLogger();
@@ -30,30 +36,36 @@ public abstract class Action<A extends Action, R extends ResponseAction> impleme
     protected final static ObjectMapper mapper = JacksonPojoSerializer.getInstance().getMapper();
 
     // Id used to track unique Java Object Actions
-    private Integer id;
+    private final Integer id = AbstractFlow.registerAction(this);
 
     // Description to use in debug logs
     private String description;
 
+    /**
+     * Call ID used to track call Legs
+     */
+    @Setter(AccessLevel.PROTECTED)
     private String callId;
     private Action nextAction;
     private Function<A, Action> nextActionFunction;
 
+    @Setter(AccessLevel.PROTECTED)
     private SMARequest event;
 
     // Always maintain a Language
     private Locale locale;
 
+    @Setter(AccessLevel.PROTECTED)
     private Map<String, Object> transactionAttributes;
-
-    public Action() {
-        // Register all Actions
-        AbstractFlow.registerAction(this);
-    }
+    
 
     protected abstract ResponseAction getResponse();
     
-    public R getActionData() {
+    /**
+     * The Action Data from SMA Response
+     * @return 
+     */
+    public final R getActionData() {
         return (R) event.getActionData();
     }
     
@@ -118,6 +130,14 @@ public abstract class Action<A extends Action, R extends ResponseAction> impleme
         ta.put(key, object);
         return ta;
     }
+    
+    public Object getTransactionAttribute(String key) {
+        return  getTransactionAttributes().get(key);
+    }
+    
+     public Object getTransactionAttributeOrDefault(String key, Object defaultValue) {
+        return  getTransactionAttributes().getOrDefault(key,defaultValue);
+    }
 
     protected String getRecievedDigitsFromAction() {
         final var ad = getEvent().getActionData();
@@ -147,54 +167,5 @@ public abstract class Action<A extends Action, R extends ResponseAction> impleme
         return ResponseSpeak.TextType.text;
     }
 
-    protected static abstract class ActionBuilder<T extends ActionBuilder, F extends Action> {
-
-        private String callId;
-        private String description;
-        private Action nextAction;
-        private Function<F, Action> nextActionFunction;
-        private Locale locale;
-
-        public T withNextAction(Action nextAction) {
-            this.nextAction = nextAction;
-            return (T) this;
-        }
-
-        public T withNextAction(Function<F, Action> nextActionFunction) {
-            this.nextActionFunction = nextActionFunction;
-            return (T) this;
-        }
-
-        public T withCallId(String callId) {
-            this.callId = callId;
-            return (T) this;
-        }
-
-        public T withDescription(String description) {
-            this.description = description;
-            return (T) this;
-        }
-
-        public T withLocale(Locale locale) {
-            this.locale = locale;
-            return (T) this;
-        }
-
-        public final F build() {
-            final var impl = buildImpl();
-            impl.setNextAction(nextAction);
-            impl.setNextActionFunction(nextActionFunction);
-            impl.setDescription(description);
-            if (locale != null) {
-                impl.setLocale(locale);
-            }
-            if (callId != null) {
-                impl.setCallId(callId);
-            }
-            return impl;
-        }
-
-        protected abstract F buildImpl();
-
-    }
+    
 }

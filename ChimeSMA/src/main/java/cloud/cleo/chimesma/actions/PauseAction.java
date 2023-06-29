@@ -8,14 +8,14 @@ import cloud.cleo.chimesma.model.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  *
  * @author sjensen
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(setterPrefix = "with")
 public class PauseAction extends Action<PauseAction,ResponsePause> {
 
 
@@ -23,17 +23,13 @@ public class PauseAction extends Action<PauseAction,ResponsePause> {
     protected Integer durationInMilliseconds;
 
     @Override
-    public ResponseAction getResponse() {
+    protected ResponseAction getResponse() {
         final var params = ResponsePause.Parameters.builder()
                 .withCallId(getCallId())
                 .withParticipantTag(participantTag)
                 .withDurationInMilliseconds(durationInMilliseconds)
                 .build();
         return ResponsePause.builder().withParameters(params).build();
-    }
-
-    public static PauseActionBuilder builder() {
-        return new PauseActionBuilder();
     }
     
     @Override
@@ -45,29 +41,6 @@ public class PauseAction extends Action<PauseAction,ResponsePause> {
         }
        
         return sb;       
-    }
-
-    @NoArgsConstructor
-    public static class PauseActionBuilder extends ActionBuilder<PauseActionBuilder, PauseAction> {
-
-        private ParticipantTag participantTag;
-        private Integer durationInMilliseconds;
-
-        public PauseActionBuilder withParticipantTag(ParticipantTag value) {
-            this.participantTag = value;
-            return this;
-        }
-        
-        public PauseActionBuilder withDurationInMilliseconds(Integer value) {
-            this.durationInMilliseconds = value;
-            return this;
-        }
-        
-        @Override
-        protected PauseAction buildImpl() {
-          return new PauseAction(participantTag, durationInMilliseconds);
-        }
-
     }
 
     @Override

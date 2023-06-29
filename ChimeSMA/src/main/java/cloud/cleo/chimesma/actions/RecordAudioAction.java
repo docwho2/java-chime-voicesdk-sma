@@ -6,17 +6,16 @@ package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.*;
 import java.util.List;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  *
  * @author sjensen
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(setterPrefix = "with")
 public class RecordAudioAction extends Action<RecordAudioAction,ResponseRecordAudio> {
 
     
@@ -29,11 +28,12 @@ public class RecordAudioAction extends Action<RecordAudioAction,ResponseRecordAu
     private Integer silenceDurationInSeconds;
     private Integer silenceThreshold;
     private List<Character> recordingTerminators;
+    @Builder.Default
     private String bucketName = System.getenv("RECORD_BUCKET");
     private String prefix;
 
     @Override
-    public ResponseAction getResponse() {
+    protected ResponseAction getResponse() {
         
         final var dest = ResponseRecordAudio.RecordingDestination.builder()
                 .withBucketName(bucketName)
@@ -67,56 +67,7 @@ public class RecordAudioAction extends Action<RecordAudioAction,ResponseRecordAu
         return sb;
     }
 
-    public static RecordAudioActionBuilder builder() {
-        return new RecordAudioActionBuilder();
-    }
-
-    @NoArgsConstructor
-    public static class RecordAudioActionBuilder extends ActionBuilder<RecordAudioActionBuilder, RecordAudioAction> {
-
-        private Integer durationInSeconds;
-        private Integer silenceDurationInSeconds;
-        private Integer silenceThreshold;
-        private List<Character> recordingTerminators;
-        private String bucketName = System.getenv("RECORD_BUCKET");
-        private String prefix;
-
-        public RecordAudioActionBuilder withDurationInSeconds(Integer value) {
-            this.durationInSeconds = value;
-            return this;
-        }
-        
-        public RecordAudioActionBuilder withSilenceDurationInSeconds(Integer value) {
-            this.silenceDurationInSeconds = value;
-            return this;
-        }
-        
-        public RecordAudioActionBuilder withSilenceThreshold(Integer value) {
-            this.silenceThreshold = value;
-            return this;
-        }
-
-        public RecordAudioActionBuilder withRecordingTerminators(List<Character>  value) {
-            this.recordingTerminators = value;
-            return this;
-        }
-
-        public RecordAudioActionBuilder withBucketName(String value) {
-            this.bucketName = value;
-            return this;
-        }
-        
-        public RecordAudioActionBuilder withPrefix(String value) {
-            this.bucketName = prefix;
-            return this;
-        }
-
-        @Override
-        protected RecordAudioAction buildImpl() {
-            return new RecordAudioAction(durationInSeconds, silenceDurationInSeconds, silenceThreshold, recordingTerminators, bucketName, prefix);
-        }
-
-    }
+   
 
     @Override
     public ResponseActionType getActionType() {

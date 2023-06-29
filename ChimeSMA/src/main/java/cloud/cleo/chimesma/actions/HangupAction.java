@@ -5,58 +5,30 @@
 package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  *
  * @author sjensen
  */
 @Data
+@SuperBuilder(setterPrefix = "with")
 @NoArgsConstructor
-@AllArgsConstructor
 public class HangupAction extends Action<HangupAction,ResponseHangup> {
-
-
+    
     protected ParticipantTag participantTag;
     protected Integer sipResponseCode;
 
     @Override
-    public ResponseAction getResponse() {
+    protected ResponseAction getResponse() {
         final var params = ResponseHangup.Parameters.builder()
                 .withCallId(getCallId())
                 .withParticipantTag(participantTag)
                 .withSipResponseCode(sipResponseCode)
                 .build();
         return ResponseHangup.builder().withParameters(params).build();
-    }
-
-    public static HangupActionBuilder builder() {
-        return new HangupActionBuilder();
-    }
-
-    @NoArgsConstructor
-    public static class HangupActionBuilder extends ActionBuilder<HangupActionBuilder, HangupAction> {
-
-        private ParticipantTag participantTag;
-        private Integer sipResponseCode;
-
-        public HangupActionBuilder withParticipantTag(ParticipantTag value) {
-            this.participantTag = value;
-            return this;
-        }
-        
-        public HangupActionBuilder withSipResponseCode(Integer value) {
-            this.sipResponseCode = value;
-            return this;
-        }
-        
-        @Override
-        protected HangupAction buildImpl() {
-          return new HangupAction(participantTag, sipResponseCode);
-        }
-
     }
 
     @Override
@@ -73,6 +45,6 @@ public class HangupAction extends Action<HangupAction,ResponseHangup> {
     public Action getNextAction() {
         return null;  // there can never be a next action for Hangup
     }
-        
+      
 
 }

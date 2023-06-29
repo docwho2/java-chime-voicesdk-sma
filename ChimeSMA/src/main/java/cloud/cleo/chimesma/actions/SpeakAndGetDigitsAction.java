@@ -16,14 +16,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 /**
  *
  * @author sjensen
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder(setterPrefix = "with")
 public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction,ResponseSpeakAndGetDigits> implements ReceivedDigits {
 
     protected String inputDigitsRegex;
@@ -39,7 +39,7 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction,Resp
     protected Integer repeatDurationInMilliseconds;
 
     @Override
-    public ResponseAction getResponse() {
+    protected ResponseAction getResponse() {
 
         final List<ResponseSpeakAndGetDigits.SpeechParameter> resp = new LinkedList<>();
         for (final SpeechParameters sp : List.of(speechParameters, failureSpeechParameters)) {
@@ -116,74 +116,6 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction,Resp
     @Override
     protected boolean isChainable() {
         return false;
-    }
-
-    public static SpeakAndGetDigitsActionBuilder builder() {
-        return new SpeakAndGetDigitsActionBuilder();
-    }
-
-    @NoArgsConstructor
-    public static class SpeakAndGetDigitsActionBuilder extends ActionBuilder<SpeakAndGetDigitsActionBuilder, SpeakAndGetDigitsAction> {
-
-        private String inputDigitsRegex;
-        SpeechParameters speechParameters;
-        SpeechParameters failureSpeechParameters;
-        private Integer minNumberOfDigits;
-        private Integer maxNumberOfDigits;
-        private List<Character> terminatorDigits;
-        private Integer inBetweenDigitsDurationInMilliseconds;
-        private Integer repeat;
-        private Integer repeatDurationInMilliseconds;
-
-        public SpeakAndGetDigitsActionBuilder withInputDigitsRegex(String text) {
-            this.inputDigitsRegex = text;
-            return this;
-        }
-
-        public SpeakAndGetDigitsActionBuilder withSpeechParameters(SpeechParameters value) {
-            this.speechParameters = value;
-            return this;
-        }
-
-        public SpeakAndGetDigitsActionBuilder withFailureSpeechParameters(SpeechParameters value) {
-            this.failureSpeechParameters = value;
-            return this;
-        }
-
-        public SpeakAndGetDigitsActionBuilder withMinNumberOfDigits(Integer value) {
-            this.minNumberOfDigits = value;
-            return this;
-        }
-
-        public SpeakAndGetDigitsActionBuilder withMaxNumberOfDigits(Integer value) {
-            this.maxNumberOfDigits = value;
-            return this;
-        }
-
-        public SpeakAndGetDigitsActionBuilder withTerminatorDigits(List<Character> value) {
-            this.terminatorDigits = value;
-            return this;
-        }
-
-        public SpeakAndGetDigitsActionBuilder withInBetweenDigitsDurationInMilliseconds(Integer value) {
-            this.inBetweenDigitsDurationInMilliseconds = value;
-            return this;
-        }
-
-        public SpeakAndGetDigitsActionBuilder withRepeat(Integer value) {
-            this.repeat = value;
-            return this;
-        }
-
-        public SpeakAndGetDigitsActionBuilder withRepeatDurationInMilliseconds(Integer value) {
-            this.repeatDurationInMilliseconds = value;
-            return this;
-        }
-
-        @Override
-        protected SpeakAndGetDigitsAction buildImpl() {
-            return new SpeakAndGetDigitsAction(inputDigitsRegex, speechParameters, failureSpeechParameters, minNumberOfDigits, maxNumberOfDigits, terminatorDigits, inBetweenDigitsDurationInMilliseconds, repeat, repeatDurationInMilliseconds);
-        }
     }
 
     @NoArgsConstructor
