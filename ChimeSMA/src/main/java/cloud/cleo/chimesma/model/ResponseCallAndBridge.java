@@ -26,6 +26,10 @@ import lombok.NoArgsConstructor;
 public class ResponseCallAndBridge implements ResponseAction, Serializable {
 
     private final ResponseActionType type = ResponseActionType.CallAndBridge;
+
+    /**
+     * This is call and bridge doc
+     */
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
 

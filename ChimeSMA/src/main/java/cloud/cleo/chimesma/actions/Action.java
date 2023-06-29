@@ -20,9 +20,10 @@ import org.apache.logging.log4j.Logger;
  *
  * @author sjensen
  * @param <A>
+ * @param <R>  The type that is returned in the ActionData for responses back from SMA
  */
 @Data
-public abstract class Action<A extends Action> implements Cloneable {
+public abstract class Action<A extends Action, R extends ResponseAction> implements Cloneable {
 
     protected final static Logger log = LogManager.getLogger();
 
@@ -32,26 +33,30 @@ public abstract class Action<A extends Action> implements Cloneable {
     private Integer id;
 
     // Description to use in debug logs
-    protected String description;
+    private String description;
 
-    protected String callId;
+    private String callId;
     private Action nextAction;
-    protected Function<A, Action> nextActionFunction;
+    private Function<A, Action> nextActionFunction;
 
     private SMARequest event;
 
     // Always maintain a Language
-    protected Locale locale;
+    private Locale locale;
 
-    protected Map<String, Object> transactionAttributes;
+    private Map<String, Object> transactionAttributes;
 
     public Action() {
         // Register all Actions
         AbstractFlow.registerAction(this);
     }
 
-    public abstract ResponseAction getResponse();
-
+    protected abstract ResponseAction getResponse();
+    
+    public R getActionData() {
+        return (R) event.getActionData();
+    }
+    
     public abstract ResponseActionType getActionType();
 
     protected boolean isChainable() {
@@ -84,28 +89,34 @@ public abstract class Action<A extends Action> implements Cloneable {
         return sb;
     }
 
-    public Action clone(SMARequest event) throws CloneNotSupportedException {
-        final var clone = (Action) super.clone();
+    protected A clone(SMARequest event) throws CloneNotSupportedException {
+        final var clone = (A) super.clone();
 
         // We should always have a CallId on first participant
-        clone.callId = event.getCallDetails().getParticipants().get(0).getCallId();
+        clone.setCallId(event.getCallDetails().getParticipants().get(0).getCallId());
 
         // On new calls incoming will be null, so we need to create
-        clone.transactionAttributes = event.getCallDetails().getTransactionAttributes() == null ? new HashMap<>()
-                : event.getCallDetails().getTransactionAttributes();
+        clone.setTransactionAttributes( event.getCallDetails().getTransactionAttributes() == null ? new HashMap<>()
+                : event.getCallDetails().getTransactionAttributes() );
 
         // Always set our ID
-        clone.transactionAttributes.put(CURRENT_ACTION_ID, getId().toString());
+        clone.setTransactionAttribute(CURRENT_ACTION_ID, getId().toString());
 
         // Always set our locale (use language tags as that is consistant for in and out)
         //  Bots take Java form with _ and Speak actions take it with - (but for us, Java Locale object can output both)
-        clone.locale = Locale.forLanguageTag(clone.transactionAttributes.getOrDefault("locale", "en-US").toString());
-        clone.transactionAttributes.put("locale", clone.locale.toLanguageTag());
+        clone.setLocale( Locale.forLanguageTag(clone.getTransactionAttributes().getOrDefault("locale", "en-US").toString()) );
+        clone.setTransactionAttribute("locale", clone.getLocale().toLanguageTag());
 
         // Make Call Event associated with this Action available
-        clone.event = event;
+        clone.setEvent(event);
 
         return clone;
+    }
+    
+    public Map<String, Object> setTransactionAttribute(String key,Object object) {
+        final var ta = getTransactionAttributes();
+        ta.put(key, object);
+        return ta;
     }
 
     protected String getRecievedDigitsFromAction() {

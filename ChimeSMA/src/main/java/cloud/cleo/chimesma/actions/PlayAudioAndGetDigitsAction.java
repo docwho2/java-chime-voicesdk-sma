@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAction> implements ReceivedDigits {
+public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAction,ResponsePlayAudioAndGetDigits> implements ReceivedDigits {
 
     protected ParticipantTag participantTag;
 
@@ -56,7 +56,7 @@ public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAct
 
         final var it = resp.iterator();
         final var params = ResponsePlayAudioAndGetDigits.Parameters.builder()
-                .withCallId(callId)
+                .withCallId(getCallId())
                 .withInputDigitsRegex(inputDigitsRegex)
                 .withAudioSource(it.next())
                 .withFailureAudioSource(it.next())

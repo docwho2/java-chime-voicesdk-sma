@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReceiveDigitsAction extends Action<ReceiveDigitsAction> implements ReceivedDigits {
+public class ReceiveDigitsAction extends Action<ReceiveDigitsAction,ResponseReceiveDigits> implements ReceivedDigits {
 
     // We will need to push our ID because we can be called anytime in the flow
     public final static String RECEIVE_DIGITS_ID = "RecvDigitsID";
@@ -32,9 +32,9 @@ public class ReceiveDigitsAction extends Action<ReceiveDigitsAction> implements 
 
     
     @Override
-    public Action clone(SMARequest event) throws CloneNotSupportedException {
+    public ReceiveDigitsAction clone(SMARequest event) throws CloneNotSupportedException {
         var clone = super.clone(event);
-        clone.transactionAttributes.put(RECEIVE_DIGITS_ID, getId().toString());
+        clone.setTransactionAttribute(RECEIVE_DIGITS_ID, getId().toString());
         return clone;
     }
     
@@ -52,7 +52,7 @@ public class ReceiveDigitsAction extends Action<ReceiveDigitsAction> implements 
     @Override
     public ResponseAction getResponse() {
         final var params = ResponseReceiveDigits.Parameters.builder()
-                .withCallId(callId)
+                .withCallId(getCallId())
                 .withParticipantTag(participantTag)
                 .withInputDigitsRegex(inputDigitsRegex)
                 .withInBetweenDigitsDurationInMilliseconds(inBetweenDigitsDurationInMilliseconds)

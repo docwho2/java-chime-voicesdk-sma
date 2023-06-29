@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PauseAction extends Action<PauseAction> {
+public class PauseAction extends Action<PauseAction,ResponsePause> {
 
 
     protected ParticipantTag participantTag;
@@ -25,7 +25,7 @@ public class PauseAction extends Action<PauseAction> {
     @Override
     public ResponseAction getResponse() {
         final var params = ResponsePause.Parameters.builder()
-                .withCallId(callId)
+                .withCallId(getCallId())
                 .withParticipantTag(participantTag)
                 .withDurationInMilliseconds(durationInMilliseconds)
                 .build();

@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class HangupAction extends Action<HangupAction> {
+public class HangupAction extends Action<HangupAction,ResponseHangup> {
 
 
     protected ParticipantTag participantTag;
@@ -25,7 +25,7 @@ public class HangupAction extends Action<HangupAction> {
     @Override
     public ResponseAction getResponse() {
         final var params = ResponseHangup.Parameters.builder()
-                .withCallId(callId)
+                .withCallId(getCallId())
                 .withParticipantTag(participantTag)
                 .withSipResponseCode(sipResponseCode)
                 .build();

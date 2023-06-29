@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PlayAudioAction extends Action<PlayAudioAction> {
+public class PlayAudioAction extends Action<PlayAudioAction,ResponsePlayAudio> {
 
     protected ParticipantTag participantTag;
     protected List<Character> playbackTerminators;
@@ -42,7 +42,7 @@ public class PlayAudioAction extends Action<PlayAudioAction> {
                 .build();
 
         final var params = ResponsePlayAudio.Parameters.builder()
-                .withCallId(callId)
+                .withCallId(getCallId())
                 .withAudioSource(audioSource)
                 .withParticipantTag(participantTag)
                 .withPlaybackTerminators(playbackTerminators)

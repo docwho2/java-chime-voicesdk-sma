@@ -28,6 +28,15 @@ public class ResponseRecordAudio implements ResponseAction, Serializable {
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
 
+    // This is used for the incoming ActionData
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    @JsonProperty(value = "RecordingTerminatorUsed", access = JsonProperty.Access.WRITE_ONLY)
+    private Character recordingTerminatorUsed;
+
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    @JsonProperty(value = "RecordingDestination", access = JsonProperty.Access.WRITE_ONLY)
+    private RecordingDestination recordingDestination;
+
     @Data
     @Builder(setterPrefix = "with")
     @NoArgsConstructor
@@ -69,6 +78,11 @@ public class ResponseRecordAudio implements ResponseAction, Serializable {
 
         @JsonProperty(value = "Prefix")
         private String prefix;
+
+        // This is used for the incoming ActionData
+        @JsonInclude(value = JsonInclude.Include.NON_NULL)
+        @JsonProperty(value = "Key", access = JsonProperty.Access.WRITE_ONLY)
+        private String key;
     }
 
 }

@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SpeakAction extends Action<SpeakAction> {
+public class SpeakAction extends Action<SpeakAction,ResponseSpeak> {
 
     protected String text;
     protected Function<SpeakAction, String> textFunction;
@@ -34,7 +34,7 @@ public class SpeakAction extends Action<SpeakAction> {
     public ResponseAction getResponse() {
         var myContent = textFunction != null ? textFunction.apply(this) : text;
         final var params = ResponseSpeak.Parameters.builder()
-                .withCallId(callId)
+                .withCallId(getCallId())
                 .withEngine(engine)
                 .withLanguageCode(getLocale().toLanguageTag())
                 .withText(myContent)

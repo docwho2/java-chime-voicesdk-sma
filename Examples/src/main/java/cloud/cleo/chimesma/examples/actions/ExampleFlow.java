@@ -83,7 +83,7 @@ public class ExampleFlow extends AbstractFlow {
        
         
         chatGptBot.setNextActionFunction(a -> {
-            switch (a.getIntent()) {
+            switch (a.getIntentName()) {
                 case "Quit":
                     return goodbye;
                 default:
@@ -98,7 +98,7 @@ public class ExampleFlow extends AbstractFlow {
                 .withDescription("Main Bot")
                 .withContent("What can I help you with?")
                 .withNextAction(a -> {
-                    switch (a.getIntent()) {
+                    switch (a.getIntentName()) {
                         case "Weather":
                             return weatherBot;
                         case "Transfer":
@@ -115,7 +115,7 @@ public class ExampleFlow extends AbstractFlow {
        
         
         weatherBot.setNextActionFunction((a) -> {
-            switch (a.getIntent()) {
+            switch (a.getIntentName()) {
                 case "Quit":
                     return goodbye;
                 default:

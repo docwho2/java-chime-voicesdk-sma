@@ -24,7 +24,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction> implements ReceivedDigits {
+public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction,ResponseSpeakAndGetDigits> implements ReceivedDigits {
 
     protected String inputDigitsRegex;
 
@@ -59,7 +59,7 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction> imp
 
         final var it = resp.iterator();
         final var params = ResponseSpeakAndGetDigits.Parameters.builder()
-                .withCallId(callId)
+                .withCallId(getCallId())
                 .withInputDigitsRegex(inputDigitsRegex)
                 .withSpeechParameters(it.next())
                 .withFailureSpeechParameters(it.next())

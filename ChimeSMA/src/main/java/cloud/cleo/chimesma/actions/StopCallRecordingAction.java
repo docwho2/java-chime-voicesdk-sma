@@ -14,13 +14,13 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
-public class StopCallRecordingAction extends Action<StopCallRecordingAction> {
+public class StopCallRecordingAction extends Action<StopCallRecordingAction,ResponseStopCallRecording> {
 
 
     @Override
     public ResponseAction getResponse() {
         return ResponseStopCallRecording.builder()
-                .withParameters(ResponseStopCallRecording.Parameters.builder().withCallId(callId).build()).build();
+                .withParameters(ResponseStopCallRecording.Parameters.builder().withCallId(getCallId()).build()).build();
     }
 
     public static StopCallRecordingActionBuilder builder() {

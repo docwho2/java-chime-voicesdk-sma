@@ -118,7 +118,7 @@ public class ExampleActions extends AbstractFlow {
         StartBotConversationAction.builder()
                 .withContent("Welcome to the Bot, how can I help you today?")
                 .withNextAction((a) -> {
-                    switch (a.getIntent()) {
+                    switch (a.getIntentName()) {
                         case "Quit":
                             return SpeakAction.builder().withText("Thanks for calling, goodbye").build();
                         case "Transfer":
@@ -156,7 +156,7 @@ public class ExampleActions extends AbstractFlow {
                                 .withNextAction(new HangupAction())
                                 .build();
                     }
-                    switch (a.getIntent()) {
+                    switch (a.getIntentName()) {
                         case "Quit":
                             return SpeakAction.builder().withText("Thanks for calling, goodbye").withNextAction(new HangupAction()).build();
                         case "Transfer":
@@ -175,7 +175,7 @@ public class ExampleActions extends AbstractFlow {
                 .build();
 
         bot.setNextActionFunction((a) -> {
-            switch (a.getIntent()) {
+            switch (a.getIntentName()) {
                 case "Quit":
                     return SpeakAction.builder().withText("Thanks for calling, goodbye").build();
                 case "Transfer":
@@ -213,7 +213,7 @@ public class ExampleActions extends AbstractFlow {
 
         @Override
         public Action apply(StartBotConversationAction action) {
-           switch (action.getIntent()) {
+           switch (action.getIntentName()) {
                 case "Quit":
                     return SpeakAction.builder().withText("Thanks for calling, goodbye").build();
                 case "Transfer":

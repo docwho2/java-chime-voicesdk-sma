@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CallAndBridgeAction extends Action<CallAndBridgeAction> {
+public class CallAndBridgeAction extends Action<CallAndBridgeAction,ResponseCallAndBridge> {
 
     protected Integer callTimeoutSeconds;
     protected String callerIdNumber;
@@ -41,38 +41,38 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction> {
     public ResponseAction getResponse() {
 
         ResponsePlayAudio.AudioSource audioSource = null;
-        if ((key != null || keyLocale != null) && bucketName != null) {
+        if ((getKey() != null || getKeyLocale() != null) && getBucketName() != null) {
 
             final String myKey;
-            if (keyLocale != null) {
-                myKey = keyLocale + "-" + getLocale().toLanguageTag() + ".wav";
+            if (getKeyLocale() != null) {
+                myKey = getKeyLocale() + "-" + getLocale().toLanguageTag() + ".wav";
             } else {
-                myKey = key;
+                myKey = getKey();
             }
 
             audioSource = ResponsePlayAudio.AudioSource.builder()
-                    .withBucketName(bucketName)
+                    .withBucketName(getBucketName())
                     .withKey(myKey)
                     .build();
         }
 
         final var endpoint = ResponseCallAndBridge.Endpoint.builder()
-                .withArn(arn)
-                .withBridgeEndpointType(bridgeEndpointType)
-                .withUri(uri)
+                .withArn(getArn())
+                .withBridgeEndpointType(getBridgeEndpointType())
+                .withUri(getUri())
                 .build();
 
-        if (callerIdNumber == null) {
+        if (getCallerIdNumber() == null) {
             // Set to from Number if not provided
-            callerIdNumber = getEvent().getCallDetails().getParticipants().get(0).getFrom();
+            setCallerIdNumber( getEvent().getCallDetails().getParticipants().get(0).getFrom());
         }
 
         final var params = ResponseCallAndBridge.Parameters.builder()
-                .withCallTimeoutSeconds(callTimeoutSeconds)
-                .withCallerIdNumber(callerIdNumber)
+                .withCallTimeoutSeconds(getCallTimeoutSeconds())
+                .withCallerIdNumber(getCallerIdNumber())
                 .withRingbackTone(audioSource)
                 .withEndpoints(List.of(endpoint))
-                .withSipHeaders(sipHeaders)
+                .withSipHeaders(getSipHeaders())
                 .build();
         return ResponseCallAndBridge.builder().withParameters(params).build();
     }

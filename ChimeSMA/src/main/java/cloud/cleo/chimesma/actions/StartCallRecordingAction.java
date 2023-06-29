@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class StartCallRecordingAction extends Action<StartCallRecordingAction> {
+public class StartCallRecordingAction extends Action<StartCallRecordingAction,ResponseStartCallRecording> {
 
     // Key to store the the recording file in the Transaction Attributes
     public final static String RECORDING_FILE_LOCATION = "RecordingFileLocation";
@@ -33,7 +33,7 @@ public class StartCallRecordingAction extends Action<StartCallRecordingAction> {
                 .build();
 
         final var params = ResponseStartCallRecording.Parameters.builder()
-                .withCallId(callId)
+                .withCallId(getCallId())
                 .withTrack(track)
                 .withDestination(dest)
                 .build();

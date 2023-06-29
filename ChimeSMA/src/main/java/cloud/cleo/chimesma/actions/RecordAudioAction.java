@@ -17,11 +17,13 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RecordAudioAction extends Action<RecordAudioAction> {
+public class RecordAudioAction extends Action<RecordAudioAction,ResponseRecordAudio> {
 
     
     // Key to store the the recording file in the Transaction Attributes
-    public final static String RECORD_ADUIO_FILE_LOCATION = "RecordAudioFileLocation";
+    public final static String RECORD_AUDIO_BUCKET = "RecordAudioBucket";
+    public final static String RECORD_AUDIO_KEY = "RecordAudioKey";
+    public final static String RECORD_AUDIO_TERMINATOR = "RecordAudioTerm";
 
     private Integer durationInSeconds;
     private Integer silenceDurationInSeconds;
@@ -32,9 +34,6 @@ public class RecordAudioAction extends Action<RecordAudioAction> {
 
     @Override
     public ResponseAction getResponse() {
-        // Always store the last recording file reference in attributes
-        getTransactionAttributes()
-                .put(RECORD_ADUIO_FILE_LOCATION, "s3://" + getBucketName() + "/" + getPrefix() );
         
         final var dest = ResponseRecordAudio.RecordingDestination.builder()
                 .withBucketName(bucketName)
@@ -42,7 +41,7 @@ public class RecordAudioAction extends Action<RecordAudioAction> {
                 .build();
 
         final var params = ResponseRecordAudio.Parameters.builder()
-                .withCallId(callId)
+                .withCallId(getCallId())
                 .withDurationInSeconds(durationInSeconds)
                 .withSilenceDurationInSeconds(silenceDurationInSeconds)
                 .withSilenceThreshold(silenceThreshold)

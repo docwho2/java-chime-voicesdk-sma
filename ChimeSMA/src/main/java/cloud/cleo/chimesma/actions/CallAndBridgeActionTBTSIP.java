@@ -8,14 +8,14 @@ import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseCallAndBridge;
 import java.util.HashMap;
 import java.util.Map;
-import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Special Call and Bridge Action that also populates SIP headers with SMA call details 
  * 
  * @author sjensen
  */
-@Data
+@NoArgsConstructor
 public class CallAndBridgeActionTBTSIP extends CallAndBridgeAction {
 
     public CallAndBridgeActionTBTSIP(Integer callTimeoutSeconds, String callerIdNumber, Map<String, String> sipHeaders, ResponseCallAndBridge.BridgeEndpointType bridgeEndpointType, String arn, String uri, String bucketName, String key, String keyLocale) {
@@ -27,14 +27,16 @@ public class CallAndBridgeActionTBTSIP extends CallAndBridgeAction {
     public ResponseAction getResponse() {
         final var cd = getEvent().getCallDetails();
 
-        if (sipHeaders == null) {
-            sipHeaders = new HashMap<>();
+        var sh = getSipHeaders();
+        if (sh == null) {
+            sh = new HashMap<>();
+            setSipHeaders(sh);
         }
 
          // Place Info about this SMA into the SIP headers to allow call backs to Chime API for this call
-        sipHeaders.put("x-sma-AwsRegion", cd.getAwsRegion());
-        sipHeaders.put("x-sma-SipMediaApplicationId", cd.getSipMediaApplicationId());
-        sipHeaders.put("x-sma-TransactionId", cd.getTransactionId());
+        sh.put("x-sma-AwsRegion", cd.getAwsRegion());
+        sh.put("x-sma-SipMediaApplicationId", cd.getSipMediaApplicationId());
+        sh.put("x-sma-TransactionId", cd.getTransactionId());
 
         return super.getResponse();
     }

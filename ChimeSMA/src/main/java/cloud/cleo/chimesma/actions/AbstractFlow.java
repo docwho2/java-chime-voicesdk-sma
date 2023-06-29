@@ -197,14 +197,14 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                         log.error("Exception in New Call Handler", e);
                     }
                     break;
-
                 case ACTION_SUCCESSFUL:
                     var action = getCurrentAction(event);
                     if (action instanceof CallAndBridgeAction) {
 
                         final var attrs = action.getTransactionAttributes();
-                        final var hangupB = event.getActionData().getType().equals(ResponseActionType.Hangup)
-                                && ((ResponseHangup)event.getActionData()).getParameters().getParticipantTag().equals(LEG_B);
+                        final var ad =  event.getActionData();
+                        final var hangupB = ad.getType().equals(ResponseActionType.Hangup)
+                                && ((ResponseHangup)ad).getParameters().getParticipantTag().equals(LEG_B);
                         
                         if (hangupB) {
                             log.debug("Diconnect on leg B associated with Disconnect and Transfer");
@@ -215,20 +215,22 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                                     .build();
                             break;
                         }
-
                         // When a call is bridged successfully don't do anything
                         log.debug("CallAndBridge has connected call now, empty response");
                         res = SMAResponse.builder().build();
-                    } else if (action instanceof StartBotConversationAction) {
-                        // Always put last intent matched int the session
-                        final var sbaction = (StartBotConversationAction) action;
-                        log.debug("Lex Bot has finished and Intent is " + sbaction.getIntent());
-                        action.getTransactionAttributes().put("LexLastMatchedIntent", sbaction.getIntent());
-                        res = defaultResponse(action, event);
                     } else if (action instanceof StartCallRecordingAction) {
-                        var loc = ((ResponseStartCallRecording)event.getActionData()).getCallRecordingDestination().getLocation();
+                        final var loc =((StartCallRecordingAction) action).getActionData().getCallRecordingDestination().getLocation();
                         log.debug("Start Call Recording SUCCESS with file " + loc);
                         action.getTransactionAttributes().put(StartCallRecordingAction.RECORDING_FILE_LOCATION, loc );
+                        res = defaultResponse(action, event);
+                    } else if (action instanceof RecordAudioAction) {
+                        final var ad = ((RecordAudioAction) action).getActionData();
+                        final var rd = ad.getRecordingDestination();
+                        log.debug("Record Audio SUCCESS with file " + rd.getKey() );
+                        final var ta = action.getTransactionAttributes();
+                        ta.put(RecordAudioAction.RECORD_AUDIO_BUCKET, rd.getBucketName());
+                        ta.put(RecordAudioAction.RECORD_AUDIO_KEY, rd.getKey());
+                        ta.put(RecordAudioAction.RECORD_AUDIO_TERMINATOR, ad.getRecordingTerminatorUsed().toString());
                         res = defaultResponse(action, event);
                     } else {
                         res = defaultResponse(action, event);

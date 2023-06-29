@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class StartBotConversationAction extends Action<StartBotConversationAction> {
+public class StartBotConversationAction extends Action<StartBotConversationAction, ActionDataStartBotConversation> {
 
     protected ParticipantTag participantTag;
     protected String botAliasArn = System.getenv("BOT_ALIAS_ARN");
@@ -71,7 +71,7 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
                 .build();
 
         final var params = ResponseStartBotConversation.Parameters.builder()
-                .withCallId(callId)
+                .withCallId(getCallId())
                 .withParticipantTag(participantTag)
                 .withBotAliasArn(botAliasArn)
                 .withConfiguration(config)
@@ -81,11 +81,11 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
         return ResponseStartBotConversation.builder().withParameters(params).build();
     }
 
-    public String getIntent() {
+    public String getIntentName() {
         String intent = "NULL";
         try {
             final var ad = getEvent().getActionData();
-            if ( ad instanceof ActionDataStartBotConversation ) {
+            if (ad instanceof ActionDataStartBotConversation) {
                 intent = ((ActionDataStartBotConversation) ad).getIntentResult()
                         .getSessionState().getIntent().getName();
             }
@@ -93,6 +93,20 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
             log.error("Error getting Intent from Event reponse", e);
         }
         return intent;
+    }
+
+    @Override
+    protected StartBotConversationAction clone(SMARequest event) throws CloneNotSupportedException {
+        final var clone = super.clone(event);
+
+        switch (event.getInvocationEventType()) {
+            case ACTION_SUCCESSFUL:
+                // Always put last intent matched int the session
+                log.debug("Lex Bot has finished and Intent is " + clone.getIntentName());
+                clone.setTransactionAttribute("LexLastMatchedIntent", clone.getIntentName());
+                break;
+        }
+        return clone;
     }
 
     @Override
