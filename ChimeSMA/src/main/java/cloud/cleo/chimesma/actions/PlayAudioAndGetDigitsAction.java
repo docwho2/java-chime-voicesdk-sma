@@ -5,7 +5,7 @@
 package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.*;
-import cloud.cleo.chimesma.model.ResponsePlayAudio.Parameters.AudioSource;
+import cloud.cleo.chimesma.model.ResponsePlayAudio.AudioSource;
 import java.util.LinkedList;
 import java.util.List;
 import lombok.AllArgsConstructor;

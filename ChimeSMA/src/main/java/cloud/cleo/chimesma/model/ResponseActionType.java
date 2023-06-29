@@ -5,7 +5,8 @@
 package cloud.cleo.chimesma.model;
 
 /**
- *
+ *  All the action types supported by Chime PSTN Audio Service
+ * 
  * @author sjensen
  */
  public enum ResponseActionType {

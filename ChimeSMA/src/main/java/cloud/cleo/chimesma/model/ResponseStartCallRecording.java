@@ -4,7 +4,6 @@
  */
 package cloud.cleo.chimesma.model;
 
-import cloud.cleo.chimesma.model.ResponseStartCallRecording.Parameters.Destination;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
@@ -27,7 +26,7 @@ public class ResponseStartCallRecording implements ResponseAction, Serializable 
 
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
-    
+
     // This is used for the incoming ActionData
     @JsonInclude(value = JsonInclude.Include.NON_NULL)
     @JsonProperty(value = "CallRecordingDestination", access = JsonProperty.Access.WRITE_ONLY)
@@ -42,32 +41,31 @@ public class ResponseStartCallRecording implements ResponseAction, Serializable 
 
         @JsonProperty(value = "CallId")
         private String callId;
-        
+
         @JsonProperty(value = "Track")
         private Track track;
-        
-        
+
         @JsonProperty(value = "Destination")
         private Destination destination;
+    }
 
-        @Data
-        @Builder(setterPrefix = "with")
-        @NoArgsConstructor
-        @AllArgsConstructor
-        public static class Destination implements Serializable {
+    @Data
+    @Builder(setterPrefix = "with")
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Destination implements Serializable {
 
-            @JsonProperty(value = "Type")
-            private final String type = "S3";
+        @JsonProperty(value = "Type")
+        private final String type = "S3";
 
-            @JsonProperty(value = "Location")
-            @Builder.Default
-            private String location = System.getenv("RECORD_BUCKET");
-           
-        }
+        @JsonProperty(value = "Location")
+        @Builder.Default
+        private String location = System.getenv("RECORD_BUCKET");
+
     }
 
     public enum Track {
-        BOTH, 
+        BOTH,
         INCOMING,
         OUTGOING
     }

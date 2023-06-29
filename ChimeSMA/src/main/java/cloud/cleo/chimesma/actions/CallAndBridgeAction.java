@@ -40,7 +40,7 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction> {
     @Override
     public ResponseAction getResponse() {
 
-        ResponsePlayAudio.Parameters.AudioSource audioSource = null;
+        ResponsePlayAudio.AudioSource audioSource = null;
         if ((key != null || keyLocale != null) && bucketName != null) {
 
             final String myKey;
@@ -50,13 +50,13 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction> {
                 myKey = key;
             }
 
-            audioSource = ResponsePlayAudio.Parameters.AudioSource.builder()
+            audioSource = ResponsePlayAudio.AudioSource.builder()
                     .withBucketName(bucketName)
                     .withKey(myKey)
                     .build();
         }
 
-        final var endpoint = ResponseCallAndBridge.Parameters.Endpoint.builder()
+        final var endpoint = ResponseCallAndBridge.Endpoint.builder()
                 .withArn(arn)
                 .withBridgeEndpointType(bridgeEndpointType)
                 .withUri(uri)

@@ -38,75 +38,135 @@ public class ResponseStartBotConversation implements ResponseAction, Serializabl
 
         @JsonProperty(value = "CallId")
         private String callId;
+        
         @JsonProperty(value = "ParticipantTag")
         @Builder.Default
         private ParticipantTag participantTag = ParticipantTag.LEG_A;
-
+        
         @JsonProperty(value = "BotAliasArn")
         @Builder.Default
         private String botAliasArn = System.getenv("BOT_ALIAS_ARN");
+        
         @JsonProperty(value = "LocaleId")
         private String localeId;
+        
         @JsonProperty(value = "Configuration")
         private Configuration configuration;
 
-        @Data
-        @Builder(setterPrefix = "with")
-        @NoArgsConstructor
-        @AllArgsConstructor
-        @JsonInclude(value = JsonInclude.Include.NON_NULL)
-        public static class Configuration implements Serializable {
+    }
 
-            @JsonProperty(value = "SessionState")
-            private SessionState sessionState;
+    @Data
+    @Builder(setterPrefix = "with")
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    public static class Configuration implements Serializable {
 
-            @Data
-            @Builder(setterPrefix = "with")
-            @NoArgsConstructor
-            @AllArgsConstructor
-            @JsonInclude(value = JsonInclude.Include.NON_NULL)
-            public static class SessionState implements Serializable {
+        @JsonProperty(value = "SessionState")
+        private SessionState sessionState;
 
-                @JsonProperty(value = "SessionAttributes")
-                private Map<String, String> sessionAttributes;
-                @JsonProperty(value = "DialogAction")
-                private DialogAction dialogAction;
+        @JsonProperty(value = "WelcomeMessages")
+        private List<WelcomeMessage> welcomeMessages;
+    }
 
-                @JsonProperty(value = "Intent")
-                private ActionDataStartBotConversation.Intent intent;
+    @Data
+    @Builder(setterPrefix = "with")
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    public static class SessionState implements Serializable {
 
-                @Data
-                @Builder(setterPrefix = "with")
-                @NoArgsConstructor
-                @AllArgsConstructor
-                @JsonInclude(value = JsonInclude.Include.NON_NULL)
-                public static class DialogAction implements Serializable {
+        @JsonProperty(value = "SessionAttributes")
+        private Map<String, String> sessionAttributes;
+        
+        @JsonProperty(value = "DialogAction")
+        private DialogAction dialogAction;
 
-                    @JsonProperty(value = "Type")
-                    @Builder.Default
-                    private DialogActionType type = DialogActionType.ElicitIntent;
-                }
+        // TODO Figure out how to send Intent with with Delegate Dialog Action (no syntax example in docs)
+        @JsonProperty(value = "Intent")
+        private Intent intent;
 
-            }
+    }
 
-            @JsonProperty(value = "WelcomeMessages")
-            private List<WelcomeMessage> welcomeMessages;
+    @Data
+    @Builder(setterPrefix = "with")
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    public static class DialogAction implements Serializable {
 
-            @Data
-            @Builder(setterPrefix = "with")
-            @NoArgsConstructor
-            @AllArgsConstructor
-            @JsonInclude(value = JsonInclude.Include.NON_NULL)
-            public static class WelcomeMessage implements Serializable {
+        @JsonProperty(value = "Type")
+        @Builder.Default
+        private DialogActionType type = DialogActionType.ElicitIntent;
+    }
 
-                @JsonProperty(value = "Content")
-                private String content;
-                @JsonProperty(value = "ContentType")
-                @Builder.Default
-                private TextType contentType = TextType.PlainText;
-            }
+    @Data
+    @Builder(setterPrefix = "with")
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    public static class WelcomeMessage implements Serializable {
 
-        }
+        @JsonProperty(value = "Content")
+        private String content;
+        @JsonProperty(value = "ContentType")
+        @Builder.Default
+        private TextType contentType = TextType.PlainText;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    public static class Intent implements Serializable {
+
+        @JsonProperty(value = "Name")
+        private String name;
+
+        @JsonProperty(value = "Slots")
+        private Map<String, Slot> Slots;
+
+        @JsonProperty(value = "State")
+        private IntentState state;
+
+        @JsonProperty(value = "ConfirmationState")
+        private ConfirmationState confirmationState;
+
+    }
+    
+    public enum IntentState {
+        Failed,  // The Lambda function failed to fulfill the intent.
+        Fulfilled,  // The Lambda function fulfilled the intent.
+        ReadyForFulfillment  // The information for the intent is present, and your Lambdafunction can fulfill the intent.
+    }
+    
+    public enum ConfirmationState {
+        Confirmed,  // The Intent is fulfilled.
+        Denied,  // The user responded "no" to the confirmation prompt.
+        None  // The user wasn't prompted for confirmation, or the user was prompted but didn't confirm or deny the prompt.
+    }
+
+    @Data
+    @NoArgsConstructor
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    public static class Slot implements Serializable {
+
+        @JsonProperty(value = "Value")
+        private SlotValue value;
+        @JsonProperty(value = "Values")
+        private Slot[] values;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    public static class SlotValue implements Serializable {
+
+        @JsonProperty(value = "InterpretedValue")
+        private String interpretedValue;
+        @JsonProperty(value = "OriginalValue")
+        private String originalValue;
+        @JsonProperty(value = "ResolvedValues")
+        private List<String> resolvedValues;
     }
 
     public enum DialogActionType {

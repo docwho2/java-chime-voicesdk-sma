@@ -28,7 +28,7 @@ public class StartCallRecordingAction extends Action<StartCallRecordingAction> {
 
     @Override
     public ResponseAction getResponse() {
-        final var dest = ResponseStartCallRecording.Parameters.Destination.builder()
+        final var dest = ResponseStartCallRecording.Destination.builder()
                 .withLocation(location)
                 .build();
 

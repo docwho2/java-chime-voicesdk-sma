@@ -5,11 +5,7 @@
 package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.*;
-import cloud.cleo.chimesma.model.ResponseStartBotConversation.DialogActionType;
-import cloud.cleo.chimesma.model.ResponseStartBotConversation.Parameters.Configuration.SessionState;
-import cloud.cleo.chimesma.model.ResponseStartBotConversation.Parameters.Configuration.SessionState.DialogAction;
-import cloud.cleo.chimesma.model.ResponseStartBotConversation.Parameters.Configuration.WelcomeMessage;
-import cloud.cleo.chimesma.model.ResponseStartBotConversation.TextType;
+import cloud.cleo.chimesma.model.ResponseStartBotConversation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -48,7 +44,7 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
 
         WelcomeMessage welcome = null;
         if (myContent != null) {
-            welcome = ResponseStartBotConversation.Parameters.Configuration.WelcomeMessage.builder()
+            welcome = ResponseStartBotConversation.WelcomeMessage.builder()
                     .withContent(myContent)
                     .withContentType(Action.getBotContentType(myContent))
                     .build();
@@ -69,7 +65,7 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
                     .build();
         }
 
-        final var config = ResponseStartBotConversation.Parameters.Configuration.builder()
+        final var config = ResponseStartBotConversation.Configuration.builder()
                 .withSessionState(ss)
                 .withWelcomeMessages(welcome != null ? List.of(welcome) : null)
                 .build();

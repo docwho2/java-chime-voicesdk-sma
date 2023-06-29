@@ -4,14 +4,10 @@
  */
 package cloud.cleo.chimesma.model;
 
-import cloud.cleo.chimesma.model.ResponseStartBotConversation.DialogActionType;
-import cloud.cleo.chimesma.model.ResponseStartBotConversation.TextType;
+import cloud.cleo.chimesma.model.ResponseStartBotConversation.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -23,20 +19,23 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ActionDataStartBotConversation implements ResponseAction, Serializable {
 
-    private final ResponseActionType type = ResponseActionType.StartBotConversation;
+    @JsonProperty("CallId")
+    private String callId;
 
-    @JsonProperty(value = "IntentResult")
-    IntentResult intentResult;
+    private final ResponseActionType type = ResponseActionType.StartBotConversation;
 
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
+
+    @JsonProperty(value = "IntentResult")
+    IntentResult intentResult;
 
     // Set on ACTION_FAILED
     @JsonProperty("ErrorType")
     private String errorType;
     @JsonProperty("ErrorMessage")
     private String errorMessage;
-    
+
     @Data
     @NoArgsConstructor
     public static class IntentResult implements Serializable {
@@ -52,59 +51,6 @@ public class ActionDataStartBotConversation implements ResponseAction, Serializa
 
     }
 
-    @Data
-    @NoArgsConstructor
-    public static class SessionState implements Serializable {
-
-        @JsonProperty(value = "SessionAttributes")
-        private Map<String, String> sessionAttributes;
-
-        @JsonProperty(value = "Intent")
-        private Intent intent;
-
-    }
-
-    @Data
-    @NoArgsConstructor
-    @Builder(setterPrefix = "with")
-    @AllArgsConstructor
-    public static class Intent implements Serializable {
-
-        @JsonProperty(value = "Name")
-        private String name;
-
-        @JsonProperty(value = "Slots")
-        private Map<String, Slot> Slots;
-
-        @JsonProperty(value = "State")
-        private String state;
-
-        @JsonProperty(value = "ConfirmationState")
-        private String confirmationState;
-
-    }
-
-    @Data
-    @NoArgsConstructor
-    public static class Slot implements Serializable {
-
-        @JsonProperty(value = "Value")
-        private SlotValue value;
-        @JsonProperty(value = "Values")
-        private Slot[] values;
-    }
-
-    @Data
-    @NoArgsConstructor
-    public static class SlotValue implements Serializable {
-
-        @JsonProperty(value = "InterpretedValue")
-        private String interpretedValue;
-        @JsonProperty(value = "OriginalValue")
-        private String originalValue;
-        @JsonProperty(value = "ResolvedValues")
-        private List<String> resolvedValues;
-    }
 
     @Data
     @NoArgsConstructor
@@ -112,6 +58,7 @@ public class ActionDataStartBotConversation implements ResponseAction, Serializa
 
         @JsonProperty(value = "Intent")
         private Intent intent;
+        
         @JsonProperty(value = "NluConfidence")
         private NluConfidence nluConfidence;
     }
@@ -124,61 +71,4 @@ public class ActionDataStartBotConversation implements ResponseAction, Serializa
         private Double score;
     }
 
-    @Data
-    @NoArgsConstructor
-    public static class Parameters implements Serializable {
-
-        @JsonProperty(value = "CallId")
-        private String callId;
-        @JsonProperty(value = "ParticipantTag")
-        private ParticipantTag participantTag;
-
-        @JsonProperty(value = "BotAliasArn")
-        private String botAliasArn;
-        @JsonProperty(value = "LocaleId")
-        private String localeId;
-        @JsonProperty(value = "Configuration")
-        private Configuration configuration;
-
-        @Data
-        @NoArgsConstructor
-        public static class Configuration implements Serializable {
-
-            @JsonProperty(value = "SessionState")
-            private SessionState sessionState;
-
-            @Data
-            @NoArgsConstructor
-            public static class SessionState implements Serializable {
-
-                @JsonProperty(value = "SessionAttributes")
-                private Map<String, String> sessionAttributes;
-                @JsonProperty(value = "DialogAction")
-                private DialogAction dialogAction;
-
-                @Data
-                @NoArgsConstructor
-                public static class DialogAction implements Serializable {
-
-                    @JsonProperty(value = "Type")
-                    private DialogActionType type;
-                }
-
-            }
-
-            @JsonProperty(value = "WelcomeMessages")
-            private List<WelcomeMessage> welcomeMessages;
-
-            @Data
-            @NoArgsConstructor
-            public static class WelcomeMessage implements Serializable {
-
-                @JsonProperty(value = "Content")
-                private String content;
-                @JsonProperty(value = "ContentType")
-                private TextType contentType;
-            }
-
-        }
-    }
 }

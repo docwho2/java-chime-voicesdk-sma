@@ -41,11 +41,11 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction> imp
     @Override
     public ResponseAction getResponse() {
 
-        final List<ResponseSpeakAndGetDigits.Parameters.SpeechParameter> resp = new LinkedList<>();
+        final List<ResponseSpeakAndGetDigits.SpeechParameter> resp = new LinkedList<>();
         for (final SpeechParameters sp : List.of(speechParameters, failureSpeechParameters)) {
             final var myContent = sp.textFunction != null ? sp.textFunction.apply(this) : sp.text;
             final var locale = sp.locale != null ? sp.locale : getLocale();
-            final var speechParam = ResponseSpeakAndGetDigits.Parameters.SpeechParameter.builder()
+            final var speechParam = ResponseSpeakAndGetDigits.SpeechParameter.builder()
                     .withText(myContent)
                     .withTextType(Action.getSpeakContentType(myContent))
                     .withEngine(sp.engine)

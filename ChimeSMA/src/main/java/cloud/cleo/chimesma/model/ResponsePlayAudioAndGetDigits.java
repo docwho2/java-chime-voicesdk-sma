@@ -6,7 +6,7 @@ package cloud.cleo.chimesma.model;
 
 
 import cloud.cleo.chimesma.actions.ReceivedDigits;
-import cloud.cleo.chimesma.model.ResponsePlayAudio.Parameters.AudioSource;
+import cloud.cleo.chimesma.model.ResponsePlayAudio.AudioSource;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;

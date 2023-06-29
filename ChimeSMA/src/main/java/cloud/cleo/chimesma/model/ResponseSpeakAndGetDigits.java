@@ -73,30 +73,30 @@ public class ResponseSpeakAndGetDigits implements ResponseAction, ReceivedDigits
 
         @JsonProperty(value = "RepeatDurationInMilliseconds")
         private Integer repeatDurationInMilliseconds;
+    }
 
-        @Data
-        @Builder(setterPrefix = "with")
-        @NoArgsConstructor
-        @AllArgsConstructor
-        @JsonInclude(value = JsonInclude.Include.NON_NULL)
-        public static class SpeechParameter implements Serializable {
+    @Data
+    @Builder(setterPrefix = "with")
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    public static class SpeechParameter implements Serializable {
 
-            @JsonProperty(value = "Text")
-            private String text;
+        @JsonProperty(value = "Text")
+        private String text;
 
-            @JsonProperty(value = "Engine")
-            private Engine engine;
+        @JsonProperty(value = "Engine")
+        private Engine engine;
 
-            @JsonProperty(value = "LanguageCode")
-            private String languageCode;
+        @JsonProperty(value = "LanguageCode")
+        private String languageCode;
 
-            @JsonProperty(value = "TextType")
-            private TextType textType;
+        @JsonProperty(value = "TextType")
+        private TextType textType;
 
-            @JsonProperty(value = "VoiceId")
-            private VoiceId voiceId;
+        @JsonProperty(value = "VoiceId")
+        private VoiceId voiceId;
 
-        }
     }
 
 }

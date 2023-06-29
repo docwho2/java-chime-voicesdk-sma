@@ -36,7 +36,7 @@ public class PlayAudioAction extends Action<PlayAudioAction> {
             myKey = key;
         }
         
-        final var audioSource = ResponsePlayAudio.Parameters.AudioSource.builder()
+        final var audioSource = ResponsePlayAudio.AudioSource.builder()
                 .withBucketName(bucketName)
                 .withKey(myKey)
                 .build();

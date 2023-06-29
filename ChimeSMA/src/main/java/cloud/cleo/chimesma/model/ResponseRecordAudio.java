@@ -52,23 +52,23 @@ public class ResponseRecordAudio implements ResponseAction, Serializable {
 
         @JsonProperty(value = "RecordingDestination")
         private RecordingDestination recordingDestination;
+    }
 
-        @Data
-        @Builder(setterPrefix = "with")
-        @NoArgsConstructor
-        @AllArgsConstructor
-        public static class RecordingDestination implements Serializable {
+    @Data
+    @Builder(setterPrefix = "with")
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RecordingDestination implements Serializable {
 
-            @JsonProperty(value = "Type")
-            private final String type = "S3";
+        @JsonProperty(value = "Type")
+        private final String type = "S3";
 
-            @JsonProperty(value = "BucketName")
-            @Builder.Default
-            private String bucketName = System.getenv("RECORD_BUCKET");
+        @JsonProperty(value = "BucketName")
+        @Builder.Default
+        private String bucketName = System.getenv("RECORD_BUCKET");
 
-            @JsonProperty(value = "Prefix")
-            private String prefix;
-        }
+        @JsonProperty(value = "Prefix")
+        private String prefix;
     }
 
 }

@@ -22,9 +22,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ResponsePlayAudio implements ResponseAction, Serializable {
-    
+
     private final ResponseActionType type = ResponseActionType.PlayAudio;
-    
+
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
 
@@ -47,21 +47,22 @@ public class ResponsePlayAudio implements ResponseAction, Serializable {
         @JsonProperty(value = "AudioSource")
         private AudioSource audioSource;
 
-        @Data
-        @Builder(setterPrefix = "with")
-        @NoArgsConstructor
-        @AllArgsConstructor
-        public static class AudioSource implements Serializable {
-
-            @JsonProperty(value = "Type")
-            private final String type = "S3";
-            
-            @JsonProperty(value = "BucketName")
-            @Builder.Default
-            private String bucketName = System.getenv("PROMPT_BUCKET");
-            @JsonProperty(value = "Key")
-            private String key;
-        }
     }
-    
+
+    @Data
+    @Builder(setterPrefix = "with")
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AudioSource implements Serializable {
+
+        @JsonProperty(value = "Type")
+        private final String type = "S3";
+
+        @JsonProperty(value = "BucketName")
+        @Builder.Default
+        private String bucketName = System.getenv("PROMPT_BUCKET");
+        @JsonProperty(value = "Key")
+        private String key;
+    }
+
 }
