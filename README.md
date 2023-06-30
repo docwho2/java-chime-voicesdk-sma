@@ -19,6 +19,9 @@ These apps allow for the deployment of multi-region and fault-tolerant self-serv
 - Central call control
     - Route calls to multiple Connect instances (many organizations have several instances and other groups on legacy systems).
     - Don't wrap/trombone calls through Connect instances when calls need to be transferred.
+- Servicing calls in Chime SDK can potentially reduce costs.
+    - SMA calls incur .002/min vs Connect .018/min for self-service.
+    - PSTN Ingres and Egress charges are the same between Chime and Connect.
 
 ## Library Overview
 
@@ -29,8 +32,7 @@ See the Library [README](ChimeSMA/README.md) for more indepth information about 
 ### JSON Java Events
 
 AWS Lambda is great at handling events in JSON.  AWS provides the [Lambda Java Events](https://github.com/aws/aws-lambda-java-libs/tree/main/aws-lambda-java-events) 
-library to handle most of the services that directly integrate with Lambda and provides a full Java Object model for the requests and responses.  
-However the Chime SMA events are not included in this package.  This library is modeled after this approach and is used as follows:
+library to handle most of the services that directly integrate with Lambda and provides a full Java Object model for the requests and responses.  However the Chime SMA events are not included in this package.  This library is modeled after this approach and is used as follows:
 
 - You define your Lambda to implement [RequestHandler](https://github.com/aws/aws-lambda-java-libs/blob/main/aws-lambda-java-core/src/main/java/com/amazonaws/services/lambda/runtime/RequestHandler.java)<[SMARequest](ChimeSMA/src/main/java/cloud/cleo/chimesma/model/SMARequest.java), [SMAResponse](ChimeSMA/src/main/java/cloud/cleo/chimesma/model/SMAResponse.java)> .
 - Process the incoming request and repond as necessary, see [HellowWorld.java](Examples/src/main/java/cloud/cleo/chimesma/examples/response/HelloWorld.java) for an example.
@@ -39,7 +41,7 @@ However the Chime SMA events are not included in this package.  This library is 
 
 ### Java Action Flow Model
 
-Building upon the above, the "Action Flow Model" maps each of the [supported actions for the PSTN Audio service][https://docs.aws.amazon.com/chime-sdk/latest/dg/specify-actions.html) 
+Building upon the above, the "Action Flow Model" maps each of the [supported actions for the PSTN Audio service](https://docs.aws.amazon.com/chime-sdk/latest/dg/specify-actions.html) 
 to Java Objects that you dynamically connect to each other to create flows.  The Objects are easily extensible to allow the creation of complex interactions and routing. 
 This part of the library provides:
 
@@ -54,63 +56,26 @@ This part of the library provides:
     - Example: Pause -> Speak -> Pause -> StartRecording -> SpeakAndGetDigits sent one by one would require 4 Lambda calls without optimization.
     - Actions like SpeakAndGetDigits require a result before proceeding and cannot be chained with another action.
 - Java Locale support across all relevant actions to easily build multi-lingual interactions (Prompts, Speak, and Bots)
-- Extending exiting actions is easy, see [CallAndBridgeActionTBTDiversion.java](Examples/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeActionTBTDiversion.java) which 
+- Extending existing actions is easy, see [CallAndBridgeActionTBTDiversion.java](Examples/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeActionTBTDiversion.java) which 
 extends the standard [CallAndBridge](ChimeSMA/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeAction.java) action to write call info to a DyanmoDB table that can be used in a Connect flow to implement take back and transfer.  See use case later in this document.
 
 To use the Flow Model:
 
 - Simply create a Java Object that inherits from [AbstractFlow](ChimeSMA/src/main/java/cloud/cleo/chimesma/actions/AbstractFlow.java)
 - Implement the getInitialAction() method that returns the start of the flow.
-- See the flow based [HelloWorld.java](Examples/src/main/java/cloud/cleo/chimesma/examples/actions/HelloWorld.java)
+- See the flow based [HelloWorld.java](Examples/src/main/java/cloud/cleo/chimesma/examples/actions/HelloWorld.java) example.
 
 
+## Amazon Connect Take Back and Transfer Use Case
 
-This project demonstrates an integration of [Amazon Connect](https://aws.amazon.com/pm/connect/) to [OpenAI ChatGPT](https://openai.com/product/chatgpt) in both English and Spanish via 
-an [AWS Lex Bot](https://aws.amazon.com/pm/lex/).  There are some examples available in NodeJS and Python that demonstrate a basic integration with some screen shots, but there isn't a fully working example (with chat context) 
-that can be easily deployed via CloudFormation, including the call flow itself and the glue to bring it together with minimal console interaction.
-
-The basic strategy is to deploy a normal LexV2 Bot with intents to handle a couple cases (like help, talk to someone, and hanging up on the caller) and use the 
-[AMAZON.FallbackIntent](https://docs.aws.amazon.com/lexv2/latest/dg/built-in-intent-fallback.html) with a [Lambda CodeHook](https://docs.aws.amazon.com/lexv2/latest/dg/paths-code-hook.html) 
-to send requests to ChatGPT and also maintain the Chat session so you can interact just like the web client.  For example, you can ask "What is the biggest lake in MN", then subsequently 
-you ask "how deep is it".  Because all your prompts are saved to a [Dynamo DB Table](https://aws.amazon.com/dynamodb/) as you interact, the context is maintained and ChatGPT knows the 
-context of each question.  The project uses your callerID and today's date for session context.  So, you can ask a question, hang up, call back, and ChatGPT will still have the context 
-of what you said in the prior call.  When you call the next day, you are starting with a fresh context.
-
-Because tearing down and building Connect instances is rate-limited and can lock you out for 30 days, you will need to pass in an instance ID of an existing Amazon Connect instance to deploy 
-this project.  You will also need to allocate a phone number and associate it with the created call flow.  You can, of course, use an existing phone number in your instance and temporarily point 
-it at the "connect-chatgpt-gptflow".  If you are deploying this, the assumption would be that you are familiar enough with Amazon Connect to bring up an instance and allocate a phone number or you 
-already have an existing instance.  You will also need an [OpenAI API key](https://platform.openai.com/account/api-keys) saved to [Parameter Store](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html) 
-(OPENAI_API_KEY is the default in the template).
-
-
-Other features:
-- Use of [Static Prompts](https://docs.aws.amazon.com/connect/latest/adminguide/setup-prompts-s3.html) defined in the CloudFormation itself.  
-  Polly is fast inside Connect, but static prompts from S3 will provide lower latency for playback.
-- Background lookup of call data that doesn't block the call flow waiting on a result.
-- Multilingual support.  Spanish and English are supported, but another language supported by Lex and ChatGPT should be easy to implement.
-- Lex Intents:
-  - About/Help - A static prompt that describes the project.
-  - Transfer - Transfer the call to a person (or mention the first name configured in the template).
-  - Hang Up - Play a goodbye prompt and terminate the call when caller indicates they are done.
-
-
-Other goals of the project (technical focus):
-- SAM CloudFormation for all the components in play (`sam build` and then `sam deploy`) for simple deployment of the project.
-- Use of the to-be-released [V4 Java Event Objects](https://github.com/aws/aws-lambda-java-libs/tree/85837fa301a83f89bbb09683c35aa5df1077b7d4) instead of dealing with raw JSON for LexV2 Events.
-- Use of the [Dynamo DB Enhanced client](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/ddb-en-client-doc-api.html) to save Java objects.
-- Generate prompts with Polly and use SOX to convert them in a Lambda (a project in and of itself!).
-- Use of [SnapStart](https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html) to reduce latency (which is important for a voice interface) on Lambda Functions.
-- Dynamic creation of the Connect Flow based on CloudFormation.
-- To simply provide a fully working example in Java using the best available API's:
-  - [openai-java](https://github.com/TheoKanning/openai-java)
-
-## Architecture
+This use case demonstrates sending calls to [Amazon Connect](https://aws.amazon.com/pm/connect/) and then later moving the call to some other destination 
+like a PSTN number (which could be another Connect instance), SIP destination, or to continue a flow at the SMA Application.  Calls are released from
+the Connect instance (call leg disconnected by the SMA Application) and moved to another destination.
 
 ### High Level Components
-![Architecture Diagram](assets/arch.jpg)
+![Architecture Diagram](assets/SMA-Connect-TBT.png)
 
-### CloudFormation Resources
-![Resource Diagram](assets/resources.png)
+
 
 ### Call Flow
 ![Call Flow](assets/flow.png)
