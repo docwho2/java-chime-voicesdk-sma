@@ -134,15 +134,33 @@ public class ResponseStartBotConversation implements ResponseAction, Serializabl
     }
     
     public enum IntentState {
-        Failed,  // The Lambda function failed to fulfill the intent.
-        Fulfilled,  // The Lambda function fulfilled the intent.
-        ReadyForFulfillment  // The information for the intent is present, and your Lambdafunction can fulfill the intent.
+        /**
+         * The Lambda function failed to fulfill the intent.
+         */
+        Failed,
+        /**
+         * The Lambda function fulfilled the intent.
+         */
+        Fulfilled,
+        /**
+         * The information for the intent is present, and your Lambda function can fulfill the intent.
+         */
+        ReadyForFulfillment
     }
     
     public enum ConfirmationState {
-        Confirmed,  // The Intent is fulfilled.
-        Denied,  // The user responded "no" to the confirmation prompt.
-        None  // The user wasn't prompted for confirmation, or the user was prompted but didn't confirm or deny the prompt.
+        /**
+         * The Intent is fulfilled.
+         */
+        Confirmed,
+        /**
+         * The user responded "no" to the confirmation prompt.
+         */
+        Denied,
+        /**
+         * The user wasn't prompted for confirmation, or the user was prompted but didn't confirm or deny the prompt.
+         */
+        None
     }
 
     @Data

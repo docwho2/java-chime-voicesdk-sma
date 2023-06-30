@@ -20,10 +20,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Model for a Chime SDK Sip Media Application Telephony Event
- * https://docs.aws.amazon.com/chime-sdk/latest/dg/pstn-invocations.html
+ * Model for a Chime SDK Sip Media Application Telephony Event.
  *
  * @author sjensen
+ * @see <a href="https://docs.aws.amazon.com/chime-sdk/latest/dg/pstn-invocations.html">AWS Documentation</a>
  */
 @Data
 @Builder(setterPrefix = "with")
@@ -139,7 +139,6 @@ public class SMARequest implements Serializable {
     }
 
     private static class InstantConverter extends StdConverter<String, Instant> {
-
         @Override
         public Instant convert(String in) {
             return Instant.ofEpochMilli(Long.decode(in));

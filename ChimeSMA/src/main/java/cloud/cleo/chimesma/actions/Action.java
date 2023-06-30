@@ -38,7 +38,10 @@ public abstract class Action<A extends Action, R extends ResponseAction> impleme
     // Id used to track unique Java Object Actions
     private final Integer id = AbstractFlow.registerAction(this);
 
-    // Description to use in debug logs
+    /**
+     * Short description for this Action that will be logged in the log file.
+     * Use something short but descriptive that will help you when viewing log files.
+     */
     private String description;
 
     /**
@@ -83,7 +86,7 @@ public abstract class Action<A extends Action, R extends ResponseAction> impleme
                 action = nextActionFunction.apply((A) this);
             } catch (Exception e) {
                 log.error(getDebugSummary(), e);
-                log.info("Falling back to static next Acction due to exception");
+                log.info("Falling back to static next Action due to exception");
                 action = nextAction;
             }
         } else {
@@ -93,6 +96,12 @@ public abstract class Action<A extends Action, R extends ResponseAction> impleme
         return action;
     }
 
+    /**
+     * Generate a short and concise debug line that is readable in the logs.
+     * Sub classes should always call super() on this and add what is relevant.
+     * 
+     * @return summary string targeted for logging
+     */
     protected StringBuilder getDebugSummary() {
         StringBuilder sb = new StringBuilder(getActionType().toString());
         if (getDescription() != null) {

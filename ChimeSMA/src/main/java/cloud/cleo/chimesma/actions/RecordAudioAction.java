@@ -11,19 +11,30 @@ import lombok.Data;
 import lombok.experimental.SuperBuilder;
 
 /**
- *
+ * Record Audio Action
+ * 
+ * 
  * @author sjensen
+ * @see <a href="https://docs.aws.amazon.com/chime-sdk/latest/dg/record-audio.html">AWS Documentation</a>
  */
-@Data
+@Data()
 @SuperBuilder(setterPrefix = "with")
-public class RecordAudioAction extends Action<RecordAudioAction,ResponseRecordAudio> {
+public class RecordAudioAction extends Action<RecordAudioAction, ResponseRecordAudio> {
 
-    
-    // Key to store the the recording file in the Transaction Attributes
+    // Keys to store the the recording file in the Transaction Attributes
     public final static String RECORD_AUDIO_BUCKET = "RecordAudioBucket";
     public final static String RECORD_AUDIO_KEY = "RecordAudioKey";
     public final static String RECORD_AUDIO_TERMINATOR = "RecordAudioTerm";
 
+    /**
+     * Description – The duration of the recording, in seconds.
+     * <p>
+     * Allowed values – >0
+     * <p>
+     * Required – No
+     * <p>
+     * Default value – None
+     */
     private Integer durationInSeconds;
     private Integer silenceDurationInSeconds;
     private Integer silenceThreshold;
@@ -34,7 +45,7 @@ public class RecordAudioAction extends Action<RecordAudioAction,ResponseRecordAu
 
     @Override
     protected ResponseAction getResponse() {
-        
+
         final var dest = ResponseRecordAudio.RecordingDestination.builder()
                 .withBucketName(bucketName)
                 .withPrefix(prefix)
@@ -66,8 +77,6 @@ public class RecordAudioAction extends Action<RecordAudioAction,ResponseRecordAu
 
         return sb;
     }
-
-   
 
     @Override
     public ResponseActionType getActionType() {
