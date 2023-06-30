@@ -25,7 +25,7 @@ These apps allow for the deployment of multi-region and fault-tolerant self-serv
 
 ## Library Overview
 
-The library provides two approaches, a JSON event mapping model, and on top of that a flow based libray that lets programmers develop call flows 
+The library provides two approaches, a JSON event mapping model, and on top of that a flow based library that lets programmers develop call flows 
 without having to deal with event handling and flow optimization.  The latter allows developers to quickly build applications with minimal coding. 
 See the Library [README](ChimeSMA/README.md) for more indepth information about using the library and writing applications.
 
@@ -72,72 +72,79 @@ This use case demonstrates sending calls to [Amazon Connect](https://aws.amazon.
 like a PSTN number (which could be another Connect instance), SIP destination, or to continue a flow at the SMA Application.  Calls are released from
 the Connect instance (call leg disconnected by the SMA Application) and moved to another destination.
 
+The general steps are:
+- [CallAndBridgeActionTBTDiversion](Examples/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeActionTBTDiversion.java) action writes call data to Dynamo DB table prior to actually moving the call.
+- Connect Script executes a Lambda function to transfer calls
+
+
+
 ### High Level Components
 ![Architecture Diagram](assets/SMA-Connect-TBT.png)
 
 
+### Connect Call Flow
 
-### Call Flow
-![Call Flow](assets/flow.png)
+In your connect flow, let's assume you have the destination number set on the contact attribute "TransferNumber".  Normally you would pass that
+directly to "Transfer to phone number" step to place the outbound call.  For this use case, we simply insert a "Invoke AWS Lambda function" and "Wait"
+step into the flow.  The orginal transfer step can be left in place as a failsafe. The wait condition gives the Lambda time to contact the Chime SDK API 
+to signal the SMA app to disconnect the call.  Typically this all executes sub-second.
 
-### Initial Call to Lambda
-When the call arrives at the Connect Call Flow we call a Lambda Function:
-- This lambda function simply takes the Connect Event payload and puts it onto an SNS Topic.
-- This is a short NodeJS code block that is intended to quickly return and not perform any business logic.
+![Call Flow](assets/connectscript.png)
+
+### Transfer Lambda
+
+When invoking the Lambda from Connect, we pass both the Diversion header (Connect calls this "Call-Forwarding-Indicator") and the TransferNumber.
+
+![Invoke Lamba Step](assets/lambdastep.png)
+
+The lambda function then:
+- Extracts the key from the SIP header (a random E164 number).
+- Executes a Dynamo DB call to retrieve the call information which consists of: 
+    - AWS Region
+    - sipMediaApplicationId
+    - transactionId
+- Finally, executes a Chime SDK API call to UpdateSipMediaApplicationCall:
+    - The region is used to initialize the client SDK properly to support calls ingressing to either region.
+    - The TransferNumber is passed as a parameter so the SMA Handler knows where to transfer the call to.
+
+Sample Lambda code in NodeJS.
   ```javascript
-  const {SNSClient, PublishCommand} = require("@aws-sdk/client-sns");
-  const client = new SNSClient();
+        const {ChimeClient, UpdateSipMediaApplicationCallCommand} = require("@aws-sdk/client-chime");
+        const { DynamoDBClient, GetItemCommand } = require("@aws-sdk/client-dynamodb")
+        const ddb = new DynamoDBClient();
+        const regex = /(\+[0-9]+)/;
+        const table_name = process.env.CALLS_TABLE_NAME;
         exports.handler = async function (event) {
-            const params = {
-                Message: JSON.stringify(event),
-                TopicArn: '${NewCallTopic}'
+            console.log(JSON.stringify(event));
+            let match = event.Details.Parameters.Diversion.match(regex);
+            console.log('Extracted phone is ' + match[1] );
+            
+            const dparams = {
+                Key : {
+                  phoneNumber : {
+                    S: match[1]
+                  }
+                },
+                TableName: table_name
             };
-            const response = await client.send(new PublishCommand(params));
+            
+            const dresponse = await ddb.send(new GetItemCommand(dparams));
+            console.log(JSON.stringify(dresponse))
+            
+            const cparams = {
+                SipMediaApplicationId: dresponse.Item.sipMediaApplicationId.S,
+                TransactionId: dresponse.Item.transactionId.S,
+                Arguments: {
+                    phoneNumber: event.Details.Parameters.TransferNumberD
+                }   
+            };
+            // We need to know region before initializing client
+            const chime = new ChimeClient({ region: dresponse.Item.region.S,  });
+            const cresponse = await chime.send(new UpdateSipMediaApplicationCallCommand(cparams));
+            console.log(JSON.stringify(cresponse));
             return {status: 'OK'};
         };
   ```
-![Call Flow Part 1](assets/flowpart1.png)
-
-### Ask for Language then play conditional prompt
-Checking to see if background process has something we need to act on:
-- An initial welcome prompt is played (meanwhile, our backend logic is executing).
-- We then check for the language, in this case, if the caller wants to interact in Spanish by pressing 2.
-- By this time, (since several seconds have elapsed playing prompts) we check contact attributes that may have been set by the [NewCallLookup Lambda](NewCallLookup/src/main/java/cloud/cleo/connectgpt/NewCallLookup.java).
-- In this example if the contact attribute "PlayPrompt" has a value of "true", we proceed to play a prompt that was generated by the NewCallLookup Lambda by calling [UpdateContactAttributes](https://docs.aws.amazon.com/connect/latest/APIReference/API_UpdateContactAttributes.html).
-- Based on the Dynamo Query, if this is a first time call, nothing is set.  However if the caller has called before, an attribute is set with "Welcome Back".
-- This is just an example strategy to perform background work and later react to it.  I don't like a looping approach in the call flow waiting on a result, but rather check the result and if set, act upon it.  Of course, different use cases might require a result to proceed with the call.
-![Call Flow Part 2](assets/flowpart2.png)
-
-### Lex/ChatGPT and output intents
-
-At this point in the call, the language is known and control is now with the Lex Bot:
-- Because the bot itself does not control the call, we need Lex intents that can transfer the call or hang up on the caller, which must be done by the Call Flow.
-  - The "About" intent will play a long prompt describing the project.
-  - The "Quit" intent will play a thank you prompt and disconnect the call.
-  - The "Transfer" intent in this case will transfer the call to an external number.
-- When the Lex Bot can't match the above intents, it sends the transcript (what the caller said) to the [FallBack Intent](https://docs.aws.amazon.com/lexv2/latest/dg/built-in-intent-fallback.html)  which is connected to the [ChatGPT Lambda](ChatGPT/src/main/java/cloud/cleo/connectgpt/ChatGPTLambda.java).
-  - The Lambda then sends the transcript to ChatGPT and returns the result to the Lex Bot with a dialog action of [ElicitIntent](https://docs.aws.amazon.com/lexv2/latest/APIReference/API_runtime_DialogAction.html).
-  - The result is the ChatGPT response is played back to the caller and the LexBot is once again listening for the next Intent to match.
-  - The conversation can continue until the caller hangs up or matches the Quit intent (saying good bye, thanks, all done, etc.) or Transfer intent.
-- The Lambda can also tell the Lex Bot to fullfill another intent:
-  - After 2 subsequent silence timeouts the Lambda will respond with a Delegate to the "Quit" intent which will then disconnect the call.  This is needed because if someone calls and says nothing, we don't want to keep the call up consuming resources forever.
-  - Another possibility is to check the length of the chat history and disconnect the call for too many requests or check for profanity and also disconnect in that case.
-- Lambda Error Handling:
-  - A number of things can happen and go wrong and the Lambda has to respond properly.
-  - If you ask for something complicated or ChatGPT is just busy/slow at the moment, the API call will timeout, and the appropiate response (in the callers language) must be returned telling the caller to try again.
-  - If ChatGPT is down, or there is a network connectivity issue, any unhandled exception in the code is returned telling the caller something is down, try again later.
-![Call Flow Part 3](assets/flowpart3.png)
-
-
-## Contents
-This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders:
-
-- [ChatGPT](ChatGPT/src/main/java/cloud/cleo/connectgpt/) - Lambda fullfillment hook that calls out to OpenAI ChatGPT.
-- [PollyPromptCreation](PollyPromptCreation/src/main/java/cloud/cleo/connectgpt/)  - [Custom Resource](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) Lambda that does all of the static prompt creation.
-- [NewCallLookup](NewCallLookup/src/main/java/cloud/cleo/connectgpt/) - Lambda that is called for every incoming call that logs it to DyanmoDB and updates Contact Attributes to play a conditional prompt.
-- CloudFormation script for all AWS resources:
-	- [template.yaml](template.yaml) - Creates all the SAM lambda functions and associated AWS resources.
-
 
 ## Deploy the Project
 
