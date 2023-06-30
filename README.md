@@ -95,7 +95,8 @@ to signal the SMA app to disconnect the call.  Typically this all executes sub-s
 
 When invoking the Lambda from Connect, we pass both the Diversion header (Connect calls this "Call-Forwarding-Indicator") and the TransferNumber.
 
-![img](assets/lambdastep.png){: width="50%"}
+
+<img src="assets/lambdastep.png" width="50%" height="50%">
 
 The lambda function then:
 - Extracts the key from the SIP header (a random E164 number).
