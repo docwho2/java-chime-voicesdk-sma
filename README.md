@@ -95,7 +95,7 @@ to signal the SMA app to disconnect the call.  Typically this all executes sub-s
 
 When invoking the Lambda from Connect, we pass both the Diversion header (Connect calls this "Call-Forwarding-Indicator") and the TransferNumber.
 
-![Invoke Lamba Step](assets/lambdastep.png)
+![Invoke Lamba Step|200](assets/lambdastep.png)
 
 The lambda function then:
 - Extracts the key from the SIP header (a random E164 number).
@@ -104,13 +104,13 @@ The lambda function then:
     - sipMediaApplicationId
     - transactionId
 - Finally, executes a Chime SDK API call to UpdateSipMediaApplicationCall:
-    - The region is used to initialize the client SDK properly to support calls ingressing to either region.
+    - The region is used to initialize the client SDK properly to support calls ingressing from either region.
     - The TransferNumber is passed as a parameter so the SMA Handler knows where to transfer the call to.
 
 Sample Lambda code in NodeJS.
   ```javascript
         const {ChimeClient, UpdateSipMediaApplicationCallCommand} = require("@aws-sdk/client-chime");
-        const { DynamoDBClient, GetItemCommand } = require("@aws-sdk/client-dynamodb")
+        const {DynamoDBClient, GetItemCommand} = require("@aws-sdk/client-dynamodb")
         const ddb = new DynamoDBClient();
         const regex = /(\+[0-9]+)/;
         const table_name = process.env.CALLS_TABLE_NAME;
