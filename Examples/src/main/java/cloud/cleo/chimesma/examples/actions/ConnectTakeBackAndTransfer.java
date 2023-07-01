@@ -37,7 +37,7 @@ public class ConnectTakeBackAndTransfer extends AbstractFlow  {
          */
         final var bot = StartBotConversationAction.builder()
                 .withContent("Welcome, how can I can I help today?")
-                .withNextActionFunction((a) -> {
+                .withNextActionF((a) -> {
                     switch (a.getIntentName()) {
                         case "Quit":
                             return SpeakAction.builder().withText("Thanks for calling, goodbye").build();
