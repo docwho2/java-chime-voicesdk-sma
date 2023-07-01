@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResponseStartCallRecording implements ResponseAction, Serializable {
+public class ResponseStartCallRecording implements ResponseAction, ErrorMessage, Serializable {
 
     private final ResponseActionType type = ResponseActionType.StartCallRecording;
 
@@ -32,6 +32,9 @@ public class ResponseStartCallRecording implements ResponseAction, Serializable 
     @JsonProperty(value = "CallRecordingDestination", access = JsonProperty.Access.WRITE_ONLY)
     private Destination callRecordingDestination;
 
+     // Set on ACTION_FAILED
+    private String error;
+    
     @Data
     @Builder(setterPrefix = "with")
     @NoArgsConstructor

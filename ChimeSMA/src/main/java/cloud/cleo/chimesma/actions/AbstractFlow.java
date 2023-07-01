@@ -153,12 +153,12 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
             action = nextAction;
             counter++;
         }
-        
+
         // When we chain a bunch of actions, we'll need to also know the list of
         // ID's in order in case one errors in the middle of the list for example
-        attrs.put(CURRENT_ACTION_ID_LIST, 
-                list.stream().map(a -> a.getId().toString()).collect(Collectors.joining(",")) );
-        
+        attrs.put(CURRENT_ACTION_ID_LIST,
+                list.stream().map(a -> a.getId().toString()).collect(Collectors.joining(",")));
+
         // The last Action will contain the summation of all the attrs
         list.getLast().setTransactionAttributes(attrs);
         return list;
@@ -203,13 +203,14 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                     break;
                 case ACTION_SUCCESSFUL:
                     var action = getCurrentAction(event);
+                    action.onActionSuccessful();
                     if (action instanceof CallAndBridgeAction) {
 
                         final var attrs = action.getTransactionAttributes();
-                        final var ad =  event.getActionData();
+                        final var ad = event.getActionData();
                         final var hangupB = ad.getType().equals(ResponseActionType.Hangup)
-                                && ((ResponseHangup)ad).getParameters().getParticipantTag().equals(LEG_B);
-                        
+                                && ((ResponseHangup) ad).getParameters().getParticipantTag().equals(LEG_B);
+
                         if (hangupB) {
                             log.debug("Diconnect on leg B associated with Disconnect and Transfer");
                             ((CallAndBridgeAction) action).setUri((String) attrs.get("transferNumber"));
@@ -222,20 +223,6 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                         // When a call is bridged successfully don't do anything
                         log.debug("CallAndBridge has connected call now, empty response");
                         res = SMAResponse.builder().build();
-                    } else if (action instanceof StartCallRecordingAction) {
-                        final var loc =((StartCallRecordingAction) action).getActionData().getCallRecordingDestination().getLocation();
-                        log.debug("Start Call Recording SUCCESS with file " + loc);
-                        action.getTransactionAttributes().put(StartCallRecordingAction.RECORDING_FILE_LOCATION, loc );
-                        res = defaultResponse(action, event);
-                    } else if (action instanceof RecordAudioAction) {
-                        final var ad = ((RecordAudioAction) action).getActionData();
-                        final var rd = ad.getRecordingDestination();
-                        log.debug("Record Audio SUCCESS with file " + rd.getKey() );
-                        final var ta = action.getTransactionAttributes();
-                        ta.put(RecordAudioAction.RECORD_AUDIO_BUCKET, rd.getBucketName());
-                        ta.put(RecordAudioAction.RECORD_AUDIO_KEY, rd.getKey());
-                        ta.put(RecordAudioAction.RECORD_AUDIO_TERMINATOR, ad.getRecordingTerminatorUsed().toString());
-                        res = defaultResponse(action, event);
                     } else {
                         res = defaultResponse(action, event);
                     }
@@ -290,17 +277,17 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                     action = getCurrentAction(event);
                     if (action instanceof CallAndBridgeAction) {
                         final var attrs = action.getTransactionAttributes();
-                            final var params = ((ActionDataCallUpdateRequest)event.getActionData()).getParameters();
-                            if (params != null ) {
-                                final var args = params.getArguments();
-                                if (args != null ) {
-                                    final var phoneNumber = args.get("phoneNumber");
-                                    if (phoneNumber != null) {
-                                        log.debug("Update Requested with a transfer to number of " + phoneNumber);
-                                        attrs.put("transferNumber", phoneNumber);
-                                    }
+                        final var params = ((ActionDataCallUpdateRequest) event.getActionData()).getParameters();
+                        if (params != null) {
+                            final var args = params.getArguments();
+                            if (args != null) {
+                                final var phoneNumber = args.get("phoneNumber");
+                                if (phoneNumber != null) {
+                                    log.debug("Update Requested with a transfer to number of " + phoneNumber);
+                                    attrs.put("transferNumber", phoneNumber);
                                 }
                             }
+                        }
                         // Disconnect leg B
                         final var diconnectLegB = ResponseHangup.builder().withParameters(ResponseHangup.Parameters.builder().withParticipantTag(ParticipantTag.LEG_B).build()).build();
                         res = SMAResponse.builder()
@@ -328,7 +315,7 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
 
     private SMAResponse defaultResponse(Action action, SMARequest event) throws CloneNotSupportedException {
         SMAResponse res;
-        if (event.getInvocationEventType().equals(ACTION_SUCCESSFUL) && Disconnected.equals(event.getCallDetails().getParticipants().get(0).getStatus()) ) {
+        if (event.getInvocationEventType().equals(ACTION_SUCCESSFUL) && Disconnected.equals(event.getCallDetails().getParticipants().get(0).getStatus())) {
             // We are just getting a success on the last Action while caller hung up, so we can't go to next action
             log.debug("Call is Disconnected on ACTION_SUCCESSFUL, so empty response");
             res = SMAResponse.builder().build();

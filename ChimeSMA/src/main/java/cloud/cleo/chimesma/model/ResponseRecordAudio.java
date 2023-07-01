@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResponseRecordAudio implements ResponseAction, Serializable {
+public class ResponseRecordAudio implements ResponseAction, ErrorTypeMessage, Serializable {
 
     private final ResponseActionType type = ResponseActionType.RecordAudio;
 
@@ -37,6 +37,10 @@ public class ResponseRecordAudio implements ResponseAction, Serializable {
     @JsonProperty(value = "RecordingDestination", access = JsonProperty.Access.WRITE_ONLY)
     private RecordingDestination recordingDestination;
 
+    // Set on ACTION_FAILED
+    private String errorType;
+    private String errorMessage;
+    
     @Data
     @Builder(setterPrefix = "with")
     @NoArgsConstructor

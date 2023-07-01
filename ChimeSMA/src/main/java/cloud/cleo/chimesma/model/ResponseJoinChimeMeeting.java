@@ -21,12 +21,15 @@ import lombok.NoArgsConstructor;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResponseJoinChimeMeeting implements ResponseAction, Serializable {
+public class ResponseJoinChimeMeeting implements ResponseAction, ErrorMessage, Serializable {
     
     private final ResponseActionType type = ResponseActionType.JoinChimeMeeting;
     
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
+    
+     // Set on ACTION_FAILED
+    private String error;
 
     @Data
     @Builder(setterPrefix = "with")

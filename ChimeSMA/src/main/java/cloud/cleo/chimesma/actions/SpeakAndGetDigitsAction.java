@@ -24,7 +24,7 @@ import lombok.experimental.SuperBuilder;
  */
 @Data
 @SuperBuilder(setterPrefix = "with")
-public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction,ResponseSpeakAndGetDigits> implements ReceivedDigits {
+public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction, ResponseSpeakAndGetDigits> implements ReceivedDigits {
 
     protected String inputDigitsRegex;
 
@@ -43,7 +43,7 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction,Resp
 
         final List<ResponseSpeakAndGetDigits.SpeechParameter> resp = new LinkedList<>();
         for (final SpeechParameters sp : List.of(speechParameters, failureSpeechParameters)) {
-            final var myContent = sp.textFunction != null ? sp.textFunction.apply(this) : sp.text;
+            final var myContent = getFuncValOrDefault(sp.textF, sp.text);
             final var locale = sp.locale != null ? sp.locale : getLocale();
             final var speechParam = ResponseSpeakAndGetDigits.SpeechParameter.builder()
                     .withText(myContent)
@@ -53,8 +53,8 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction,Resp
                     .withLanguageCode(locale.toLanguageTag())
                     .withVoiceId(sp.voiceId != null ? sp.voiceId : voice_map.get(locale))
                     .build();
-         
-             resp.add(speechParam);
+
+            resp.add(speechParam);
         }
 
         final var it = resp.iterator();
@@ -75,9 +75,9 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction,Resp
 
     @Override
     public String getReceivedDigits() {
-       return getRecievedDigitsFromAction();
+        return getRecievedDigitsFromAction();
     }
-    
+
     @Override
     public ResponseActionType getActionType() {
         return ResponseActionType.SpeakAndGetDigits;
@@ -87,18 +87,9 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction,Resp
     protected StringBuilder getDebugSummary() {
         final var sb = super.getDebugSummary();
 
-        if (speechParameters.textFunction != null) {
-            // Guard against function erroring
-            try {
-                sb.append(" textF=[").append(speechParameters.textFunction.apply(this)).append(']');
-            } catch (Exception e) {
-                log.error(this.getClass() + " function error", e);
-            }
-        } else if (speechParameters.text != null) {
-            sb.append(" text=[").append(speechParameters.text).append(']');
-        }
-        
-        if ( inputDigitsRegex != null ) {
+        sb.append(" text=[").append(getFuncValOrDefault(speechParameters.textF, speechParameters.text)).append(']');
+
+        if (inputDigitsRegex != null) {
             sb.append(" re=[").append(getInputDigitsRegex()).append(']');
         }
 
@@ -124,7 +115,7 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction,Resp
     public static class SpeechParameters {
 
         private String text;
-        private Function<SpeakAndGetDigitsAction, String> textFunction;
+        private Function<SpeakAndGetDigitsAction, String> textF;
         private Engine engine;
         private Locale locale;
         private VoiceId voiceId;

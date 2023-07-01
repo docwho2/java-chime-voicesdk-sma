@@ -6,6 +6,7 @@ package cloud.cleo.chimesma.actions;
 
 import static cloud.cleo.chimesma.actions.AbstractFlow.CURRENT_ACTION_ID;
 import cloud.cleo.chimesma.model.*;
+import static cloud.cleo.chimesma.model.SMARequest.SMAEventType.*;
 import com.amazonaws.services.lambda.serialization.JacksonPojoSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
@@ -49,8 +50,10 @@ public abstract class Action<A extends Action, R extends ResponseAction> impleme
      */
     @Setter(AccessLevel.PROTECTED)
     private String callId;
+    
+    
     private Action nextAction;
-    private Function<A, Action> nextActionFunction;
+    private Function<A, Action> nextActionF;
 
     @Setter(AccessLevel.PROTECTED)
     private SMARequest event;
@@ -65,7 +68,7 @@ public abstract class Action<A extends Action, R extends ResponseAction> impleme
     protected abstract ResponseAction getResponse();
     
     /**
-     * The Action Data from SMA Response
+     * The Action Data from SMA Request
      * @return 
      */
     public final R getActionData() {
@@ -78,22 +81,36 @@ public abstract class Action<A extends Action, R extends ResponseAction> impleme
         return true;
     }
     
-
-    protected Action getNextRoutingAction() {
-        Action action;
-        if (nextActionFunction != null) {
+    /**
+     * Given a function execute and return the function value if function is not
+     * null.  Return value if the function throws an exception or is null.  Note
+     * the value could be null as well.
+     * @param <V>
+     * @param function
+     * @param value
+     * @return 
+     */
+    protected final <V> V getFuncValOrDefault(Function<A,V> function, V value) {
+        if ( function != null)  {
             try {
-                action = nextActionFunction.apply((A) this);
+                return function.apply( (A) this);
             } catch (Exception e) {
                 log.error(getDebugSummary(), e);
-                log.info("Falling back to static next Action due to exception");
-                action = nextAction;
             }
-        } else {
-            action = nextAction;
         }
+        // If no function or function threw exception, return just the value
+        return value;
+    }
+    
 
-        return action;
+    /**
+     * Gets the next routing Action to continue the flow.  Sub classes can override
+     * to provide different logic for going to the next action.
+     * 
+     * @return the next action
+     */
+    protected Action getNextRoutingAction() {
+        return getFuncValOrDefault(nextActionF, nextAction);
     }
 
     /**
@@ -132,6 +149,14 @@ public abstract class Action<A extends Action, R extends ResponseAction> impleme
         clone.setEvent(event);
 
         return clone;
+    }
+    /**
+     * Called when ACTION_SUCCESSFUL happens on a action.  Sub classes should override
+     * to add logic for success events, like call recording to store the file name.
+     * 
+     */
+    protected void onActionSuccessful() {
+        
     }
     
     public Map<String, Object> setTransactionAttribute(String key,Object object) {

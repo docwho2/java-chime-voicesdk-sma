@@ -6,10 +6,9 @@ package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.*;
 import java.util.List;
-import lombok.AllArgsConstructor;
+import java.util.function.Function;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -18,58 +17,61 @@ import lombok.experimental.SuperBuilder;
  */
 @Data
 @SuperBuilder(setterPrefix = "with")
-public class PlayAudioAction extends Action<PlayAudioAction,ResponsePlayAudio> {
+public class PlayAudioAction extends Action<PlayAudioAction, ResponsePlayAudio> {
 
-    protected ParticipantTag participantTag;
     protected List<Character> playbackTerminators;
     protected Integer repeat;
 
-     @Builder.Default
+    @Builder.Default
     protected String bucketName = System.getenv("PROMPT_BUCKET");
+    protected Function<PlayAudioAction, String> bucketNameF;
+    
     protected String key;
+    protected Function<PlayAudioAction, String> keyF;
+    
     protected String keyLocale;
+    protected Function<PlayAudioAction, String> keyLocaleF;
 
     @Override
     protected ResponseAction getResponse() {
         final String myKey;
-        if ( keyLocale != null ) {
-            myKey = keyLocale + "-" + getLocale().toLanguageTag() + ".wav";
+        if ( getFuncValOrDefault(keyLocaleF, keyLocale) != null) {
+            myKey = getFuncValOrDefault(keyLocaleF, keyLocale) + "-" + getLocale().toLanguageTag() + ".wav";
         } else {
-            myKey = key;
+            myKey = getFuncValOrDefault(keyF, key);
         }
-        
+
         final var audioSource = ResponsePlayAudio.AudioSource.builder()
-                .withBucketName(bucketName)
+                .withBucketName(getFuncValOrDefault(bucketNameF, bucketName))
                 .withKey(myKey)
                 .build();
 
         final var params = ResponsePlayAudio.Parameters.builder()
                 .withCallId(getCallId())
                 .withAudioSource(audioSource)
-                .withParticipantTag(participantTag)
                 .withPlaybackTerminators(playbackTerminators)
                 .withRepeat(repeat)
                 .build();
         return ResponsePlayAudio.builder().withParameters(params).build();
     }
-    
+
     @Override
     protected StringBuilder getDebugSummary() {
         final var sb = super.getDebugSummary();
-        
-        if ( keyLocale != null ) {
-            sb.append(" keyL=[").append(getKeyLocale()).append(']');
+
+        if ( getFuncValOrDefault(keyLocaleF, keyLocale) != null) {
+            sb.append(" keyL=[").append(getFuncValOrDefault(keyLocaleF, keyLocale)).append(']');
         }
-        
-        if ( key != null ) {
-            sb.append(" key=[").append(getKey()).append(']');
+
+        if (getFuncValOrDefault(keyF, key) != null) {
+            sb.append(" key=[").append(getFuncValOrDefault(keyF, key) ).append(']');
         }
-        
-        if ( bucketName != null ) {
-            sb.append(" bucket=[").append(getKey()).append(']');
+
+        if (getFuncValOrDefault(bucketNameF, bucketName) != null) {
+            sb.append(" bucket=[").append(getFuncValOrDefault(bucketNameF, bucketName)).append(']');
         }
-        
-        return sb;       
+
+        return sb;
     }
 
     @Override

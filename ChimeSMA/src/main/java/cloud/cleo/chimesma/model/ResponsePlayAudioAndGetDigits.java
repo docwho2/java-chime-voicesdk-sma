@@ -24,7 +24,7 @@ import lombok.NoArgsConstructor;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResponsePlayAudioAndGetDigits implements ResponseAction, ReceivedDigits, Serializable {
+public class ResponsePlayAudioAndGetDigits implements ResponseAction, ReceivedDigits,ErrorTypeMessage,  Serializable {
 
     private final ResponseActionType type = ResponseActionType.PlayAudioAndGetDigits;
     
@@ -35,6 +35,11 @@ public class ResponsePlayAudioAndGetDigits implements ResponseAction, ReceivedDi
     @JsonInclude(value = JsonInclude.Include.NON_NULL)
     @JsonProperty(value = "ReceivedDigits", access = JsonProperty.Access.WRITE_ONLY)
     private String receivedDigits;
+    
+    
+    // Set on ACTION_FAILED
+    private String errorType;
+    private String errorMessage;
     
     @Data
     @Builder(setterPrefix = "with")

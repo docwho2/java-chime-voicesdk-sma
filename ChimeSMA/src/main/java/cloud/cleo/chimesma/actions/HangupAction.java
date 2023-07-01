@@ -5,6 +5,7 @@
 package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.*;
+import java.util.function.Function;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -20,13 +21,14 @@ public class HangupAction extends Action<HangupAction,ResponseHangup> {
     
     protected ParticipantTag participantTag;
     protected Integer sipResponseCode;
-
+    protected Function<HangupAction,Integer> sipResponseCodeF;
+    
     @Override
     protected ResponseAction getResponse() {
         final var params = ResponseHangup.Parameters.builder()
                 .withCallId(getCallId())
                 .withParticipantTag(participantTag)
-                .withSipResponseCode(sipResponseCode)
+                .withSipResponseCode(getFuncValOrDefault(sipResponseCodeF, sipResponseCode))
                 .build();
         return ResponseHangup.builder().withParameters(params).build();
     }
@@ -42,9 +44,8 @@ public class HangupAction extends Action<HangupAction,ResponseHangup> {
     }
     
     @Override
-    public Action getNextAction() {
+    protected Action getNextRoutingAction() {
         return null;  // there can never be a next action for Hangup
     }
-      
 
 }

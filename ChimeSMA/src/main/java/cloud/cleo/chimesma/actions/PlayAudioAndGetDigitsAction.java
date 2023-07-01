@@ -8,10 +8,8 @@ import cloud.cleo.chimesma.model.*;
 import cloud.cleo.chimesma.model.ResponsePlayAudio.AudioSource;
 import java.util.LinkedList;
 import java.util.List;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -20,7 +18,7 @@ import lombok.experimental.SuperBuilder;
  */
 @Data
 @SuperBuilder(setterPrefix = "with")
-public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAction,ResponsePlayAudioAndGetDigits> implements ReceivedDigits {
+public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAction, ResponsePlayAudioAndGetDigits> implements ReceivedDigits {
 
     protected ParticipantTag participantTag;
 
@@ -86,8 +84,6 @@ public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAct
                 .append(" [").append(getInputDigitsRegex()).append(']');
     }
 
-    
-
     @Override
     public ResponseActionType getActionType() {
         return ResponseActionType.PlayAudioAndGetDigits;
@@ -95,7 +91,8 @@ public class PlayAudioAndGetDigitsAction extends Action<PlayAudioAndGetDigitsAct
 
     @Data
     @Builder(setterPrefix = "with")
-    public static class AudioSourceLocale  {
+    public static class AudioSourceLocale {
+
         @Builder.Default
         private String bucketName = System.getenv("PROMPT_BUCKET");
         private String key;

@@ -22,7 +22,9 @@ public class PauseCallRecordingAction extends Action<PauseCallRecordingAction,Re
     @Override
     protected ResponseAction getResponse() {
         return ResponsePauseCallRecording.builder()
-                .withParameters(ResponsePauseCallRecording.Parameters.builder().withCallId(getCallId()).build()).build();
+                .withParameters(ResponsePauseCallRecording.Parameters.builder()
+                        .withCallId(getCallId())
+                        .build()).build();
     }
 
     @Override

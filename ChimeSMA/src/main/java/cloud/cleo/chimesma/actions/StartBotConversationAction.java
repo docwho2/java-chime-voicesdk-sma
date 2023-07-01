@@ -22,25 +22,24 @@ import lombok.experimental.SuperBuilder;
 public class StartBotConversationAction extends Action<StartBotConversationAction, ActionDataStartBotConversation> {
 
     protected ParticipantTag participantTag;
+
     @Builder.Default
     protected String botAliasArn = System.getenv("BOT_ALIAS_ARN");
+    protected Function<StartBotConversationAction, String> botAliasArnF;
 
     protected Map<String, String> sessionAttributes;
+    protected Function<StartBotConversationAction, Map<String, String>> sessionAttributesF;
 
+    @Builder.Default
     protected DialogActionType dialogActionType = ResponseStartBotConversation.DialogActionType.ElicitIntent;
 
     protected String content;
-    protected Function<StartBotConversationAction, String> contentFunction;
-
-    protected TextType contentType = TextType.PlainText;
+    protected Function<StartBotConversationAction, String> contentF;
 
     @Override
     protected ResponseAction getResponse() {
 
-        String myContent = null;
-        if (content != null || contentFunction != null) {
-            myContent = contentFunction != null ? contentFunction.apply(this) : content;
-        }
+        String myContent = getFuncValOrDefault(contentF, content);
 
         WelcomeMessage welcome = null;
         if (myContent != null) {
@@ -58,10 +57,10 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
         }
 
         SessionState ss = null;
-        if (sessionAttributes != null || da != null) {
+        if (getFuncValOrDefault(sessionAttributesF, sessionAttributes) != null || da != null) {
             ss = SessionState.builder()
                     .withDialogAction(da)
-                    .withSessionAttributes(sessionAttributes)
+                    .withSessionAttributes(getFuncValOrDefault(sessionAttributesF, sessionAttributes))
                     .build();
         }
 
@@ -73,7 +72,7 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
         final var params = ResponseStartBotConversation.Parameters.builder()
                 .withCallId(getCallId())
                 .withParticipantTag(participantTag)
-                .withBotAliasArn(botAliasArn)
+                .withBotAliasArn(getFuncValOrDefault(botAliasArnF, botAliasArn))
                 .withConfiguration(config)
                 // Bots use Java syntax with underscore and not tag format with dash
                 .withLocaleId(getLocale().toString())
@@ -82,31 +81,23 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
     }
 
     public String getIntentName() {
-        String intent = "NULL";
         try {
             final var ad = getEvent().getActionData();
             if (ad instanceof ActionDataStartBotConversation) {
-                intent = ((ActionDataStartBotConversation) ad).getIntentResult()
+                return ((ActionDataStartBotConversation) ad).getIntentResult()
                         .getSessionState().getIntent().getName();
             }
         } catch (Exception e) {
             log.error("Error getting Intent from Event reponse", e);
         }
-        return intent;
+        return "NULL";
     }
+    
 
     @Override
-    protected StartBotConversationAction clone(SMARequest event) throws CloneNotSupportedException {
-        final var clone = super.clone(event);
-
-        switch (event.getInvocationEventType()) {
-            case ACTION_SUCCESSFUL:
-                // Always put last intent matched int the session
-                log.debug("Lex Bot has finished and Intent is " + clone.getIntentName());
-                clone.setTransactionAttribute("LexLastMatchedIntent", clone.getIntentName());
-                break;
-        }
-        return clone;
+    protected void onActionSuccessful() {
+        log.debug("Lex Bot has finished and Intent is " + getIntentName());
+        setTransactionAttribute("LexLastMatchedIntent", getIntentName());
     }
 
     @Override
@@ -117,15 +108,8 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
             sb.append(" da=[").append(getDialogActionType()).append(']');
         }
 
-        if (contentFunction != null) {
-            // Guard against function erroring
-            try {
-                sb.append(" textF=[").append(contentFunction.apply(this)).append(']');
-            } catch (Exception e) {
-                log.error(this.getClass() + " function error", e);
-            }
-        } else if (content != null) {
-            sb.append(" text=[").append(getContent()).append(']');
+        if (getFuncValOrDefault(contentF, content) != null) {
+            sb.append(" content=[").append(getFuncValOrDefault(contentF, content)).append(']');
         }
 
         return sb;

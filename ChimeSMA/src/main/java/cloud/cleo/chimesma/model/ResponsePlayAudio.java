@@ -21,12 +21,16 @@ import lombok.NoArgsConstructor;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResponsePlayAudio implements ResponseAction, Serializable {
+public class ResponsePlayAudio implements ResponseAction, ErrorTypeMessage, Serializable {
 
     private final ResponseActionType type = ResponseActionType.PlayAudio;
 
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
+    
+    // Set on ACTION_FAILED
+    private String errorType;
+    private String errorMessage;
 
     @Data
     @Builder(setterPrefix = "with")

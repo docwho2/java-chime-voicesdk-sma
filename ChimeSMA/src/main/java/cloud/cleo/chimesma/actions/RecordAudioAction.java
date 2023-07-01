@@ -12,8 +12,8 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * Record Audio Action
- * 
- * 
+ *
+ *
  * @author sjensen
  * @see <a href="https://docs.aws.amazon.com/chime-sdk/latest/dg/record-audio.html">AWS Documentation</a>
  */
@@ -65,6 +65,17 @@ public class RecordAudioAction extends Action<RecordAudioAction, ResponseRecordA
     @Override
     protected boolean isChainable() {
         return false;
+    }
+
+    
+    @Override
+    protected void onActionSuccessful() {
+        final var ad = getActionData();
+        final var rd = ad.getRecordingDestination();
+        log.debug("Record Audio SUCCESS with file " + rd.getKey());
+        setTransactionAttribute(RECORD_AUDIO_BUCKET, rd.getBucketName());
+        setTransactionAttribute(RECORD_AUDIO_KEY, rd.getKey());
+        setTransactionAttribute(RECORD_AUDIO_TERMINATOR, ad.getRecordingTerminatorUsed().toString());
     }
 
     @Override

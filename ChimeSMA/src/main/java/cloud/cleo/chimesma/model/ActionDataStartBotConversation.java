@@ -5,6 +5,7 @@
 package cloud.cleo.chimesma.model;
 
 import cloud.cleo.chimesma.model.ResponseStartBotConversation.*;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 import java.util.List;
@@ -17,7 +18,7 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
-public class ActionDataStartBotConversation implements ResponseAction, Serializable {
+public class ActionDataStartBotConversation implements ResponseAction, ErrorTypeMessage, Serializable {
 
     @JsonProperty("CallId")
     private String callId;
@@ -30,10 +31,8 @@ public class ActionDataStartBotConversation implements ResponseAction, Serializa
     @JsonProperty(value = "IntentResult")
     IntentResult intentResult;
 
-    // Set on ACTION_FAILED
-    @JsonProperty("ErrorType")
+     // Set on ACTION_FAILED
     private String errorType;
-    @JsonProperty("ErrorMessage")
     private String errorMessage;
 
     @Data

@@ -15,39 +15,35 @@ import lombok.experimental.SuperBuilder;
  */
 @Data
 @SuperBuilder(setterPrefix = "with")
-public class ReceiveDigitsAction extends Action<ReceiveDigitsAction,ResponseReceiveDigits> implements ReceivedDigits {
+public class ReceiveDigitsAction extends Action<ReceiveDigitsAction, ResponseReceiveDigits> implements ReceivedDigits {
 
     // We will need to push our ID because we can be called anytime in the flow
     public final static String RECEIVE_DIGITS_ID = "RecvDigitsID";
-    
-    
 
     protected Action digitsRecevedAction;
-    
+
     protected ParticipantTag participantTag;
     protected String inputDigitsRegex;
     protected Integer inBetweenDigitsDurationInMilliseconds;
     protected Integer flushDigitsDurationInMilliseconds;
 
-    
-    @Override
-    public ReceiveDigitsAction clone(SMARequest event) throws CloneNotSupportedException {
-        var clone = super.clone(event);
-        clone.setTransactionAttribute(RECEIVE_DIGITS_ID, getId().toString());
-        return clone;
-    }
-    
+
     @Override
     protected StringBuilder getDebugSummary() {
         return super.getDebugSummary()
                 .append(" [").append(getInputDigitsRegex()).append(']');
     }
-    
+
+    @Override
+    protected void onActionSuccessful() {
+        setTransactionAttribute(RECEIVE_DIGITS_ID, getId().toString());
+    }
+
     @Override
     public String getReceivedDigits() {
-       return getRecievedDigitsFromAction();
+        return getRecievedDigitsFromAction();
     }
-    
+
     @Override
     protected ResponseAction getResponse() {
         final var params = ResponseReceiveDigits.Parameters.builder()

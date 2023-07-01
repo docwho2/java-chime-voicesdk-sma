@@ -11,10 +11,7 @@ import cloud.cleo.chimesma.model.ResponseSpeak;
 import cloud.cleo.chimesma.model.ResponseSpeak.Engine;
 import cloud.cleo.chimesma.model.ResponseSpeak.VoiceId;
 import java.util.function.Function;
-import lombok.Builder;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -32,14 +29,14 @@ public class SpeakAction extends Action<SpeakAction,ResponseSpeak> {
     /**
      * The function you want to generate the text
      */
-    protected Function<SpeakAction, String> textFunction;
+    protected Function<SpeakAction, String> textF;
 
     protected Engine engine;
     protected VoiceId voiceId;
 
     @Override
     protected ResponseAction getResponse() {
-        var myContent = textFunction != null ? textFunction.apply(this) : text;
+        var myContent = getFuncValOrDefault(textF,text);
         final var params = ResponseSpeak.Parameters.builder()
                 .withCallId(getCallId())
                 .withEngine(engine)
@@ -60,22 +57,15 @@ public class SpeakAction extends Action<SpeakAction,ResponseSpeak> {
     protected StringBuilder getDebugSummary() {
         final var sb = super.getDebugSummary();
 
-        if (textFunction != null) {
-            // Guard against function erroring
-            try {
-                sb.append(" textF=[").append(textFunction.apply(this)).append(']');
-            } catch (Exception e) {
-                log.error(this.getClass() + " function error", e);
-            }
-        } else if (text != null) {
-            sb.append(" text=[").append(getText()).append(']');
+        if (getFuncValOrDefault(textF,text) != null) {
+            sb.append(" text=[").append(getFuncValOrDefault(textF,text)).append(']');
         }
 
-        if (engine != null) {
+        if (getEngine() != null) {
             sb.append(" engine=[").append(getEngine()).append(']');
         }
 
-        if (voiceId != null) {
+        if (getVoiceId() != null) {
             sb.append(" vid=[").append(getVoiceId()).append(']');
         }
 

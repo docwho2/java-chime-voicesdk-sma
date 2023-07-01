@@ -23,7 +23,7 @@ import lombok.NoArgsConstructor;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResponseCallAndBridge implements ResponseAction, Serializable {
+public class ResponseCallAndBridge implements ResponseAction, ErrorTypeMessage, Serializable {
 
     private final ResponseActionType type = ResponseActionType.CallAndBridge;
 
@@ -32,6 +32,10 @@ public class ResponseCallAndBridge implements ResponseAction, Serializable {
      */
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
+    
+    // Set on ACTION_FAILED
+    private String errorType;
+    private String errorMessage;
 
     @Data
     @Builder(setterPrefix = "with")

@@ -23,12 +23,16 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(value = JsonInclude.Include.NON_NULL)
-public class ResponseStartBotConversation implements ResponseAction, Serializable {
+public class ResponseStartBotConversation implements ResponseAction, ErrorTypeMessage, Serializable {
 
     private final ResponseActionType type = ResponseActionType.StartBotConversation;
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
 
+     // Set on ACTION_FAILED
+    private String errorType;
+    private String errorMessage;
+    
     @Data
     @Builder(setterPrefix = "with")
     @NoArgsConstructor

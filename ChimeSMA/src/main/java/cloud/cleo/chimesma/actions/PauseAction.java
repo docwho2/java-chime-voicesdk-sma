@@ -5,9 +5,7 @@
 package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
@@ -18,15 +16,12 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder(setterPrefix = "with")
 public class PauseAction extends Action<PauseAction,ResponsePause> {
 
-
-    protected ParticipantTag participantTag;
     protected Integer durationInMilliseconds;
 
     @Override
     protected ResponseAction getResponse() {
         final var params = ResponsePause.Parameters.builder()
                 .withCallId(getCallId())
-                .withParticipantTag(participantTag)
                 .withDurationInMilliseconds(durationInMilliseconds)
                 .build();
         return ResponsePause.builder().withParameters(params).build();
@@ -36,7 +31,7 @@ public class PauseAction extends Action<PauseAction,ResponsePause> {
     protected StringBuilder getDebugSummary() {
         final var sb = super.getDebugSummary();
         
-        if ( durationInMilliseconds != null ) {
+        if ( getDurationInMilliseconds() != null ) {
             sb.append(" duration=[").append(getDurationInMilliseconds()).append(']');
         }
        

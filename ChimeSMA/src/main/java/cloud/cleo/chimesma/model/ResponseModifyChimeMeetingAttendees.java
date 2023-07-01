@@ -21,13 +21,22 @@ import lombok.NoArgsConstructor;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResponseModifyChimeMeetingAttendees implements ResponseAction, Serializable {
+public class ResponseModifyChimeMeetingAttendees implements ResponseAction, ErrorTypeMessage, Serializable {
 
     private final ResponseActionType type = ResponseActionType.ModifyChimeMeetingAttendees;
 
     @JsonProperty(value = "Parameters")
     private Parameters parameters;
 
+    
+      // Set on ACTION_FAILED
+    private String errorType;
+    private String errorMessage;
+    
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    @JsonProperty(value = "ErrorList", access = JsonProperty.Access.WRITE_ONLY)
+    private List<String> errorList;
+    
     @Data
     @Builder(setterPrefix = "with")
     @NoArgsConstructor
