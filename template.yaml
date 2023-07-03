@@ -52,18 +52,6 @@ Parameters:
         - Andrés   # Male (Mexican)
         - Lupe     # Female (US)
         - Pedro    # Male (US)
-  NAMEENGLISH:
-    Description: First Name for transferring calls to in English
-    Type: String
-    Default: Representative
-  NAMESPANISH:
-    Description: First Name for transferring calls to in Spanish
-    Type: String
-    Default: Representante
-  TRANSFERNUMBER:
-    Description: Phone Number to transfer calls to for a person
-    Type: String
-    Default: '+18004444444'
   CALLSTABLENAME:
     Description: Name of Global Dynamo Table to store info on calls from Chime
     Type: String
@@ -118,6 +106,25 @@ Resources:
               StringEquals:
                 "aws:SourceAccount": !Sub "${AWS::AccountId}"
   
+  PromptCopier:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-PromptCopier
+      Description: Copy Static prompts in repo to S3 to be used in Chime SMA
+      Handler: cloud.cleo.chimesma.PromptCopier
+      CodeUri: ./PollyPromptCreation
+      Environment: 
+        Variables:
+            PROMPT_BUCKET: !Ref PromptBucket
+      Policies: 
+        - S3CrudPolicy:
+            BucketName: !Ref PromptBucket
+  
+  StaticPrompts:
+    Type: Custom::PromptCopier
+    Properties:
+        ServiceToken: !GetAtt PromptCopier.Arn
+  
   RecordBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
@@ -163,35 +170,91 @@ Resources:
               Action:
                 - polly:SynthesizeSpeech
               Resource: '*'
-            
+        
   
-  MainPrompt:
+  MainPromptEast:
     Type: Custom::PromptCreator
     Properties:
         ServiceToken: !GetAtt PromptCreator.Arn
         VoiceId: !Ref VOICEIDEN
-        PromptName: main.wav
+        PromptName: us-east-1-welcome.wav
         PromptText: |
-            Welcome to CLEO Cloud Solutions, thank you for calling.
+            Welcome to the Chime SMA demo in the US East One region.
             
-  TansferPrompt:
+  MainPromptWest:
     Type: Custom::PromptCreator
     Properties:
         ServiceToken: !GetAtt PromptCreator.Arn
         VoiceId: !Ref VOICEIDEN
-        PromptName: transfer.wav
+        PromptName: us-west-2-welcome.wav
+        PromptText: |
+            Welcome to the Chime SMA demo in the US West Two region.
+  
+  
+  MainMenuEN:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: main-menu-en-US.wav
+        PromptText: |
+            Main menu.
+            Press One for Chat GPT Bot English. Press Two for Chat GPT Bot Spanish. 
+            Press Three for Connect take back and transfer. 
+            Press Four for recording functions. 
+            Any other key to end the call.
+        
+  MainMenuES:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDES
+        PromptName: main-menu-es-US.wav
+        PromptText: |
+            Menú principal.
+            Presiona Uno para Chat GPT Bot Inglés. Presiona Dos para Chat GPT Bot Español.
+            Presione Tres para la devolución y transferencia de Connect.
+            Presione Cuatro para las funciones de grabación.
+            Cualquier otra tecla para finalizar la llamada.
+  
+  TryAgainEN:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: try-again-en-US.wav
+        PromptText: Please try again.
+        
+  TryAgainES:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDES
+        PromptName: try-again-es-US.wav
+        PromptText: Inténtalo de nuevo.
+  
+  
+  TansferPromptEN:
+    Type: Custom::PromptCreator
+    Properties:
+        ServiceToken: !GetAtt PromptCreator.Arn
+        VoiceId: !Ref VOICEIDEN
+        PromptName: transfer-en-US.wav
         PromptText: |
             <speak>
                 Transferring <break time="10s"/>
             </speak>
-        
-  GoodbyePrompt:
+            
+  TansferPromptES:
     Type: Custom::PromptCreator
     Properties:
         ServiceToken: !GetAtt PromptCreator.Arn
-        VoiceId: !Ref VOICEIDEN
-        PromptName: goodbye.wav
-        PromptText: Thank you for calling, good bye
+        VoiceId: !Ref VOICEIDES
+        PromptName: transfer-es-US.wav
+        PromptText: |
+            <speak>
+                Transfiriendo <break time="10s"/>
+            </speak>
         
   GoodbyePromptEN:
     Type: Custom::PromptCreator
@@ -222,9 +285,7 @@ Resources:
           PROMPT_BUCKET: !Ref PromptBucket
           RECORD_BUCKET: !Ref RecordBucket
           CALLS_TABLE_NAME: !Ref CALLSTABLENAME
-          BOT_ALIAS_ARN: !GetAtt BotAlias.Arn
-          WEATHER_BOT_ALIAS_ARN: !GetAtt BotAliasWeather.Arn
-          CHATGPT_BOT_ALIAS_ARN: !GetAtt BotAliasGPT.Arn
+          BOT_ALIAS_ARN: !GetAtt BotAliasGPT.Arn
           THROW_EXCEPTION: false
           LANGUAGE_VOICE_MAP:
               Fn::ToJsonString:
@@ -343,7 +404,7 @@ Resources:
   ChimePolicy:
     Type: 'AWS::IAM::ManagedPolicy'
     Properties:
-        Description: Allow Lambda call Chime API to update SMA 
+        Description: Allow Lambda to call Chime API to update SMA 
         PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -379,175 +440,7 @@ Resources:
                   - "lambda:invokeFunction"
                 Resource: "*"
   
-  LexBot:
-    Type: AWS::Lex::Bot
-    Properties:
-      Name: !Sub ${AWS::StackName}-Lex-Bot-Main
-      Description: Main Bot
-      RoleArn: !GetAtt BotRuntimeRole.Arn
-      DataPrivacy:
-        ChildDirected: false
-      AutoBuildBotLocales: true
-      IdleSessionTTLInSeconds: 300
-      BotLocales:
-        - LocaleId: en_US
-          Description: Main Bot English
-          NluConfidenceThreshold: 0.40
-          VoiceSettings:
-            VoiceId: !Ref VOICEIDEN
-          Intents:
-            - Name: "Weather"
-              Description: "Play a help prompt"
-              SampleUtterances:
-                - Utterance: "weather"
-                - Utterance: "what is the forecast for today"
-                - Utterance: "weather forecast"
-                - Utterance: "weather conditions"
-            - Name: "Quit"
-              Description: "Hang Up the call"
-              SampleUtterances:
-                - Utterance: "quit"
-                - Utterance: "I'm done"
-                - Utterance: "good bye"
-                - Utterance: "talk to you later"
-                - Utterance: "see ya"
-                - Utterance: "later"
-                - Utterance: "exit"
-                - Utterance: "Thank you"
-                - Utterance: "all done"
-                - Utterance: "That's it'"
-                - Utterance: "nothing else"
-                - Utterance: "done"
-                - Utterance: "no"
-            - Name: "Transfer"
-              Description: "Send Call to a Person"
-              SampleUtterances:
-                - Utterance: "speak with someone"
-                - Utterance: "talk to someone"
-                - Utterance: "speak with a person"
-                - Utterance: "Representative"
-                - Utterance: "real persion"
-                - Utterance: "someone real"
-              InitialResponseSetting:
-                  InitialResponse:
-                      AllowInterrupt: false
-                      MessageGroupsList:
-                          - Message:
-                              PlainTextMessage:
-                                Value: "I'll transfer you to a person who can help"
-            - Name: "FallbackIntent"
-              Description: "Main Fallback"
-              ParentIntentSignature: "AMAZON.FallbackIntent"
-              InitialResponseSetting:
-                  InitialResponse:
-                      AllowInterrupt: false
-                      MessageGroupsList:
-                          - Message:
-                              PlainTextMessage:
-                                Value: "FallBack send to Chat GPT"
-          
-  BotVersion:
-    Type: AWS::Lex::BotVersion
-    Properties:
-      BotId: !Ref LexBot
-      BotVersionLocaleSpecification:
-        - LocaleId: en_US
-          BotVersionLocaleDetails:
-            SourceBotVersion: DRAFT
-      Description: Main Bot V1
-      
-  BotAlias:
-    Type: AWS::Lex::BotAlias
-    Properties:
-      BotId: !Ref LexBot
-      BotAliasName: "Latest"
-      BotVersion: !GetAtt BotVersion.BotVersion
-      SentimentAnalysisSettings:
-        DetectSentiment: false
-      BotAliasLocaleSettings:
-        - LocaleId: en_US
-          BotAliasLocaleSetting:
-            Enabled: true
-  
-            
-  LexBotWeather:
-    Type: AWS::Lex::Bot
-    Properties:
-      Name: !Sub ${AWS::StackName}-Lex-Bot-Weather
-      Description: Weather Bot
-      RoleArn: !GetAtt BotRuntimeRole.Arn
-      DataPrivacy:
-        ChildDirected: false
-      AutoBuildBotLocales: true
-      IdleSessionTTLInSeconds: 300
-      BotLocales:
-        - LocaleId: en_US
-          Description: Weather Bot English
-          NluConfidenceThreshold: 0.40
-          VoiceSettings:
-            VoiceId: !Ref VOICEIDEN
-          Intents:
-            - Name: "Weather"
-              Description: "Report Weather Forcast"
-              SampleUtterances:
-                - Utterance: "weather"
-                - Utterance: "what is the forecast for today"
-                - Utterance: "weather forecast"
-                - Utterance: "weather conditions"
-              InitialResponseSetting:
-                  InitialResponse:
-                      AllowInterrupt: false
-                      MessageGroupsList:
-                          - Message:
-                              PlainTextMessage:
-                                Value: "The Weather looks clear and sunny with high's in the mid eighties"
-            - Name: "Quit"
-              Description: "Hang Up the call"
-              SampleUtterances:
-                - Utterance: "quit"
-                - Utterance: "I'm done"
-                - Utterance: "good bye"
-                - Utterance: "talk to you later"
-                - Utterance: "see ya"
-                - Utterance: "later"
-                - Utterance: "exit"
-                - Utterance: "Thank you"
-                - Utterance: "all done"
-                - Utterance: "That's it'"
-                - Utterance: "nothing else"
-            - Name: "FallbackIntent"
-              Description: "Weather Fallback"
-              ParentIntentSignature: "AMAZON.FallbackIntent"
-              InitialResponseSetting:
-                  InitialResponse:
-                      AllowInterrupt: false
-                      MessageGroupsList:
-                          - Message:
-                              PlainTextMessage:
-                                Value: "Fall Back on weather intent"
-          
-  BotVersionWeather:
-    Type: AWS::Lex::BotVersion
-    Properties:
-      BotId: !Ref LexBotWeather
-      BotVersionLocaleSpecification:
-        - LocaleId: en_US
-          BotVersionLocaleDetails:
-            SourceBotVersion: DRAFT
-      Description: Weather Bot V1
-      
-  BotAliasWeather:
-    Type: AWS::Lex::BotAlias
-    Properties:
-      BotId: !Ref LexBotWeather
-      BotAliasName: "Latest"
-      BotVersion: !GetAtt BotVersionWeather.BotVersion
-      SentimentAnalysisSettings:
-        DetectSentiment: false
-      BotAliasLocaleSettings:
-        - LocaleId: en_US
-          BotAliasLocaleSetting:
-            Enabled: true
+           
     
   LexBotGPT:
     Type: AWS::Lex::Bot
@@ -580,6 +473,15 @@ Resources:
                 - Utterance: "all done"
                 - Utterance: "That's it'"
                 - Utterance: "nothing else"
+            - Name: "Transfer"
+              Description: "Send Call to a Person"
+              SampleUtterances:
+                - Utterance: "speak with someone"
+                - Utterance: "talk to someone"
+                - Utterance: "speak with a person"
+                - Utterance: "Representative"
+                - Utterance: "real person"
+                - Utterance: "someone real"
             - Name: "FallbackIntent"
               Description: "Default intent when no other intent matches, send to GPT"
               ParentIntentSignature: "AMAZON.FallbackIntent"
@@ -603,16 +505,6 @@ Resources:
           VoiceSettings:
             VoiceId: !Ref VOICEIDES
           Intents:
-            - Name: "About"
-              Description: "Play a help prompt"
-              SampleUtterances:
-                - Utterance: "Estoy confundida"
-                - Utterance: "ayuda"
-                - Utterance: "¿Qué puede hacer esto?"
-                - Utterance: "qué puedo decir"
-                - Utterance: "dame algunos ejemplos"
-                - Utterance: "Ayudame aqui"
-                - Utterance: "necesito ayuda"
             - Name: "Quit"
               Description: "Hang Up the call"
               SampleUtterances:
@@ -622,15 +514,12 @@ Resources:
                 - Utterance: "Hablaré contigo más tarde"
                 - Utterance: "salida"
                 - Utterance: "gracias"
-            - Name: !Ref NAMEENGLISH
-              Description: !Sub "Send Call to ${NAMEENGLISH}"
+            - Name: "Transfer"
+              Description: "Send Call to a Person"
               SampleUtterances:
-                - Utterance: !Sub "${NAMEENGLISH}"
-                - Utterance: !Sub "${NAMESPANISH}"
-                - Utterance: !Sub "quiero hablar con ${NAMEENGLISH}"
-                - Utterance: !Sub "quiero hablar con ${NAMESPANISH}"
                 - Utterance: "hablar con alguien"
-                - Utterance: "hablar con una persona"
+                - Utterance: "hablar con una persona" 
+                - Utterance: "Representante"
             - Name: "FallbackIntent"
               Description: "Default intent when no other intent matches, send to GPT"
               ParentIntentSignature: "AMAZON.FallbackIntent"
@@ -745,61 +634,7 @@ Resources:
           Enabled: true
             
             
-  ChimeCallLexMain:
-    Type: 'AWS::Lex::ResourcePolicy'
-    Properties:
-      ResourceArn: !GetAtt BotAlias.Arn
-      Policy:
-       {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-            "Sid": "AllowChimePstnAudioUseBot",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "voiceconnector.chime.amazonaws.com"
-            },
-            "Action": "lex:StartConversation",
-            "Resource": !Sub "${BotAlias.Arn}",
-            "Condition": {
-                "StringEquals": {
-                    "AWS:SourceAccount": !Sub "${AWS::AccountId}"
-                    },
-                    "ArnEquals": {
-                    "AWS:SourceArn": !Sub "arn:aws:voiceconnector:${AWS::Region}:${AWS::AccountId}:sma/${SMAID}"
-                    }
-                }
-              }
-            ]
-      }
   
-  ChimeCallLexWeather:
-    Type: 'AWS::Lex::ResourcePolicy'
-    Properties:
-      ResourceArn: !GetAtt BotAliasWeather.Arn
-      Policy:
-       {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-           "Sid": "AllowChimePstnAudioUseBotWeather",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "voiceconnector.chime.amazonaws.com"
-            },
-            "Action": "lex:StartConversation",
-            "Resource": !Sub "${BotAliasWeather.Arn}",
-            "Condition": {
-                "StringEquals": {
-                    "AWS:SourceAccount": !Sub "${AWS::AccountId}"
-                    },
-                "ArnEquals": {
-                    "AWS:SourceArn": !Sub "arn:aws:voiceconnector:${AWS::Region}:${AWS::AccountId}:sma/${SMAID}"
-                    }
-                }
-              }
-            ]
-      }
       
   ChimeCallLexGPT:
     Type: 'AWS::Lex::ResourcePolicy'
