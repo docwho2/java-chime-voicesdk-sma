@@ -249,6 +249,40 @@ public class ExampleActions extends AbstractFlow {
         }
 
     }
+    
+    /**
+     * Create 11 Pause Actions linked together. Used to test flow optimization
+     *
+     * @param nextAction
+     * @return
+     */
+    public Action getPauseActions(Action nextAction) {
+        // Build a set of Pause Actions to test library sending no more than 10 Actions
+        final int eventCount = 11;
+        Action startLoop = null;
+        Action lastLoop = null;
+        for (int i = 1; i <= eventCount; i++) {
+            Action a = PauseAction.builder()
+                    .withDescription("Pause " + i)
+                    .withDurationInMilliseconds(100 + i)
+                    .build();
+
+            switch (i) {
+                case 1:
+                    startLoop = a;
+                    break;
+                case eventCount:
+                    lastLoop.setNextAction(a);
+                    a.setNextAction(nextAction);
+                    break;
+                default:
+                    lastLoop.setNextAction(a);
+                    break;
+            }
+            lastLoop = a;
+        }
+        return startLoop;
+    }
 
     @Override
     protected Action getErrorAction() {

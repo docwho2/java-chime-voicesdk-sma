@@ -4,11 +4,15 @@
  */
 package cloud.cleo.chimesma.actions;
 
+import static cloud.cleo.chimesma.actions.Action.log;
+import static cloud.cleo.chimesma.model.ParticipantTag.LEG_B;
 import cloud.cleo.chimesma.model.ResponseAction;
+import cloud.cleo.chimesma.model.ResponseHangup;
+import cloud.cleo.chimesma.model.SMARequest;
+import static cloud.cleo.chimesma.model.SMARequest.SMAEventType.ACTION_SUCCESSFUL;
 import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Random;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -23,16 +27,17 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
 /**
- * Special Call And Bridge Action that generates a key and stores SMA call info in Dynamo Table
- * When the call is transferred the receiving instance (like Amazon Connect) can then
- * inspect the Diversion header and use it to retrieve call info and call Chime API to update the call
- * 
+ * Special Call And Bridge Action that generates a key and stores SMA call info in Dynamo Table When the call is
+ * transferred the receiving instance (like Amazon Connect) can then inspect the Diversion header and use it to retrieve
+ * call info and call Chime API to update the call
+ *
  * https://docs.aws.amazon.com/chime-sdk/latest/dg/update-sip-call.html
+ *
  * @author sjensen
  */
 @SuperBuilder(setterPrefix = "with")
 public class CallAndBridgeActionTBTDiversion extends CallAndBridgeAction {
-    
+
     // Define the Schema for Dynamo Object
     private final static TableSchema<SMACall> schema = TableSchema.fromBean(SMACall.class);
 
@@ -41,16 +46,15 @@ public class CallAndBridgeActionTBTDiversion extends CallAndBridgeAction {
 
     private final static DynamoDbTable<SMACall> calls = enhancedClient.table(System.getenv("CALLS_TABLE_NAME"), schema);
 
-
     /**
-     * Before a response is generated and sent back, we need to write call information to a Dynamo Table
-     * which can later be used by a Lambda in Connect to signal a call transfer.  The key for the record
-     * is a random PSTN number and is populated in the Diversion Header as part of the Action
-     * 
-     * @return 
+     * Before a response is generated and sent back, we need to write call information to a Dynamo Table which can later
+     * be used by a Lambda in Connect to signal a call transfer. The key for the record is a random PSTN number and is
+     * populated in the Diversion Header as part of the Action
+     *
+     * @return
      */
     @Override
-    protected  ResponseAction getResponse() {
+    protected ResponseAction getResponse() {
         final var phoneNumKey = generateRandomPhoneNumber();
         final var cd = getEvent().getCallDetails();
 
@@ -60,19 +64,62 @@ public class CallAndBridgeActionTBTDiversion extends CallAndBridgeAction {
         call.setSipMediaApplicationId(cd.getSipMediaApplicationId());
         call.setTransactionId(cd.getTransactionId());
         call.setRegion(cd.getAwsRegion());
-        
+
         // Set the TTL so this entry is removed to we don't ever clash
         call.setTtl(Instant.now().plus(Duration.ofDays(1)).getEpochSecond());
         calls.putItem(call);
 
-        if (sipHeaders == null) {
-            sipHeaders = new HashMap<>();
-        }
-
         // Place Info about this SMA into the Diversion Header
-        sipHeaders.put("Diversion", "sip:" + phoneNumKey + "@0.0.0.0");
+        getSipHeaders().put("Diversion", "sip:" + phoneNumKey + "@0.0.0.0");
 
         return super.getResponse();
+    }
+
+    @Override
+    protected Action getNextRoutingAction() {
+        if (getEvent() != null) {
+            switch (getEvent().getInvocationEventType()) {
+                case ACTION_SUCCESSFUL:
+                    final var ad = getEvent().getActionData();
+                    switch (ad.getType()) {
+                        case Hangup:
+                            // Received SUCCESS on Hanging Up leg B, so we know we did this and it's a TBT
+                            if (((ResponseHangup) ad).getParameters().getParticipantTag().equals(LEG_B)) {
+                                log.debug("CallAndBridgeTBTDiversion Diconnect on leg B associated with Disconnect and Transfer");
+                                // set the transfer and return myself to Call And Bridge to the new destination
+                                setUri((String) getTransactionAttribute("transferNumber"));
+                                return this;
+                            }
+
+                        default:
+                            return super.getNextRoutingAction();
+                    }
+
+                default:
+                    return super.getNextRoutingAction();
+            }
+        }
+        return super.getNextRoutingAction();
+    }
+
+    @Override
+    protected Action getHangupAction() {
+        if (getEvent() != null) {
+            log.debug("CallAndBridgeTBTDiversion Hangup Event processing");
+            final var partList = getEvent().getCallDetails().getParticipants();
+
+            // Checking for Disconnected LEG-B
+            final var participant = partList.stream()
+                    .filter(p -> p.getStatus().equals(SMARequest.Status.Disconnected) && p.getParticipantTag().equals(LEG_B))
+                    .findAny().orElse(null);
+            
+            if ( participant != null && getTransactionAttribute("transferNumber") != null ) {
+                log.debug("CallAndBridgeTBTDiversion LEG-B disconnected, empty response, do not disconnect LEG-A");
+                return null;
+            }
+
+        }
+        return super.getHangupAction();
     }
 
     /**
@@ -104,7 +151,8 @@ public class CallAndBridgeActionTBTDiversion extends CallAndBridgeAction {
 
     /**
      * Generate a random phone number that conforms to E164 to use as a key
-     * @return 
+     *
+     * @return
      */
     private static String generateRandomPhoneNumber() {
         final var rand = new Random();
@@ -113,45 +161,45 @@ public class CallAndBridgeActionTBTDiversion extends CallAndBridgeAction {
         int randomNumber = rand.nextInt(1000000);
         return df.format(randomNumber);
     }
-    
+
     /**
      * Example Lambda Code that Connect would use to execute the transfer
      */
-    private final static String LAMBDA_CODE = "" +
-"        const {ChimeClient, UpdateSipMediaApplicationCallCommand} = require(\"@aws-sdk/client-chime\");\n" +
-"        const { DynamoDBClient, GetItemCommand } = require(\"@aws-sdk/client-dynamodb\")\n" +
-"        const ddb = new DynamoDBClient();\n" +
-"        const regex = /(\\+[0-9]+)/;\n" +
-"        const table_name = process.env.CALLS_TABLE_NAME;\n" +
-"        exports.handler = async function (event) {\n" +
-"            console.log(JSON.stringify(event));\n" +
-"            let match = event.Details.Parameters.Diversion.match(regex);\n" +
-"            console.log('Extracted phoneKey is ' + match[1] );\n" +
-"            \n" +
-"            const dparams = {\n" +
-"                Key : {\n" +
-"                  phoneNumber : {\n" +
-"                    S: match[1]\n" +
-"                  }\n" +
-"                },\n" +
-"                TableName: table_name\n" +
-"            };\n" +
-"            \n" +
-"            const dresponse = await ddb.send(new GetItemCommand(dparams));\n" +
-"            console.log(JSON.stringify(dresponse))\n" +
-"            \n" +
-"            const cparams = {\n" +
-"                SipMediaApplicationId: dresponse.Item.sipMediaApplicationId.S,\n" +
-"                TransactionId: dresponse.Item.transactionId.S,\n" +
-"                Arguments: {\n" +
-"                    phoneNumber: event.Details.Parameters.transferTo\n" +
-"                }   \n" +
-"            };\n" +
-"            // We need to know region before initializing client\n" +
-"            const chime = new ChimeClient({ region: dresponse.Item.region.S,  });\n" +
-"            const cresponse = await chime.send(new UpdateSipMediaApplicationCallCommand(cparams));\n" +
-"            console.log(JSON.stringify(cresponse));\n" +
-"            return {status: 'OK'};\n" +
-"        };";
+    private final static String LAMBDA_CODE = ""
+            + "        const {ChimeClient, UpdateSipMediaApplicationCallCommand} = require(\"@aws-sdk/client-chime\");\n"
+            + "        const { DynamoDBClient, GetItemCommand } = require(\"@aws-sdk/client-dynamodb\")\n"
+            + "        const ddb = new DynamoDBClient();\n"
+            + "        const regex = /(\\+[0-9]+)/;\n"
+            + "        const table_name = process.env.CALLS_TABLE_NAME;\n"
+            + "        exports.handler = async function (event) {\n"
+            + "            console.log(JSON.stringify(event));\n"
+            + "            let match = event.Details.Parameters.Diversion.match(regex);\n"
+            + "            console.log('Extracted phoneKey is ' + match[1] );\n"
+            + "            \n"
+            + "            const dparams = {\n"
+            + "                Key : {\n"
+            + "                  phoneNumber : {\n"
+            + "                    S: match[1]\n"
+            + "                  }\n"
+            + "                },\n"
+            + "                TableName: table_name\n"
+            + "            };\n"
+            + "            \n"
+            + "            const dresponse = await ddb.send(new GetItemCommand(dparams));\n"
+            + "            console.log(JSON.stringify(dresponse))\n"
+            + "            \n"
+            + "            const cparams = {\n"
+            + "                SipMediaApplicationId: dresponse.Item.sipMediaApplicationId.S,\n"
+            + "                TransactionId: dresponse.Item.transactionId.S,\n"
+            + "                Arguments: {\n"
+            + "                    phoneNumber: event.Details.Parameters.transferTo\n"
+            + "                }   \n"
+            + "            };\n"
+            + "            // We need to know region before initializing client\n"
+            + "            const chime = new ChimeClient({ region: dresponse.Item.region.S,  });\n"
+            + "            const cresponse = await chime.send(new UpdateSipMediaApplicationCallCommand(cparams));\n"
+            + "            console.log(JSON.stringify(cresponse));\n"
+            + "            return {status: 'OK'};\n"
+            + "        };";
 
 }
