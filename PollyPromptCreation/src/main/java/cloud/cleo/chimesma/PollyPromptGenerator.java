@@ -66,7 +66,7 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
             final var voice_id = cfcre.getResourceProperties().get("VoiceId").toString();
 
             final var ssr = SynthesizeSpeechRequest.builder()
-                    .engine(Engine.NEURAL)
+                    .engine(text.toLowerCase().contains("<speak>") ? Engine.STANDARD : Engine.NEURAL)
                     .voiceId(voice_id)
                     .sampleRate("8000")
                     .outputFormat(OutputFormat.PCM)

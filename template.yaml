@@ -179,7 +179,9 @@ Resources:
         VoiceId: !Ref VOICEIDEN
         PromptName: us-east-1-welcome.wav
         PromptText: |
-            Welcome to the Chime SMA demo in the US East One region.
+            <speak>
+            <break time="1s"/>Welcome to the Chime SMA demo in the <emphasis>US East One</emphasis> region.
+            </speak>
             
   MainPromptWest:
     Type: Custom::PromptCreator
@@ -188,7 +190,9 @@ Resources:
         VoiceId: !Ref VOICEIDEN
         PromptName: us-west-2-welcome.wav
         PromptText: |
-            Welcome to the Chime SMA demo in the US West Two region.
+            <speak>
+            <break time="1s"/>Welcome to the Chime SMA demo in the <emphasis>US West Two</emphasis> region.
+            </speak>
   
   
   MainMenuEN:

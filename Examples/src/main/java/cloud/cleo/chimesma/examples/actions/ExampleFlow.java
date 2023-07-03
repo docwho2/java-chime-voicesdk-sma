@@ -26,20 +26,12 @@ public class ExampleFlow extends AbstractFlow {
     protected Action getInitialAction() {
 
         // Start with a welcome message and then main menu with region static prompt
-        final var welcome = PlayAudioAction.builder()
+        return PlayAudioAction.builder()
                 .withKey(System.getenv("AWS_REGION") + "-welcome.wav") // This is always in english
                 .withNextAction(MAIN_MENU)
                 .withErrorAction(MAIN_MENU)
                 .build();
 
-        // Slight pause to ensure prompt isn't clipped
-        final var pause = PauseAction.builder()
-                .withDurationInMilliseconds(250)
-                .withNextAction(welcome)
-                .withErrorAction(welcome)
-                .build();
-        
-        return pause; 
     }
 
     public static Action getMainMenu() {
