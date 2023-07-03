@@ -50,11 +50,12 @@ public class StartCallRecordingAction extends Action<StartCallRecordingAction, R
         return !storeLocation;
     }
 
-    
     @Override
     protected void onActionSuccessful() {
-        final var loc = getActionData().getCallRecordingDestination().getLocation();
-        setTransactionAttribute(RECORDING_FILE_LOCATION, loc);
+        if (getActionData() != null) {
+            final var loc = getActionData().getCallRecordingDestination().getLocation();
+            setTransactionAttribute(RECORDING_FILE_LOCATION, loc);
+        }
     }
 
     @Override

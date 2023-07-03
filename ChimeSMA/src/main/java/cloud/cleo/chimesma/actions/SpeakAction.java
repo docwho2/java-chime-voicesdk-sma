@@ -42,7 +42,7 @@ public class SpeakAction extends Action<SpeakAction,ResponseSpeak> {
                 .withEngine(engine)
                 .withLanguageCode(getLocale().toLanguageTag())
                 .withText(myContent)
-                .withTextType(Action.getSpeakContentType(myContent))
+                .withTextType(getSpeakContentType(myContent))
                 .withVoiceId(voiceId != null ? voiceId : voice_map.get(getLocale()))
                 .build();
         return ResponseSpeak.builder().withParameters(params).build();
@@ -70,6 +70,19 @@ public class SpeakAction extends Action<SpeakAction,ResponseSpeak> {
         }
 
         return sb;
+    }
+    
+    /**
+     * Given message content, determine if the message is SSML or just plain text
+     *
+     * @param message
+     * @return
+     */
+    private static ResponseSpeak.TextType getSpeakContentType(String message) {
+        if (message != null) {
+            return message.toLowerCase().contains("<speak>") ? ResponseSpeak.TextType.ssml : ResponseSpeak.TextType.text;
+        }
+        return ResponseSpeak.TextType.text;
     }
 
 }

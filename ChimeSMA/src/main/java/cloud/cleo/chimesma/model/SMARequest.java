@@ -4,6 +4,7 @@
  */
 package cloud.cleo.chimesma.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -29,7 +30,7 @@ import java.util.Map;
 @Builder(setterPrefix = "with")
 @NoArgsConstructor
 @AllArgsConstructor
-public class SMARequest implements Serializable {
+public class SMARequest implements ErrorTypeMessage, Serializable {
 
     @JsonProperty("SchemaVersion")
     private String schemaVersion;
@@ -41,9 +42,11 @@ public class SMARequest implements Serializable {
     private CallDetails callDetails;
 
     // Set on INVALID_LAMBDA_RESPONSE
-    @JsonProperty("ErrorType")
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    @JsonProperty(value = "ErrorType", access = JsonProperty.Access.WRITE_ONLY)
     private String errorType;
-    @JsonProperty("ErrorMessage")
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    @JsonProperty(value = "ErrorMessage", access = JsonProperty.Access.WRITE_ONLY)
     private String errorMessage;
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "Type")
@@ -139,6 +142,7 @@ public class SMARequest implements Serializable {
     }
 
     private static class InstantConverter extends StdConverter<String, Instant> {
+
         @Override
         public Instant convert(String in) {
             return Instant.ofEpochMilli(Long.decode(in));

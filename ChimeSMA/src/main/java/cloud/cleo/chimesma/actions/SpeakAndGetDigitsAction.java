@@ -47,7 +47,7 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction, Res
             final var locale = sp.locale != null ? sp.locale : getLocale();
             final var speechParam = ResponseSpeakAndGetDigits.SpeechParameter.builder()
                     .withText(myContent)
-                    .withTextType(Action.getSpeakContentType(myContent))
+                    .withTextType(getSpeakContentType(myContent))
                     .withEngine(sp.engine)
                     // If set on the builder, use that, otherwise our the Actions locale
                     .withLanguageCode(locale.toLanguageTag())
@@ -119,6 +119,19 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction, Res
         private Engine engine;
         private Locale locale;
         private VoiceId voiceId;
+    }
+    
+    /**
+     * Given message content, determine if the message is SSML or just plain text
+     *
+     * @param message
+     * @return
+     */
+    private static ResponseSpeak.TextType getSpeakContentType(String message) {
+        if (message != null) {
+            return message.toLowerCase().contains("<speak>") ? ResponseSpeak.TextType.ssml : ResponseSpeak.TextType.text;
+        }
+        return ResponseSpeak.TextType.text;
     }
 
 }

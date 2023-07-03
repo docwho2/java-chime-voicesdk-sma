@@ -32,9 +32,11 @@ public class ResponseStartCallRecording implements ResponseAction, ErrorMessage,
     @JsonProperty(value = "CallRecordingDestination", access = JsonProperty.Access.WRITE_ONLY)
     private Destination callRecordingDestination;
 
-     // Set on ACTION_FAILED
+    // Set on ACTION_FAILED
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    @JsonProperty(value = "Error", access = JsonProperty.Access.WRITE_ONLY)
     private String error;
-    
+
     @Data
     @Builder(setterPrefix = "with")
     @NoArgsConstructor

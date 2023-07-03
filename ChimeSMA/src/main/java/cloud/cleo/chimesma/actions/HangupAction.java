@@ -26,7 +26,7 @@ public class HangupAction extends Action<HangupAction,ResponseHangup> {
     @Override
     protected ResponseAction getResponse() {
         final var params = ResponseHangup.Parameters.builder()
-                .withCallId(getCallId())
+                .withCallId(participantTag == null ? getCallId() : null) // If Leg is specified, then don't send callID
                 .withParticipantTag(participantTag)
                 .withSipResponseCode(getFuncValOrDefault(sipResponseCodeF, sipResponseCode))
                 .build();

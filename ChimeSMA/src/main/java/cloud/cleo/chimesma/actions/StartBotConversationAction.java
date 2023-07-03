@@ -45,7 +45,7 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
         if (myContent != null) {
             welcome = ResponseStartBotConversation.WelcomeMessage.builder()
                     .withContent(myContent)
-                    .withContentType(Action.getBotContentType(myContent))
+                    .withContentType(getBotContentType(myContent))
                     .build();
             // When a welcome message is set, Dialog Action must be set to IllicitIntent
             dialogActionType = DialogActionType.ElicitIntent;
@@ -129,6 +129,19 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
     @Override
     public ResponseActionType getActionType() {
         return ResponseActionType.StartBotConversation;
+    }
+    
+    /**
+     * Given message content, determine if the message is SSML or just plain text
+     *
+     * @param message
+     * @return
+     */
+    private static ResponseStartBotConversation.TextType getBotContentType(String message) {
+        if (message != null) {
+            return message.toLowerCase().contains("<speak>") ? ResponseStartBotConversation.TextType.SSML : ResponseStartBotConversation.TextType.PlainText;
+        }
+        return ResponseStartBotConversation.TextType.PlainText;
     }
 
 }

@@ -5,7 +5,6 @@
 package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.ResponseAction;
-import java.util.HashMap;
 import lombok.Data;
 import lombok.experimental.SuperBuilder;
 
@@ -23,12 +22,8 @@ public class CallAndBridgeActionTBTSIP extends CallAndBridgeAction {
     protected ResponseAction getResponse() {
         final var cd = getEvent().getCallDetails();
 
-        var sh = getSipHeaders();
-        if (sh == null) {
-            sh = new HashMap<>();
-            setSipHeaders(sh);
-        }
-
+        final var sh = getSipHeaders();
+       
          // Place Info about this SMA into the SIP headers to allow call backs to Chime API for this call
         sh.put("x-sma-AwsRegion", cd.getAwsRegion());
         sh.put("x-sma-SipMediaApplicationId", cd.getSipMediaApplicationId());

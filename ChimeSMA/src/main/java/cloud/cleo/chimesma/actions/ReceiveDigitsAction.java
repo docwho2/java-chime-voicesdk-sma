@@ -5,6 +5,7 @@
 package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.*;
+import static cloud.cleo.chimesma.model.SMARequest.SMAEventType.DIGITS_RECEIVED;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -26,7 +27,6 @@ public class ReceiveDigitsAction extends Action<ReceiveDigitsAction, ResponseRec
     protected String inputDigitsRegex;
     protected Integer inBetweenDigitsDurationInMilliseconds;
     protected Integer flushDigitsDurationInMilliseconds;
-
 
     @Override
     protected StringBuilder getDebugSummary() {
@@ -54,6 +54,16 @@ public class ReceiveDigitsAction extends Action<ReceiveDigitsAction, ResponseRec
                 .withFlushDigitsDurationInMilliseconds(flushDigitsDurationInMilliseconds)
                 .build();
         return ResponseReceiveDigits.builder().withParameters(params).build();
+    }
+
+    @Override
+    protected Action getNextRoutingAction() {
+        if (getEvent() != null && getEvent().getInvocationEventType().equals(DIGITS_RECEIVED)) {
+            log.debug("Received Digits [" + getReceivedDigits() + "]");
+            return getDigitsRecevedAction();
+        } else {
+            return super.getNextRoutingAction();
+        }
     }
 
     @Override

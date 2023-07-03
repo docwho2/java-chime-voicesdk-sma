@@ -39,7 +39,11 @@ public class ResponseSpeakAndGetDigits implements ResponseAction, ReceivedDigits
 
     
     // Set on ACTION_FAILED
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    @JsonProperty(value = "ErrorType", access = JsonProperty.Access.WRITE_ONLY)
     private String errorType;
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
+    @JsonProperty(value = "ErrorMessage", access = JsonProperty.Access.WRITE_ONLY)
     private String errorMessage;
     
     

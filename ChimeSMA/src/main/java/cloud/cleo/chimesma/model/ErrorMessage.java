@@ -15,8 +15,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public interface ErrorMessage {
     
     // Set on ACTION_FAILED
-    @JsonInclude(value = JsonInclude.Include.NON_NULL)
-    @JsonProperty( value = "Error", access = JsonProperty.Access.WRITE_ONLY)
     public String getError();
     
 }

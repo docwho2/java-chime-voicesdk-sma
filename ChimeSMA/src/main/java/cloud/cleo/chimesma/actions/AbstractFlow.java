@@ -7,7 +7,6 @@ package cloud.cleo.chimesma.actions;
 import static cloud.cleo.chimesma.actions.ReceiveDigitsAction.RECEIVE_DIGITS_ID;
 
 import cloud.cleo.chimesma.model.*;
-import static cloud.cleo.chimesma.model.ParticipantTag.LEG_B;
 import static cloud.cleo.chimesma.model.SMARequest.SMAEventType.*;
 import cloud.cleo.chimesma.model.SMARequest.Status;
 import static cloud.cleo.chimesma.model.SMARequest.Status.*;
@@ -16,6 +15,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.serialization.JacksonPojoSerializer;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -54,7 +54,7 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
 
     protected final static Map<Locale, ResponseSpeak.VoiceId> voice_map = new HashMap<>();
 
-    private static volatile int idCounter = 0;
+    private static volatile int idCounter = 1;
 
     public final static String CURRENT_ACTION_ID = "CurrentActionId";
     public final static String CURRENT_ACTION_ID_LIST = "CurrentActionIdList";
@@ -68,6 +68,10 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
 
         if (errorAction == null) {
             errorAction = getErrorAction();
+            if (errorAction == null) {
+                // If the Flow didn't provide an action, then use a hangup
+                errorAction = HangupAction.builder().withDescription("System Generated Error Action").build();
+            }
             log.debug("Error Action is " + errorAction.getDebugSummary());
         }
 
@@ -113,13 +117,14 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
     protected synchronized final static Integer registerAction(Action action) {
         if (!actSet.contains(action)) {
             actSet.add(action);
-            log.debug("Registering ID  " + idCounter + " as " + action.getClass().getName());
+            log.debug("Registering ID  " + idCounter + " as " + action.getClass().getSimpleName());
             actions.put(idCounter, action);
             return idCounter++;
         } else {
-            log.error("ACTION ALREADY REGISTERED");
+            return actions.entrySet().stream()
+                    .filter((t) -> t.getValue().equals(action))
+                    .map(t -> t.getKey() ).findAny().orElse(0);
         }
-        return 0;
     }
 
     protected abstract Action getInitialAction();
@@ -159,6 +164,9 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
         attrs.put(CURRENT_ACTION_ID_LIST,
                 list.stream().map(a -> a.getId().toString()).collect(Collectors.joining(",")));
 
+        // Always push out the current locale as it can change per action
+        attrs.put("locale", list.getLast().getLocale().toLanguageTag());
+
         // The last Action will contain the summation of all the attrs
         list.getLast().setTransactionAttributes(attrs);
         return list;
@@ -167,11 +175,29 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
     private Action getCurrentAction(SMARequest event) throws CloneNotSupportedException {
         final var attrs = event.getCallDetails().getTransactionAttributes();
 
-        String actionIdStr;
+        String actionIdStr = null;
         switch (event.getInvocationEventType()) {
             case DIGITS_RECEIVED:
                 actionIdStr = (String) attrs.get(RECEIVE_DIGITS_ID);
                 break;
+            case ACTION_FAILED:
+                List<Integer> list = Arrays.stream(attrs.get(CURRENT_ACTION_ID_LIST).toString().split(","))
+                        .map(Integer::parseInt)
+                        .collect(Collectors.toList());
+                final var adType = event.getActionData().getType();
+                if (list.size() > 1) {
+                    // Traverse the list until we match the correct type
+                    for (var id : list) {
+                        final var a = actions.get(id);
+                        if (adType.equals(a.getActionType())) {
+                            actionIdStr = a.getId().toString();
+                            break;
+                        }
+                    }
+                    if (actionIdStr != null) {
+                        break;
+                    }
+                }
             default:
                 actionIdStr = (String) attrs.get(CURRENT_ACTION_ID);
         }
@@ -186,7 +212,6 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
     public final SMAResponse handleRequest(SMARequest event, Context cntxt) {
         try {
             log.debug(event);
-
             SMAResponse res;
             switch (event.getInvocationEventType()) {
                 case NEW_INBOUND_CALL:
@@ -204,40 +229,11 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                 case ACTION_SUCCESSFUL:
                     var action = getCurrentAction(event);
                     action.onActionSuccessful();
-                    if (action instanceof CallAndBridgeAction) {
-
-                        final var attrs = action.getTransactionAttributes();
-                        final var ad = event.getActionData();
-                        final var hangupB = ad.getType().equals(ResponseActionType.Hangup)
-                                && ((ResponseHangup) ad).getParameters().getParticipantTag().equals(LEG_B);
-
-                        if (hangupB) {
-                            log.debug("Diconnect on leg B associated with Disconnect and Transfer");
-                            ((CallAndBridgeAction) action).setUri((String) attrs.get("transferNumber"));
-                            res = SMAResponse.builder()
-                                    .withActions(List.of(action.getResponse()))
-                                    .withTransactionAttributes(attrs)
-                                    .build();
-                            break;
-                        }
-                        // When a call is bridged successfully don't do anything
-                        log.debug("CallAndBridge has connected call now, empty response");
-                        res = SMAResponse.builder().build();
-                    } else {
-                        res = defaultResponse(action, event);
-                    }
+                    res = defaultResponse(action, event);
                     break;
                 case DIGITS_RECEIVED:
                     action = getCurrentAction(event);
-                    if (action instanceof ReceiveDigitsAction) {
-                        log.debug("Received Digits [" + ((ReceiveDigitsAction) action).getReceivedDigits() + "]");
-                        actionList = getActions(((ReceiveDigitsAction) action).getDigitsRecevedAction(), event);
-                        res = SMAResponse.builder().withTransactionAttributes(actionList.getLast().getTransactionAttributes())
-                                .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
-                        log.debug("Moving to digits received action " + actionList.getFirst());
-                    } else {
-                        res = defaultResponse(action, event);
-                    }
+                    res = defaultResponse(action, event);
                     break;
                 case ACTION_FAILED:
                     action = getCurrentAction(event);
@@ -250,19 +246,41 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                         res = SMAResponse.builder().withTransactionAttributes(attrs).build();
                         break;
                     }
+                    log.error("Error for " + action.getDebugSummary());
+                    if (event.getActionData() instanceof ErrorTypeMessage) {
+                        final var ad = (ErrorTypeMessage) event.getActionData();
+                        log.error("ErrorType = [" + ad.getErrorType() + "]");
+                        log.error("ErrorMessage = [" + ad.getErrorMessage() + "]");
+                    }
+                    if (event.getActionData() instanceof ErrorMessage) {
+                        final var ad = (ErrorMessage) event.getActionData();
+                        log.error("Error = [" + ad.getError() + "]");
+                    }
+                    if (action.getErrorAction() != null) {
+                        actionList = getActions(action.getErrorAction(), event);
+                    } else {
+                        // No error defined on the action itself, use flow error handler
+                        actionList = getActions(errorAction, event);
+                    }
+                    res = SMAResponse.builder().withTransactionAttributes(actionList.getLast().getTransactionAttributes())
+                            .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
+                    break;
                 case HANGUP:
                     final var disconnectedBy = event.getCallDetails().getTransactionAttributes().getOrDefault("Disconnect", "Application");
                     log.debug("Call Was disconnected by [" + disconnectedBy + "], sending empty response");
                     action = getCurrentAction(event);
-                    if (action instanceof CallAndBridgeAction && event.getCallDetails().getParticipants().size() > 1) {
-                        // We have two participants and one side has hung up (by caller or callee), so we should hang the other leg up as well
-                        final var participant = event.getCallDetails().getParticipants().stream()
-                                .filter(p -> p.getStatus().equals(Status.Connected))
-                                .findAny().orElse(null);
-                        if (participant != null) {
-                            res = SMAResponse.builder().withActions(List.of(ResponseHangup.builder().withParameters(ResponseHangup.Parameters.builder().withParticipantTag(participant.getParticipantTag()).build()).build())).build();
+                    if (action instanceof CallAndBridgeAction ) {
+                        // Because Call Bridge has 2 call legs in play, delegate respone to the Action since there
+                        // various way to handle things, but the default being once connected a hangup on one leg should drop the other
+                        final var cab = (CallAndBridgeAction) action;
+                        final var nextAction = cab.getHangupAction();
+                        if ( nextAction != null ) {
+                            actionList = getActions(nextAction, event);
+                            res = SMAResponse.builder().withTransactionAttributes(actionList.getLast().getTransactionAttributes())
+                            .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
                         } else {
-                            res = SMAResponse.builder().build();
+                            // No next action after hangup
+                            res = emptyResponse();
                         }
                     } else {
                         try {
@@ -270,47 +288,43 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                         } catch (Exception e) {
                             log.error("Exception in Hangup Handler", e);
                         }
-                        res = SMAResponse.builder().build();
+                        res = emptyResponse();
                     }
                     break;
                 case CALL_UPDATE_REQUESTED:
                     action = getCurrentAction(event);
-                    if (action instanceof CallAndBridgeAction) {
-                        final var attrs = action.getTransactionAttributes();
-                        final var params = ((ActionDataCallUpdateRequest) event.getActionData()).getParameters();
-                        if (params != null) {
-                            final var args = params.getArguments();
-                            if (args != null) {
-                                final var phoneNumber = args.get("phoneNumber");
-                                if (phoneNumber != null) {
-                                    log.debug("Update Requested with a transfer to number of " + phoneNumber);
-                                    attrs.put("transferNumber", phoneNumber);
-                                }
-                            }
-                        }
-                        // Disconnect leg B
-                        final var diconnectLegB = ResponseHangup.builder().withParameters(ResponseHangup.Parameters.builder().withParticipantTag(ParticipantTag.LEG_B).build()).build();
-                        res = SMAResponse.builder()
-                                .withActions(List.of(diconnectLegB))
-                                .withTransactionAttributes(attrs)
-                                .build();
-                        break;
-                    }
-
-                default:
-                    log.debug("Invocation type is unhandled, sending empty response " + event.getInvocationEventType());
+                    final var newAction = callUpdateRequest(action, ((ActionDataCallUpdateRequest) event.getActionData()).getParameters().getArguments());
+                    res = SMAResponse.builder().withTransactionAttributes(newAction.getTransactionAttributes())
+                            .withActions(List.of(newAction.getResponse())).build();
+                    break;
+                case RINGING:
+                    log.info("Outboud Call is RINGING (sending empty response)");
                     res = SMAResponse.builder().build();
+                    break;
+                case INVALID_LAMBDA_RESPONSE:
+                    log.error(event.getInvocationEventType());
+                    log.error("ErrorType = [" + event.getErrorType() + "]");
+                    log.error("ErrorMessage = [" + event.getErrorMessage() + "]");
+                default:
+                    log.debug("Invocation type is unhandled, sending empty response for " + event.getInvocationEventType());
+                    res = emptyResponse();
             }
 
             //log.debug(res);
             log.debug(mapper.valueToTree(res).toString());
             return res;
         } catch (RuntimeFailureException e) {
+            log.error("In fail over mode, throwing back Exception to Lambda runtime");
             throw e;  // Singal to error this lambda
         } catch (Exception e) {
             log.error("Unhandled Exception", e);
             return SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();
         }
+    }
+
+    protected Action callUpdateRequest(Action action, Map<String, String> arguments) {
+        log.info("CallUpdateRequest handler, not overriden, returning null Action");
+        return null;
     }
 
     private SMAResponse defaultResponse(Action action, SMARequest event) throws CloneNotSupportedException {
@@ -324,12 +338,20 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
             res = SMAResponse.builder().withTransactionAttributes(actionList.getLast().getTransactionAttributes())
                     .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
             log.info("Moving to next action: " + actionList.getFirst().getDebugSummary());
+        } else if (action.getNextRoutingAction() == null && action instanceof CallAndBridgeAction) {
+            //  When a call is bridged successfully, there is no action to take, and we don't want to hang up any legs
+            log.debug("CallAndBridge no next step, so empty response");
+            res = emptyResponse();
         } else {
             // If no action next, then end with hang up
             log.info("No next action in flow, ending call with hangup");
-            res = SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();
+            res = hangupLegA();
         }
         return res;
+    }
+
+    private SMAResponse emptyResponse() {
+        return SMAResponse.builder().build();
     }
 
     /**
@@ -338,7 +360,16 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
      * @return
      */
     private SMAResponse hangupLegA() {
-        return SMAResponse.builder().withActions(List.of(ResponseHangup.builder().build())).build();
+        return SMAResponse.builder().withActions(List.of(ResponseHangup.builder().withParameters(ResponseHangup.Parameters.builder().withParticipantTag(ParticipantTag.LEG_A).build()).build())).build();
+    }
+
+    /**
+     * Hangup LEG-B of the call (inbound call)
+     *
+     * @return
+     */
+    private SMAResponse hangupLegB() {
+        return SMAResponse.builder().withActions(List.of(ResponseHangup.builder().withParameters(ResponseHangup.Parameters.builder().withParticipantTag(ParticipantTag.LEG_B).build()).build())).build();
     }
 
 //    public void handleRequest(InputStream in, OutputStream out, Context cntxt) throws IOException {

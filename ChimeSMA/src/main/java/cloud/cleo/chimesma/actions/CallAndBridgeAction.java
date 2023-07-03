@@ -4,12 +4,18 @@
  */
 package cloud.cleo.chimesma.actions;
 
+import static cloud.cleo.chimesma.actions.Action.log;
 import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseActionType;
+import static cloud.cleo.chimesma.model.ResponseActionType.CallAndBridge;
 import cloud.cleo.chimesma.model.ResponseCallAndBridge;
 import cloud.cleo.chimesma.model.ResponsePlayAudio;
+import static cloud.cleo.chimesma.model.SMARequest.SMAEventType.ACTION_SUCCESSFUL;
+import cloud.cleo.chimesma.model.SMARequest.Status;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.SuperBuilder;
@@ -25,20 +31,21 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction, ResponseCal
     /**
      * Description – The interval before a call times out. The timer starts at call setup.
      *
-     * Allowed values – Between 1 and 120, inclusive
-     * Required – No
-     * Default value – 30
+     * Allowed values – Between 1 and 120, inclusive Required – No Default value – 30
      *
      */
     protected Integer callTimeoutSeconds;
+
     protected String callerIdNumber;
+    protected Function<CallAndBridgeAction, String> callerIdNumberF;
 
-    protected Map<String, String> sipHeaders;
+    protected final Map<String, String> sipHeaders = new HashMap<>();
 
-    @Builder.Default
-    protected ResponseCallAndBridge.BridgeEndpointType bridgeEndpointType = ResponseCallAndBridge.BridgeEndpointType.PSTN;
     protected String arn;
+    protected Function<CallAndBridgeAction, String> arnF;
+
     protected String uri;
+    protected Function<CallAndBridgeAction, String> uriF;
 
     // RingbackTone
     @Builder.Default
@@ -48,7 +55,7 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction, ResponseCal
      */
     protected String ringbackToneKey;
     protected String ringbackToneKeyLocale;
-    
+
     @Override
     protected ResponseAction getResponse() {
 
@@ -68,31 +75,85 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction, ResponseCal
                     .build();
         }
 
+        final var myArn = getFuncValOrDefault(arnF, arn);
+        final var myUri = getFuncValOrDefault(uriF, uri);
+        
         final var endpoint = ResponseCallAndBridge.Endpoint.builder()
-                .withArn(getArn())
-                .withBridgeEndpointType(getBridgeEndpointType())
-                .withUri(getUri())
+                .withArn(myArn)
+                // When Arn is set, then must be a AWS (SIP route), when this is null, we route to PSTN
+                .withBridgeEndpointType(myArn != null ? ResponseCallAndBridge.BridgeEndpointType.AWS : ResponseCallAndBridge.BridgeEndpointType.PSTN)
+                .withUri(myUri)
                 .build();
 
-        if (getCallerIdNumber() == null) {
-            // Set to from Number if not provided
+        if (getFuncValOrDefault(callerIdNumberF, callerIdNumber) == null) {
+            // Set to from Number if not provided because this is a required param
             setCallerIdNumber(getEvent().getCallDetails().getParticipants().get(0).getFrom());
         }
 
         final var params = ResponseCallAndBridge.Parameters.builder()
                 .withCallTimeoutSeconds(getCallTimeoutSeconds())
-                .withCallerIdNumber(getCallerIdNumber())
+                .withCallerIdNumber(getFuncValOrDefault(callerIdNumberF, callerIdNumber))
                 .withRingbackTone(audioSource)
                 .withEndpoints(List.of(endpoint))
-                .withSipHeaders(getSipHeaders())
+                .withSipHeaders(getSipHeaders().isEmpty() ? null : getSipHeaders())
                 .build();
         return ResponseCallAndBridge.builder().withParameters(params).build();
+    }
+
+    @Override
+    protected Action getNextRoutingAction() {
+        if (getEvent() != null) {
+            switch (getEvent().getInvocationEventType()) {
+                case ACTION_SUCCESSFUL:
+                    final var ad = getEvent().getActionData();
+                    switch (ad.getType()) {
+                        case CallAndBridge:
+                            // When a call is bridged successfully don't do anything
+                            log.debug("CallAndBridge has connected call now, empty response");
+                            return null;
+                        default:
+                            return super.getNextRoutingAction();
+                    }
+                default:
+                    return super.getNextRoutingAction();
+            }
+        }
+        return super.getNextRoutingAction();
+    }
+    
+    /**
+     * Hangup events are dispatched to CallAndBridge Actions.
+     * 
+     * @return 
+     */
+    protected Action getHangupAction() {
+         if (getEvent() != null) {
+             log.debug("CallAndBridge Hangup Event processing");
+             final var partL = getEvent().getCallDetails().getParticipants();
+             
+             if ( partL.size() > 1) {
+                 // We have two participants and one side has hung up (by caller or callee), so we should hang the other leg up as well
+                 final var participant = partL.stream()
+                        .filter(p -> p.getStatus().equals(Status.Connected))
+                                .findAny().orElse(null);
+                 // Disconnet the participant that is still in a connected state
+                 if (participant != null) {
+                     log.debug("CallAndBridge Hangup Event, 2 participants, One still connected, disconnecting " + participant.getParticipantTag());
+                        return HangupAction.builder().withParticipantTag(participant.getParticipantTag()).build();
+                 }
+             }
+         }
+         return null; 
     }
 
     @Override
     protected StringBuilder getDebugSummary() {
         return super.getDebugSummary()
                 .append(" [").append(getUri()).append(']');
+    }
+
+    @Override
+    protected void onActionSuccessful() {
     }
 
     @Override

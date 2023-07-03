@@ -67,15 +67,19 @@ public class RecordAudioAction extends Action<RecordAudioAction, ResponseRecordA
         return false;
     }
 
-    
     @Override
     protected void onActionSuccessful() {
         final var ad = getActionData();
-        final var rd = ad.getRecordingDestination();
-        log.debug("Record Audio SUCCESS with file " + rd.getKey());
-        setTransactionAttribute(RECORD_AUDIO_BUCKET, rd.getBucketName());
-        setTransactionAttribute(RECORD_AUDIO_KEY, rd.getKey());
-        setTransactionAttribute(RECORD_AUDIO_TERMINATOR, ad.getRecordingTerminatorUsed().toString());
+        if (ad != null) {
+            final var rd = ad.getRecordingDestination();
+            log.debug("Record Audio SUCCESS with file " + rd.getKey());
+            setTransactionAttribute(RECORD_AUDIO_BUCKET, rd.getBucketName());
+            setTransactionAttribute(RECORD_AUDIO_KEY, rd.getKey());
+            // Will be null silence detection or max length occurs (IE, nothing was press, but we have a file, all is good
+            if( ad.getRecordingTerminatorUsed() != null ) {
+                setTransactionAttribute(RECORD_AUDIO_TERMINATOR, ad.getRecordingTerminatorUsed().toString());
+            }
+        }
     }
 
     @Override
