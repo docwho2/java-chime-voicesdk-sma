@@ -419,7 +419,7 @@ Your Lex session is tied to the call ID so you can do the following:
 - ChatGPT: "Lake Superior is XXX feet deep, etc."
 
 The Bot still knows the context you're in and what you said to ChatGPT during the call, so it knows when you come back that you are still referring 
-Lake Superior.  If you tell the bot you want to speak with a person it will return the "Transfer" intent back and the Next Action will the Connect 
+Lake Superior.  If you tell the bot you want to speak with a person it will return the "Transfer" intent back and the Next Action will be the Connect 
 use case of take back and transfer which is the same as pressing 3 at the main menu.
 
 ```java
@@ -446,6 +446,10 @@ use case of take back and transfer which is the same as pressing 3 at the main m
                     return MAIN_MENU;
             }
         };
+
+        // Both bots are the same, so the handler is the same
+        lexBotEN.setNextActionF(botNextAction);
+        lexBotES.setNextActionF(botNextAction);
 ```
 
 ### Connect Take Back and Transfer
@@ -464,9 +468,135 @@ hangup to release the call resources in Chime.
     final var connect = CallAndBridgeActionTBTDiversion.builder()
        .withDescription("Send Call to AWS Connect")
        .withUri("+15052162949")
-       .withRingbackToneKeyLocale("transfer")
+       .withRingbackToneKeyLocale("transfer")  // If the Spanish locale is set, the caller will hear transferring in Spanish
        .build();
 ```
+
+This Action could be further extended to to save the Locale in the DynamoDB Table and when the call lands at Connect, a lambda could be used to pull
+this to set the language in the Connect flow or any other data collected in the Chime SMA app like caller account number, etc.
+
+### Record Audio Menu
+
+When pressing 4 at the main menu we go to a sub-menu that uses Speak instead of using static prompts like the main menu:
+- Pressing one allows you to record audio which is saved to the default RECORD_BUCKET
+- Pressing two plays back your recorded audio or a message indicating you have not recorded audio yet
+- Any other key returns you back to the main menu.
+
+```java
+        // This menu is just in English, we  will use Speak instead of static prompts like main menu
+        final var menu = SpeakAndGetDigitsAction.builder()
+                .withSpeechParameters(SpeakAndGetDigitsAction.SpeechParameters.builder()
+                        // Static text, but this could be dyanimc as well
+                        .withText("Call Recording Menu. "
+                                + "Press One to re cord an Audio File. "
+                                + "Press Two to Listen to your recorded Audio File. "
+                                + "Any other key to return to the Main Menu").build())
+                .withFailureSpeechParameters(SpeakAndGetDigitsAction.SpeechParameters.builder()
+                        .withText("Plese try again").build())
+                .withRepeatDurationInMilliseconds(3000)
+                .withRepeat(2)
+                .withMinNumberOfDigits(1)
+                .withMaxNumberOfDigits(1)
+                .withInputDigitsRegex("^\\d{1}$")
+                .withErrorAction(MAIN_MENU)
+                .build();
+
+        menu.setNextActionF(a -> {
+            switch (a.getReceivedDigits()) {
+                case "1":
+                    return recordPrompt;
+                case "2":
+                    final var key = a.getTransactionAttribute(RecordAudioAction.RECORD_AUDIO_KEY);
+                    if (key != null) {
+                        // Some Audio has been recorded
+                        return playAudio;
+                    } else {
+                        // No Audio has been recorded
+                        return noRecording;
+                    }
+                default:
+                    return MAIN_MENU;
+            }
+        });
+```
+
+The [RecordAudio](https://docs.aws.amazon.com/chime-sdk/latest/dg/record-audio.html) Action does not give you any indication to start recording so 
+a beep wav file is used to indicate recording is active.  One again, the library optimizes the interaction by sending all the actions at once to 
+create a fluid flow to the caller.  When pressing one to record audio, the SMA response would look like this.
+
+```json
+{
+    "SchemaVersion": "1.0",
+    "Actions": [
+        {
+            "Type": "Speak",
+            "Parameters": {
+                "Text": "At the beep, re cord up to 30 seconds of Audio.  Press any key to stop the recording.",
+                "CallId": "f085191e-c647-4503-9d3a-3cba41aead2e",
+                "LanguageCode": "en-US",
+                "TextType": "text",
+                "VoiceId": "Joanna"
+            }
+        },
+        {
+            "Type": "PlayAudio",
+            "Parameters": {
+                "CallId": "f085191e-c647-4503-9d3a-3cba41aead2e",
+                "AudioSource": {
+                    "Type": "S3",
+                    "BucketName": "chime-voicesdk-sma-promptbucket-1sr9bfy6k3k30",
+                    "Key": "beep.wav"
+                }
+            }
+        },
+        {
+            "Type": "RecordAudio",
+            "Parameters": {
+                "CallId": "f085191e-c647-4503-9d3a-3cba41aead2e",
+                "DurationInSeconds": 30,
+                "SilenceDurationInSeconds": 5,
+                "RecordingTerminators": [
+                    "0","1","2","3","4","5","6","7","8","9","#","*"
+                ],
+                "RecordingDestination": {
+                    "Type": "S3",
+                    "BucketName": "chime-voicesdk-sma-recordbucket-rfr6d796zj6i"
+                }
+            }
+        }
+    ],
+    "TransactionAttributes": {
+        "CurrentActionId": "13",
+        "locale": "en-US",
+        "CurrentActionIdList": "15,14,13"
+    }
+}
+```
+
+### Wrapping Up
+
+This library in combination with the CloudFormation template demonstrates:
+- Deploying resilant mult-region voice applications
+- Creation of static prompts with Polly at deploy time to save cost on Polly usage ([PollyPromptCreator](PollyPromptCreation/src/main/java/cloud/cleo/chimesma/PollyPromptGenerator.java))
+- Deployment of static prompt files with the applicattion ([PromptCopier](PollyPromptCreation/src/main/java/cloud/cleo/chimesma/PromptCopier.java))
+- Easily pipelined with "sam deploy" tied to source control
+- Programming flows in Java that are easy to understand versus SMA Event handling model
+- Easy to extend actions that can be used to keep flows concise and still easy to understand (Connect TBT for example)
+- Utilizing Lambda SNAP Start to improve latency and performance (Flows are built at SNAP initialization)
+- Locale support to easily support multi-lingual applications
+- Utilize the full power of Java anywhere to make routing decisions or input/output to the Actions.
+
+Things I may add to the demo in the future:
+- Transfer Action that uses a Global DynamoDB Table
+    - Maps logical names to transfer destinations
+    - destinations might be SIP or PSTN
+    - destinations might have other info like "Queue" or "Skill" name that would inserted into the transfer table for Connect to pick up
+- Time of Day Action
+    - pull hours from API or Dyanmo Table
+    - Open/Closed ouputs
+    - Holiday/Special hours
+- [Function Calling](https://platform.openai.com/docs/guides/gpt/function-calling) to make the ChatGPT bot do more
+
 
 ## Deploy the Project
 
