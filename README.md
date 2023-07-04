@@ -164,7 +164,8 @@ Actions provided by the Chime SDK.  The Connect use case above is also incoporat
 For this demo, the Twilio number of +1-320-495-2425 will be load balanced across regions.  The first prompt in the demo announces the region
 so you can observe that calling the above number will land you in either us-east-1 or us-west-2.  When configuring the Twilio 
 [Origination Settings](https://www.twilio.com/docs/sip-trunking#origination) you can make use of the "edge" setting to optimize the SIP traffic.  
-In this case, the first SIP URI references a [Voice Connector])https://docs.aws.amazon.com/chime-sdk/latest/ag/voice-connectors.html) in the us-east-1 
+
+In this case, the first SIP URI references a [Voice Connector])(https://docs.aws.amazon.com/chime-sdk/latest/ag/voice-connectors.html) in the us-east-1 
 region, so by adding the "edge=asburn" twilio will egress that call into AWS all within us-east-1.  The same applies for the "edge=umatilla" which is 
 Twilio's edge in Oregon (us-west-2).  You don't want your traffic traversing all over the internet if that can be avoided.
 
@@ -181,9 +182,9 @@ that region or the Lambda associated with the SMA goes down, then you will fail 
 
 #### Asterisk PBX
 
-For testing apps there certainly is no reason to incur PSTN charges, so I use an IP Phone connected to (Asterisk)[https://www.asterisk.org] to place 
+For testing apps there certainly is no reason to incur PSTN charges, so I use an IP Phone connected to [Asterisk](https://www.asterisk.org) to place 
 calls into SMA's.  Like Twilio above, in the [pjsip_wizzard.conf](https://wiki.asterisk.org/wiki/display/AST/PJSIP+Configuration+Wizard) you can create trunks 
-reach region:
+for each region endpoint:
 
 ```
 [aws-chime-east]
@@ -207,7 +208,7 @@ endpoint/dtmf_mode=auto
 endpoint/rtp_symmetric=yes
 ```
 
-You can observe no less than 12 endpoints ready to take your call in each region !!!
+You can observe no less than 12 endpoints are ready to take your call in each region !!!
 
 ```
 Asterisk*CLI> pjsip show endpoint aws-chime-oregon 
@@ -252,6 +253,112 @@ exten => 292,1,NoOP(Call to AWS Chime Oregon)
         same => n,Dial(PJSIP/+17035550122@aws-chime-oregon)
 ```
 
+
+### Starting the Flow
+
+The demo flow is broken into 2 main parts to demonstate moving up and down menu levels
+- The main menu to handle top level functions
+- Recording sub-menu to handle recording and playback of audio
+
+The initial Action is to play a static prompt and proceed to the main menu
+
+```java
+public class ExampleFlow extends AbstractFlow {
+
+    private final static Action MAIN_MENU = getMainMenu();
+    private final static Action CALL_RECORDING_MENU = getCallRecordingMenu();
+    @Override
+    protected Action getInitialAction() {
+
+        // Start with a welcome message and then main menu with region static prompt
+        return PlayAudioAction.builder()
+                .withKey(System.getenv("AWS_REGION") + "-welcome.wav") // This is always in english
+                .withNextAction(MAIN_MENU)
+                .withErrorAction(MAIN_MENU)
+                .build();
+
+    }
+
+     public static Action getMainMenu() {
+        // Main menu will be locale specific prompting
+        final var menu = PlayAudioAndGetDigitsAction.builder()
+                .withAudioSource(AudioSourceLocale.builder().withKeyLocale("main-menu").build())
+                .withFailureAudioSource(AudioSourceLocale.builder().withKeyLocale("try-again").build())
+                .withRepeatDurationInMilliseconds(3000)
+                .withRepeat(2)
+                .withMinNumberOfDigits(1)
+                .withMaxNumberOfDigits(1)
+                .withInputDigitsRegex("^\\d{1}$")
+                .withErrorAction(goodbye)
+                .withNextActionF(a -> {
+                    switch (a.getReceivedDigits()) {
+                        case "1":
+                            return lexBotEN;
+                        case "2":
+                            return lexBotES;
+                        case "3":
+                            return connect;
+                        case "4":
+                            return CALL_RECORDING_MENU;
+                        default:
+                            return goodbye;
+                    }
+                })
+                .build();
+...
+```
+
+The initial response will make use of the [PlayAudio](https://docs.aws.amazon.com/chime-sdk/latest/dg/play-audio.html) and 
+[PlayAudioAndGetDigits](https://docs.aws.amazon.com/chime-sdk/latest/dg/play-audio-get-digits.html) Actions.  These both make use
+of static prompts stored in S3.  The main menu prompt is locale specific and can play in both English and Spanish as we will see later.  
+These two actions are chainable so the library will send them both in the initial response:
+
+```json
+{
+    "SchemaVersion": "1.0",
+    "Actions": [
+        {
+            "Type": "PlayAudio",
+            "Parameters": {
+                "CallId": "be23f6a9-66f0-4d55-b6d9-b9e614a729ac",
+                "ParticipantTag": "LEG-A",
+                "AudioSource": {
+                    "Type": "S3",
+                    "BucketName": "chime-voicesdk-sma-promptbucket-1sr9bfy6k3k30",
+                    "Key": "us-west-2-welcome.wav"
+                }
+            }
+        },
+        {
+            "Type": "PlayAudioAndGetDigits",
+            "Parameters": {
+                "CallId": "be23f6a9-66f0-4d55-b6d9-b9e614a729ac",
+                "ParticipantTag": "LEG-A",
+                "InputDigitsRegex": "^\\d{1}$",
+                "AudioSource": {
+                    "Type": "S3",
+                    "BucketName": "chime-voicesdk-sma-promptbucket-1sr9bfy6k3k30",
+                    "Key": "main-menu-en-US.wav"
+                },
+                "FailureAudioSource": {
+                    "Type": "S3",
+                    "BucketName": "chime-voicesdk-sma-promptbucket-1sr9bfy6k3k30",
+                    "Key": "try-again-en-US.wav"
+                },
+                "MinNumberOfDigits": 1,
+                "MaxNumberOfDigits": 1,
+                "Repeat": 2,
+                "RepeatDurationInMilliseconds": 3000
+            }
+        }
+    ],
+    "TransactionAttributes": {
+        "CurrentActionId": "6",
+        "locale": "en-US",
+        "CurrentActionIdList": "18,6"
+    }
+}
+```
 
 ## Deploy the Project
 
