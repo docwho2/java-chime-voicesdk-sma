@@ -147,6 +147,112 @@ Sample Lambda code in NodeJS.
         };
   ```
 
+## Example Flow Application
+
+The [Example Flow](Examples/src/main/java/cloud/cleo/chimesma/examples/actions/ExampleFlow.java) excercises a number of the 
+Actions provided by the Chime SDK.  The Connect use case above is also incoporated into the Demo app.
+
+### High Level Components
+
+![Architecture Diagram](assets/ChimeSMA-Demo.png)
+
+### Calling into the Demo Application
+
+#### Twilio
+
+[Twilio SIP Trunking](https://www.twilio.com/docs/sip-trunking) can be used to send calls into your SMA's or the SIP carrier of your choice.  
+For this demo, the Twilio number of +1-320-495-2425 will be load balanced across regions.  The first prompt in the demo announces the region
+so you can observe that calling the above number will land you in either us-east-1 or us-west-2.  When configuring the Twilio 
+[Origination Settings](https://www.twilio.com/docs/sip-trunking#origination) you can make use of the "edge" setting to optimize the SIP traffic.  
+In this case, the first SIP URI references a [Voice Connector])https://docs.aws.amazon.com/chime-sdk/latest/ag/voice-connectors.html) in the us-east-1 
+region, so by adding the "edge=asburn" twilio will egress that call into AWS all within us-east-1.  The same applies for the "edge=umatilla" which is 
+Twilio's edge in Oregon (us-west-2).  You don't want your traffic traversing all over the internet if that can be avoided.
+
+![Twilio Origination Settings](assets/twilio.png)
+
+#### Chime SDK Phone Number
+
+After provisiong a [phone number in Chime](https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html) ,
+you create a [SIP Rule](https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html) for the phone number.  Chime does not allow 
+load balancing, so you must setup an ordered priority.  When you call +1-320-200-2007 you will always be routed the SMA in us-east-1, and only if 
+that region or the Lambda associated with the SMA goes down, then you will fail over to us-west-2.
+
+![Chime Phone Targets](assets/chimephonenumber.png)
+
+#### Asterisk PBX
+
+For testing apps there certainly is no reason to incur PSTN charges, so I use an IP Phone connected to (Asterisk)[https://www.asterisk.org] to place 
+calls into SMA's.  Like Twilio above, in the [pjsip_wizzard.conf](https://wiki.asterisk.org/wiki/display/AST/PJSIP+Configuration+Wizard) you can create trunks 
+reach region:
+
+```
+[aws-chime-east]
+type=wizard
+transport=transport-udp
+remote_hosts=cze9epizslzqslzjpo58ff.voiceconnector.chime.aws
+endpoint/disallow=all
+endpoint/allow=ulaw
+endpoint/direct_media=no
+endpoint/dtmf_mode=auto
+endpoint/rtp_symmetric=yes
+
+[aws-chime-oregon]
+type=wizard
+transport=transport-udp
+remote_hosts=dnpz57kzlmo6uvhb1anu3w.voiceconnector.chime.aws
+endpoint/disallow=all
+endpoint/allow=ulaw
+endpoint/direct_media=no
+endpoint/dtmf_mode=auto
+endpoint/rtp_symmetric=yes
+```
+
+You can observe no less than 12 endpoints ready to take your call in each region !!!
+
+```
+Asterisk*CLI> pjsip show endpoint aws-chime-oregon 
+
+Endpoint:  aws-chime-oregon                                     Not in use    0 of inf
+        Aor:  aws-chime-oregon                                   0
+      Contact:  aws-chime-oregon/sip:dnpz57kzlmo6uvhb1anu3 228c75f425 Created       0.000
+  Transport:  transport-udp             udp      0      0  0.0.0.0:5060
+   Identify:  aws-chime-oregon-identify/aws-chime-oregon
+        Match: 99.77.253.106/32
+        Match: 99.77.253.110/32
+        Match: 99.77.253.109/32
+        Match: 99.77.253.104/32
+        Match: 99.77.253.102/32
+        Match: 99.77.253.107/32
+        Match: 99.77.253.103/32
+        Match: 99.77.253.105/32
+        Match: 99.77.253.11/32
+        Match: 99.77.253.0/32
+        Match: 99.77.253.108/32
+        Match: 99.77.253.100/32
+```
+
+In the [extensions.conf](https://wiki.asterisk.org/wiki/display/AST/Contexts%2C+Extensions%2C+and+Priorities) you configure a number you can dial 
+to route to the trunks in question.  The number  +1-703-555-0122 is a Chime Call in number than can be used to route to SMA's.  This allows you to 
+call into connectors and your SMA with a sip rule without provisioning a phone number at all !
+
+- 290 will try us-east-1 first and if it fails, you hear a prompt (so you know the first region was down) and then it tries the next region
+- 291 will call only us-east-1
+- 292 will call only us-west-2
+
+```
+exten => 290,1,NoOP(Call to AWS Chime with ordered failover)
+        same => n,Dial(PJSIP/+17035550122@aws-chime-east)
+        same => n,Playback(sorry-youre-having-problems)
+        same => n,Dial(PJSIP/+17035550122@aws-chime-oregon)
+
+exten => 291,1,NoOP(Call to AWS Chime East)
+        same => n,Dial(PJSIP/+17035550122@aws-chime-east)
+
+exten => 292,1,NoOP(Call to AWS Chime Oregon)
+        same => n,Dial(PJSIP/+17035550122@aws-chime-oregon)
+```
+
+
 ## Deploy the Project
 
 The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications.  Before proceeding, it is assumed you have valid AWS credentials setup with the AWS CLI and permissions to perform CloudFormation stack operations.
