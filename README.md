@@ -360,6 +360,114 @@ These two actions are chainable so the library will send them both in the initia
 }
 ```
 
+### Main Menu
+
+The main menu has 4 choices
+- Press 1 for Chat GPT Bot in English
+- Press 2 for Chat GPT Bot in Spanish
+- Press 3 for Connect Take Back and Transfer
+- Press 4 for Audio Reocding Menu
+- Another other key ends the call
+
+After the caller enters a digit (or enters nothing and the timeout occurs) the below
+code is executed to move the call to the next action.
+
+```java
+.withNextActionF(a -> {
+    switch (a.getReceivedDigits()) {
+        case "1":
+            return lexBotEN;
+        case "2":
+            return lexBotES;
+        case "3":
+            return connect;
+        case "4":
+            return CALL_RECORDING_MENU;
+        default:
+            return goodbye;
+    }
+})
+```
+
+### Lex Bots
+
+Handing control over to a Lex Bot is pretty easy in Chime just like in Amazon Connect.  We could have used a Bot to handle the main menu function 
+rather than a collecting digits and then further delegate intents to other bots or flows. In this example our Bot defined in the CloudFormation 
+[template](template.yaml) has 3 intents:
+- "Quit" - the caller is done talking to ChatGPT and wants to move on.
+- "Transfer" - the caller wants to speak with a real person.
+- "FallbackIntent" - anything else the caller asks is passed to ChatGPT for a response with context maintained in a DynamoDB table.
+
+When the user presses:
+- One, control is passed to our Bot with a locale set to English (en-US) and welcome prompt in English
+- Two, control is passed to our Bot with a locale set to Spanish (es-US) and welcome prompt in Spanish
+
+Anytime ".withLocale()" is used on an action, that state is maintained by the library.  You can observe this by:
+- Pressing Two to go to the Spanish Bot
+- Say "adiós" to tell the bot your done
+- The next action will then be to go to the main menu, however you will now hear the main menu in Spanish because the locale was set on a prior action
+- If you then pressed One it would set the locale back to English and when you return to the main menu it would be in English once again
+
+Your Lex session is tied to the call ID so you can do the following:
+- Press One for ChatGPT
+- Say "What is the biggest lake in Minnesota?"
+- ChatGPT:  "Lake Superior, anything else?"
+- Say "That's all"
+- Back at the main menu now
+- Press One for ChatGPT again
+- Say "How deep is that Lake?"
+- ChatGPT: "Lake Superior is XXX feet deep, etc."
+
+The Bot still knows the context you're in and what you said to ChatGPT during the call, so it knows when you come back that you are still referring 
+Lake Superior.  If you tell the bot you want to speak with a person it will return the "Transfer" intent back and the Next Action will the Connect 
+use case of take back and transfer which is the same as pressing 3 at the main menu.
+
+```java
+        final var lexBotEN = StartBotConversationAction.builder()
+                .withDescription("ChatGPT English")
+                .withLocale(english)
+                .withContent("What can Chat GPT help you with?")
+                .build();
+
+        final var lexBotES = StartBotConversationAction.builder()
+                .withDescription("ChatGPT Spanish")
+                .withLocale(spanish)
+                .withContent("¿En qué puede ayudarte Chat GPT?")
+                .build();
+
+        // Two invocations of the bot, so create one function and use for both
+        Function<StartBotConversationAction, Action> botNextAction = (a) -> {
+            switch (a.getIntentName()) {
+                // The Lex bot also has intent to speak with someone
+                case "Transfer":
+                    return connect;
+                case "Quit":
+                default:
+                    return MAIN_MENU;
+            }
+        };
+```
+
+### Connect Take Back and Transfer
+
+When pressing 3 or asking the Bot to speak with a person, the call will be transferred to an Amazon Connect instance in us-east-1.  This makes use 
+of extending the base [CallAndBridge](https://docs.aws.amazon.com/chime-sdk/latest/dg/call-and-bridge.html) Action.  The details are described in the use 
+case mentioned in a prior section.
+
+Using this action in the library is no different than using the base [CallAndBridgeAction](ChimeSMA/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeAction.java).
+In this case we are sending the call to a static number ("+15052162949") that points to sample call flow that executes the transfer Lambda and then 
+transfers the call to "+18004444444" which is a carrier test number (Old MCI number).  This a terminal step, so once you have been transferred, you just
+hangup to release the call resources in Chime.
+
+```java
+    // Send call to Connect to demo Take Back and Transfer
+    final var connect = CallAndBridgeActionTBTDiversion.builder()
+       .withDescription("Send Call to AWS Connect")
+       .withUri("+15052162949")
+       .withRingbackToneKeyLocale("transfer")
+       .build();
+```
+
 ## Deploy the Project
 
 The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications.  Before proceeding, it is assumed you have valid AWS credentials setup with the AWS CLI and permissions to perform CloudFormation stack operations.
