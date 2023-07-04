@@ -282,7 +282,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-ChimeSMA
       Description: Chime SMA Call FLow Director Example
       Handler: cloud.cleo.chimesma.examples.actions.ExampleFlow
-      #AutoPublishAlias: SNAPSTART
+      AutoPublishAlias: SNAPSTART
       CodeUri: ./Examples
       Environment: 
         Variables:
@@ -300,8 +300,8 @@ Resources:
       Policies: 
         - DynamoDBWritePolicy:
             TableName: !Ref CALLSTABLENAME
-      #SnapStart:
-      #  ApplyOn: PublishedVersions
+      SnapStart:
+        ApplyOn: PublishedVersions
   
         
   ChimeSMAPerm:
@@ -312,13 +312,13 @@ Resources:
         Principal: voiceconnector.chime.amazonaws.com
         SourceAccount: !Ref 'AWS::AccountId'
   
-  #ChimeSMASnapPerm:
-  #    Type: AWS::Lambda::Permission
-  #    Properties:
-  #      FunctionName: !Ref ChimeSMA.Alias
-  #      Action: lambda:InvokeFunction
-  #      Principal: voiceconnector.chime.amazonaws.com
-  #      SourceAccount: !Ref 'AWS::AccountId'
+  ChimeSMASnapPerm:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !Ref ChimeSMA.Alias
+        Action: lambda:InvokeFunction
+        Principal: voiceconnector.chime.amazonaws.com
+        SourceAccount: !Ref 'AWS::AccountId'
   
   
   CallTable:
