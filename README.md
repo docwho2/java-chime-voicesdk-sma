@@ -165,7 +165,7 @@ For this demo, the Twilio number of +1-320-495-2425 will be load balanced across
 so you can observe that calling the above number will land you in either us-east-1 or us-west-2.  When configuring the Twilio 
 [Origination Settings](https://www.twilio.com/docs/sip-trunking#origination) you can make use of the "edge" setting to optimize the SIP traffic.  
 
-In this case, the first SIP URI references a [Voice Connector])(https://docs.aws.amazon.com/chime-sdk/latest/ag/voice-connectors.html) in the us-east-1 
+In this case, the first SIP URI references a [Voice Connector](https://docs.aws.amazon.com/chime-sdk/latest/ag/voice-connectors.html) in the us-east-1 
 region, so by adding the "edge=asburn" twilio will egress that call into AWS all within us-east-1.  The same applies for the "edge=umatilla" which is 
 Twilio's edge in Oregon (us-west-2).  You don't want your traffic traversing all over the internet if that can be avoided.
 
@@ -392,7 +392,7 @@ code is executed to move the call to the next action.
 ### Lex Bots
 
 Handing control over to a Lex Bot is pretty easy in Chime just like in Amazon Connect.  We could have used a Bot to handle the main menu function 
-rather than a collecting digits and then further delegate intents to other bots or flows. In this example our Bot defined in the CloudFormation 
+rather than collecting digits and then further delegate intents to other bots or flows. In this example our Bot defined in the CloudFormation 
 [template](template.yaml) has 3 intents:
 - "Quit" - the caller is done talking to ChatGPT and wants to move on.
 - "Transfer" - the caller wants to speak with a real person.
@@ -418,7 +418,7 @@ Your Lex session is tied to the call ID so you can do the following:
 - Say "How deep is that Lake?"
 - ChatGPT: "Lake Superior is XXX feet deep, etc."
 
-The Bot still knows the context you're in and what you said to ChatGPT during the call, so it knows when you come back that you are still referring 
+The Bot still knows the context you're in and what you said to ChatGPT during the call, so it knows when you come back that you are still referring to 
 Lake Superior.  If you tell the bot you want to speak with a person it will return the "Transfer" intent back and the Next Action will be the Connect 
 use case of take back and transfer which is the same as pressing 3 at the main menu.
 
