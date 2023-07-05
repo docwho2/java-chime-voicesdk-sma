@@ -103,7 +103,7 @@ A simple SAM [template](/Examples/template.yaml) is provided to get started whic
 
 ```bash
 echo "Chage directory into the Examples"
-cd java-chime-voicesdk-sma
+cd Examples
 
 echo "Build the Example Hello World"
 sam build
