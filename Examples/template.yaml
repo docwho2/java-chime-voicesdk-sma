@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 
+  - AWS::Serverless-2016-10-31
+  - AWS::LanguageExtensions
+
+Description: >
+  AWS Chime Voice SDK SMA Hello World
+
+Parameters:
+  VOICEIDEN:
+    Description: The voice used for LEX and prompt generation for English
+    Type: String
+    Default: Joanna
+    AllowedValues: # https://docs.aws.amazon.com/polly/latest/dg/ntts-voices-main.html
+        - Ivy      # Female (child)
+        - Joanna   # Female
+        - Kendra   # Female
+        - Kimberly # Female
+        - Salli    # Female
+        - Joey     # Male
+        - Justin   # Male (child)
+        - Kevin    # Male (child)
+        - Matthew  # Male
+        - Ruth     # Female
+        - Stephen  # Male
+  VOICEIDES:
+    Description: The voice used for LEX and prompt generation for Spanish
+    Type: String
+    Default: Lupe
+    AllowedValues:
+        - Mia      # Female (Mexican)
+        - Andrés   # Male (Mexican)
+        - Lupe     # Female (US)
+        - Pedro    # Male (US)
+
+Globals:
+  Function:
+    Runtime: java11
+    Timeout: 30
+    MemorySize: 3009
+    Architectures:  # SnapStart on Java 11 requires x86
+        - x86_64
+
+Resources:
+  ChimeSMA:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-HelloWorld
+      Description: Chime SMA Hello World Example
+      Handler: cloud.cleo.chimesma.examples.actions.HelloWorld
+      AutoPublishAlias: SNAPSTART
+      CodeUri: .
+      Environment: 
+        Variables:
+          LANGUAGE_VOICE_MAP:
+              Fn::ToJsonString:
+                  - Locale: en-US
+                    VoiceId: !Ref VOICEIDEN
+                  - Locale: es-US
+                    VoiceId: !Ref VOICEIDES
+      SnapStart:
+        ApplyOn: PublishedVersions
+  
+        
+  ChimeSMAPerm:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !Ref ChimeSMA
+        Action: lambda:InvokeFunction
+        Principal: voiceconnector.chime.amazonaws.com
+        SourceAccount: !Ref 'AWS::AccountId'
+  
+  ChimeSMASnapPerm:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !Ref ChimeSMA.Alias
+        Action: lambda:InvokeFunction
+        Principal: voiceconnector.chime.amazonaws.com
+        SourceAccount: !Ref 'AWS::AccountId'
+      
+Outputs:
+  FunctionARN:
+    Description: "Set this Lambda ARN on your SIP Media Application"
+    Value: !Join [ ':' ,[!GetAtt 'ChimeSMA.Arn' , 'SNAPSTART']]
+      

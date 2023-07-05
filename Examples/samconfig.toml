@@ -1,0 +1,10 @@
+version = 0.1
+[default.deploy.parameters]
+stack_name = "chime-voicesdk-hello-world"
+resolve_s3 = true
+s3_prefix = "chime-voicesdk-hello-world"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "VOICEIDEN=\"Joanna\" VOICEIDES=\"Lupe\""
+image_repositories = []
