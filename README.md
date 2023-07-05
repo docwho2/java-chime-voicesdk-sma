@@ -178,6 +178,10 @@ you create a [SIP Rule](https://docs.aws.amazon.com/chime-sdk/latest/ag/understa
 load balancing, so you must setup an ordered priority.  When you call +1-320-200-2007 you will always be routed the SMA in us-east-1, and only if 
 that region or the Lambda associated with the SMA goes down, then you will fail over to us-west-2.
 
+Chime does not provide PTSN numbers in all countries, only the US at present.  So if you are deploying in Europe, you will need to use a SIP carrier 
+like Twilio above.  I have tested all this in Franfurt and London regions without issue.  See the PSTN section of the [Available Regions](https://docs.aws.amazon.com/chime-sdk/latest/dg/sdk-available-regions.html) 
+documentation for Chime SDK. 
+
 ![Chime Phone Targets](assets/chimephonenumber.png)
 
 #### Asterisk PBX
@@ -600,7 +604,8 @@ Things I may add to the demo in the future:
 
 ## Deploy the Project
 
-The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications.  Before proceeding, it is assumed you have valid AWS credentials setup with the AWS CLI and permissions to perform CloudFormation stack operations.
+The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications.  
+Before proceeding, it is assumed you have valid AWS credentials setup with the AWS CLI and permissions to perform CloudFormation stack operations.
 
 To use the SAM CLI, you need the following tools.
 
@@ -615,31 +620,29 @@ brew install corretto11
 brew install maven
 ```
 
-To build and deploy, run the following in your shell after you have cloned the repo.  Note: it may be easier to edit the [template.yaml](template.yaml) and change the defaults for the parameteres to 
-taste before running the build like the Connect Instance ID, then you won't have to specify the "--parameter-overrides" indicated below.
+To build and deploy, run the following in your shell.  Note: you must edit the [samconfig.toml](samconfig.toml) and change the parameteres to 
+taste before running the build like the Connect Instance ID and SMA ID to ones that exist within that region.
 
 ```bash
+git clone https://github.com/docwho2/java-chime-voicesdk-sma.git
+cd java-chime-voicesdk-sma
 ./init.bash
 sam build
-sam deploy --parameter-overrides 'ParameterKey=CONNECTID,ParameterValue=<your connect instance ID>'
+sam deploy --config-env east
+sam deploy --config-env west
 ```
 
-The first command will set up some required components like the V4 Java Events library that is not published yet (this is a sub-module) and install the parent POM used by Lambda functions.
-The second command will build the source of the application. 
-The third command will package and deploy the project to AWS as a CloudFormation Stack. You must set the value of your Connect Instance ID (the UUID last of the ARN) or edit the default value in the template.
+The commands perform the follwoing operations:
+- Clones the repository into your local directory
+- Change directory into the cloned repository
+- Set up some required components like the V4 Java Events library that is not published yet (this is a sub-module) and install the parent POM used by Lambda functions.
+- Build the components that will be deployed by SAM
+- Package and deploy the project to us-east-1
+- Package and deploy the project to us-west-2
+
 You will see the progress as the stack deploys.  As metntioned earlier, you will need to put your OpenAI API Key into parameter store or the deploy will error, but it will give you an error message 
 that tells you there is no value for "OPENAI_API_KEY" in the [Parameter Store](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html).
 
-
-`Do not forget to delete the stack or you will continue to incure AWS charges for the resources`.
-
-
-
-## Associate Phone number to the Connect Flow
-
-Once you have deployed the project, in the Amazon Connect Console, you will need to associate the flow with a phone number.
-
-![Associate Flow to Phone Number](assets/phonenumber.png)
 
 
 ## Fetch, tail, and filter Lambda function logs
@@ -653,22 +656,54 @@ sam logs --tail
 
 Example:
 ```
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:22.355000 RESTORE_START Runtime Version: java:11.v20	Runtime Version ARN: arn:aws:lambda:us-east-1::runtime:b8b295733fb8ae6769e0fb039181ce76e1f54a4d04bb5ca7ded937bb0d839109
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:22.719000 RESTORE_REPORT Restore Duration: 398.97 ms
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:22.722000 START RequestId: 8c360c87-d4b7-4423-b5f3-af02be3c1763 Version: 72
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:22.974000 8c360c87-d4b7-4423-b5f3-af02be3c1763 DEBUG ChatGPTLambda:54 - {"messageVersion":"1.0","invocationSource":"FulfillmentCodeHook","inputMode":"Speech","responseContentType":"text/plain; charset=utf-8","sessionId":"ecd79064-d807-4c2e-9bc6-a75a91284fdd","inputTranscript":"largest lake in minnesota","bot":{"id":"YWKVXZGMDJ","name":"connect-chatgpt-Lex-Bot","aliasId":"0OJEBBWKI2","aliasName":"Latest","localeId":"en_US","version":"1"},"interpretations":[{"intent":{"confirmationState":"None","name":"FallbackIntent","slots":{},"state":"ReadyForFulfillment","kendraResponse":null},"nluConfidence":null,"sentimentResponse":null},{"intent":{"confirmationState":"None","name":"About","slots":{},"state":"ReadyForFulfillment","kendraResponse":null},"nluConfidence":0.58,"sentimentResponse":null},{"intent":{"confirmationState":"None","name":"Steve","slots":{},"state":"ReadyForFulfillment","kendraResponse":null},"nluConfidence":0.51,"sentimentResponse":null},{"intent":{"confirmationState":"None","name":"Quit","slots":{},"state":"ReadyForFulfillment","kendraResponse":null},"nluConfidence":0.38,"sentimentResponse":null}],"proposedNextState":null,"requestAttributes":{"x-amz-lex:accept-content-types":"PlainText,SSML","x-amz-lex:channels:platform":"Connect"},"sessionState":{"activeContexts":null,"sessionAttributes":{"CustomerNumber":"+16128140714","InstanceArn":"arn:aws:connect:us-east-1:364253738352:instance/f837ec93-b6e5-4429-acb7-f698fff0148c"},"runtimeHints":null,"dialogAction":null,"intent":{"confirmationState":"None","name":"FallbackIntent","slots":{},"state":"ReadyForFulfillment","kendraResponse":null},"originatingRequestId":"33b39120-ccaf-4ca4-b5d0-4e4bc1c7b86d"},"transcriptions":[{"transcription":"largest lake in minnesota","transcriptionConfidence":0.92,"resolvedContext":{"intent":"FallbackIntent"},"resolvedSlots":{}},{"transcription":"the largest lake in minnesota","transcriptionConfidence":0.82,"resolvedContext":{"intent":null},"resolvedSlots":{}},{"transcription":"largest lake and minnesota","transcriptionConfidence":0.72,"resolvedContext":{"intent":null},"resolvedSlots":{}}]}
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:22.975000 8c360c87-d4b7-4423-b5f3-af02be3c1763 DEBUG ChatGPTLambda:56 - Intent: FallbackIntent
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:22.977000 8c360c87-d4b7-4423-b5f3-af02be3c1763 DEBUG ChatGPTLambda:71 - Java Locale is en_US
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:23.010000 8c360c87-d4b7-4423-b5f3-af02be3c1763 DEBUG ChatGPTLambda:99 - Start Retreiving Session State
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:23.656000 8c360c87-d4b7-4423-b5f3-af02be3c1763 DEBUG ChatGPTLambda:101 - End Retreiving Session State
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:23.672000 8c360c87-d4b7-4423-b5f3-af02be3c1763 DEBUG ChatGPTLambda:124 - Start API Call to ChatGPT
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:24.952000 8c360c87-d4b7-4423-b5f3-af02be3c1763 DEBUG ChatGPTLambda:126 - End API Call to ChatGPT
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:24.953000 8c360c87-d4b7-4423-b5f3-af02be3c1763 DEBUG ChatGPTLambda:127 - ChatCompletionResult(id=chatcmpl-7MxECAVkjCnZl8KDsZxPNZ5vJ264G, object=chat.completion, created=1685705244, model=gpt-3.5-turbo-0301, choices=[ChatCompletionChoice(index=0, message=ChatMessage(role=assistant, content=The largest lake in Minnesota is Lake Superior.), finishReason=stop)], usage=Usage(promptTokens=46, completionTokens=9, totalTokens=55))
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:24.954000 8c360c87-d4b7-4423-b5f3-af02be3c1763 DEBUG ChatGPTLambda:138 - Start Saving Session State
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:25.046000 8c360c87-d4b7-4423-b5f3-af02be3c1763 DEBUG ChatGPTLambda:141 - End Saving Session State
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:25.052000 8c360c87-d4b7-4423-b5f3-af02be3c1763 DEBUG ChatGPTLambda:202 - Response is {"sessionState":{"activeContexts":null,"sessionAttributes":{"CustomerNumber":"+16128140714","InstanceArn":"arn:aws:connect:us-east-1::instance/f837ec93-b6e5-4429-acb7-f698fff0148c"},"runtimeHints":null,"dialogAction":{"slotToElicit":null,"type":"ElicitIntent"},"intent":null,"originatingRequestId":null},"messages":[{"contentType":"PlainText","content":"The largest lake in Minnesota is Lake Superior.  What else can I help you with?","imageResponseCard":null}],"requestAttributes":null}
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:25.060000 END RequestId: 8c360c87-d4b7-4423-b5f3-af02be3c1763
-2023/06/02/[72]88ab219a63d343d294d0a9947e8ab36a 2023-06-02T11:27:25.060000 REPORT RequestId: 8c360c87-d4b7-4423-b5f3-af02be3c1763	Duration: 2338.66 ms	Billed Duration: 2521 ms	Memory Size: 3009 MB	Max Memory Used: 173 MB	Restore Duration: 398.97 ms	Billed Restore Duration: 182 ms	
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:34.013000 RESTORE_START Runtime Version: java:11.v21	Runtime Version ARN: arn:aws:lambda:us-east-1::runtime:156ab0dc268a6b4a8dedcbcf0974795cafba2ee8760fe386062fffdbb887b971
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:34.376000 RESTORE_REPORT Restore Duration: 511.25 ms
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:34.379000 START RequestId: b771fecc-1b53-4faf-922d-1d74357b1676 Version: 56
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:34.565000 b771fecc-1b53-4faf-922d-1d74357b1676 DEBUG AbstractFlow:214 - SMARequest(schemaVersion=1.0, sequence=1, invocationEventType=NEW_INBOUND_CALL, callDetails=SMARequest.CallDetails(transactionId=6600de06-fc5a-4a57-8c11-420ccae6f93b, transactionAttributes=null, awsAccountId=364253738352, awsRegion=us-east-1, sipMediaApplicationId=cf3e17cd-f4e5-44c3-ab04-325e6b3a6709, participants=[SMARequest.Participant(callId=6cbd7153-b1cd-48b1-8598-9687f6903db1, participantTag=LEG-A, to=+17035550122, from=+16128140714, direction=Inbound, startTime=2023-07-05T10:16:33.239Z, status=null)]), errorType=null, errorMessage=null, actionData=null)
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:34.566000 b771fecc-1b53-4faf-922d-1d74357b1676 DEBUG AbstractFlow:219 - New Inbound Call, starting flow
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:34.567000 b771fecc-1b53-4faf-922d-1d74357b1676 INFO  AbstractFlow:149 - Adding action PlayAudio key=[us-east-1-welcome.wav] bucket=[chime-voicesdk-sma-promptbucket-1p1tvnc4izve]
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:34.567000 b771fecc-1b53-4faf-922d-1d74357b1676 INFO  AbstractFlow:157 - Chaining action PlayAudioAndGetDigits [^\d{1}$]
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:34.595000 b771fecc-1b53-4faf-922d-1d74357b1676 INFO  AbstractFlow:238 - New Call Handler Code Here
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:34.682000 b771fecc-1b53-4faf-922d-1d74357b1676 DEBUG AbstractFlow:314 - {"SchemaVersion":"1.0","Actions":[{"Type":"PlayAudio","Parameters":{"CallId":"6cbd7153-b1cd-48b1-8598-9687f6903db1","ParticipantTag":"LEG-A","AudioSource":{"Type":"S3","BucketName":"chime-voicesdk-sma-promptbucket-1p1tvnc4izve","Key":"us-east-1-welcome.wav"}}},{"Type":"PlayAudioAndGetDigits","Parameters":{"CallId":"6cbd7153-b1cd-48b1-8598-9687f6903db1","ParticipantTag":"LEG-A","InputDigitsRegex":"^\\d{1}$","AudioSource":{"Type":"S3","BucketName":"chime-voicesdk-sma-promptbucket-1p1tvnc4izve","Key":"main-menu-en-US.wav"},"FailureAudioSource":{"Type":"S3","BucketName":"chime-voicesdk-sma-promptbucket-1p1tvnc4izve","Key":"try-again-en-US.wav"},"MinNumberOfDigits":1,"MaxNumberOfDigits":1,"Repeat":2,"RepeatDurationInMilliseconds":3000}}],"TransactionAttributes":{"CurrentActionId":"6","locale":"en-US","CurrentActionIdList":"18,6"}}
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:34.686000 END RequestId: b771fecc-1b53-4faf-922d-1d74357b1676
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:34.686000 REPORT RequestId: b771fecc-1b53-4faf-922d-1d74357b1676	Duration: 306.34 ms	Billed Duration: 610 ms	Memory Size: 3009 MB	Max Memory Used: 155 MB	Restore Duration: 511.25 ms	Billed Restore Duration: 303 ms	
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:43.928000 START RequestId: 7667964c-05ac-4891-b28c-56f1282ebc1b Version: 56
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:44.025000 7667964c-05ac-4891-b28c-56f1282ebc1b DEBUG AbstractFlow:214 - SMARequest(schemaVersion=1.0, sequence=2, invocationEventType=ACTION_SUCCESSFUL, callDetails=SMARequest.CallDetails(transactionId=6600de06-fc5a-4a57-8c11-420ccae6f93b, transactionAttributes={CurrentActionId=6, locale=en-US, CurrentActionIdList=18,6}, awsAccountId=364253738352, awsRegion=us-east-1, sipMediaApplicationId=cf3e17cd-f4e5-44c3-ab04-325e6b3a6709, participants=[SMARequest.Participant(callId=6cbd7153-b1cd-48b1-8598-9687f6903db1, participantTag=LEG-A, to=+17035550122, from=+16128140714, direction=Inbound, startTime=2023-07-05T10:16:33.239Z, status=Connected)]), errorType=null, errorMessage=null, actionData=ResponsePlayAudioAndGetDigits(type=PlayAudioAndGetDigits, parameters=ResponsePlayAudioAndGetDigits.Parameters(callId=6cbd7153-b1cd-48b1-8598-9687f6903db1, participantTag=LEG-A, inputDigitsRegex=^\d{1}$, audioSource=ResponsePlayAudio.AudioSource(type=S3, bucketName=chime-voicesdk-sma-promptbucket-1p1tvnc4izve, key=main-menu-en-US.wav), failureAudioSource=ResponsePlayAudio.AudioSource(type=S3, bucketName=chime-voicesdk-sma-promptbucket-1p1tvnc4izve, key=try-again-en-US.wav), minNumberOfDigits=1, maxNumberOfDigits=1, terminatorDigits=null, inBetweenDigitsDurationInMilliseconds=3000, repeat=2, repeatDurationInMilliseconds=3000), receivedDigits=1, errorType=null, errorMessage=null))
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:44.029000 7667964c-05ac-4891-b28c-56f1282ebc1b DEBUG AbstractFlow:207 - Current Action is PlayAudioAndGetDigits [^\d{1}$] with ID 6
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:44.030000 7667964c-05ac-4891-b28c-56f1282ebc1b DEBUG Action:180 - This Action has a locale set to en_US
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:44.031000 7667964c-05ac-4891-b28c-56f1282ebc1b INFO  AbstractFlow:149 - Adding action StartBotConversation desc=[ChatGPT English] da=[ElicitIntent] content=[What can Chat GPT help you with?]
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:44.045000 7667964c-05ac-4891-b28c-56f1282ebc1b INFO  AbstractFlow:340 - Moving to next action: StartBotConversation desc=[ChatGPT English] da=[ElicitIntent] content=[What can Chat GPT help you with?]
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:44.065000 7667964c-05ac-4891-b28c-56f1282ebc1b DEBUG AbstractFlow:314 - {"SchemaVersion":"1.0","Actions":[{"Type":"StartBotConversation","Parameters":{"CallId":"6cbd7153-b1cd-48b1-8598-9687f6903db1","BotAliasArn":"arn:aws:lex:us-east-1:364253738352:bot-alias/GDGCNIR2DC/NMJJX2WV6A","LocaleId":"en_US","Configuration":{"SessionState":{"DialogAction":{"Type":"ElicitIntent"}},"WelcomeMessages":[{"Content":"What can Chat GPT help you with?","ContentType":"PlainText"}]}}}],"TransactionAttributes":{"CurrentActionId":"4","locale":"en-US","CurrentActionIdList":"4"}}
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:44.067000 END RequestId: 7667964c-05ac-4891-b28c-56f1282ebc1b
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:44.067000 REPORT RequestId: 7667964c-05ac-4891-b28c-56f1282ebc1b	Duration: 138.27 ms	Billed Duration: 139 ms	Memory Size: 3009 MB	Max Memory Used: 159 MB	
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:55.980000 START RequestId: c5617d6b-3eff-409b-bff8-7f6ed83c319a Version: 56
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:56.025000 c5617d6b-3eff-409b-bff8-7f6ed83c319a DEBUG AbstractFlow:214 - SMARequest(schemaVersion=1.0, sequence=3, invocationEventType=ACTION_SUCCESSFUL, callDetails=SMARequest.CallDetails(transactionId=6600de06-fc5a-4a57-8c11-420ccae6f93b, transactionAttributes={CurrentActionId=4, locale=en-US, CurrentActionIdList=4}, awsAccountId=364253738352, awsRegion=us-east-1, sipMediaApplicationId=cf3e17cd-f4e5-44c3-ab04-325e6b3a6709, participants=[SMARequest.Participant(callId=6cbd7153-b1cd-48b1-8598-9687f6903db1, participantTag=LEG-A, to=+17035550122, from=+16128140714, direction=Inbound, startTime=2023-07-05T10:16:33.239Z, status=Connected)]), errorType=null, errorMessage=null, actionData=ActionDataStartBotConversation(callId=null, type=StartBotConversation, parameters=ResponseStartBotConversation.Parameters(callId=6cbd7153-b1cd-48b1-8598-9687f6903db1, participantTag=LEG-A, botAliasArn=arn:aws:lex:us-east-1:364253738352:bot-alias/GDGCNIR2DC/NMJJX2WV6A, localeId=en_US, configuration=ResponseStartBotConversation.Configuration(sessionState=ResponseStartBotConversation.SessionState(sessionAttributes=null, dialogAction=ResponseStartBotConversation.DialogAction(type=ElicitIntent), intent=null), welcomeMessages=[ResponseStartBotConversation.WelcomeMessage(content=What can Chat GPT help you with?, contentType=PlainText)])), intentResult=ActionDataStartBotConversation.IntentResult(sessionId=6cbd7153-b1cd-48b1-8598-9687f6903db1, sessionState=ResponseStartBotConversation.SessionState(sessionAttributes={}, dialogAction=null, intent=ResponseStartBotConversation.Intent(name=Quit, Slots={}, state=ReadyForFulfillment, confirmationState=None)), interpretations=[ActionDataStartBotConversation.Interpretation(intent=ResponseStartBotConversation.Intent(name=Quit, Slots={}, state=ReadyForFulfillment, confirmationState=None), nluConfidence=ActionDataStartBotConversation.NluConfidence(score=1.0)), ActionDataStartBotConversation.Interpretation(intent=ResponseStartBotConversation.Intent(name=FallbackIntent, Slots={}, state=null, confirmationState=null), nluConfidence=null), ActionDataStartBotConversation.Interpretation(intent=ResponseStartBotConversation.Intent(name=Transfer, Slots={}, state=null, confirmationState=null), nluConfidence=ActionDataStartBotConversation.NluConfidence(score=0.42))]), errorType=null, errorMessage=null))
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:56.026000 c5617d6b-3eff-409b-bff8-7f6ed83c319a DEBUG Action:180 - This Action has a locale set to en_US
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:56.026000 c5617d6b-3eff-409b-bff8-7f6ed83c319a DEBUG AbstractFlow:207 - Current Action is StartBotConversation desc=[ChatGPT English] da=[ElicitIntent] content=[What can Chat GPT help you with?] with ID 4
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:56.026000 c5617d6b-3eff-409b-bff8-7f6ed83c319a DEBUG Action:99 - Lex Bot has finished and Intent is Quit
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:56.027000 c5617d6b-3eff-409b-bff8-7f6ed83c319a INFO  AbstractFlow:149 - Adding action PlayAudioAndGetDigits [^\d{1}$]
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:56.027000 c5617d6b-3eff-409b-bff8-7f6ed83c319a INFO  AbstractFlow:340 - Moving to next action: PlayAudioAndGetDigits [^\d{1}$]
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:56.028000 c5617d6b-3eff-409b-bff8-7f6ed83c319a DEBUG AbstractFlow:314 - {"SchemaVersion":"1.0","Actions":[{"Type":"PlayAudioAndGetDigits","Parameters":{"CallId":"6cbd7153-b1cd-48b1-8598-9687f6903db1","ParticipantTag":"LEG-A","InputDigitsRegex":"^\\d{1}$","AudioSource":{"Type":"S3","BucketName":"chime-voicesdk-sma-promptbucket-1p1tvnc4izve","Key":"main-menu-en-US.wav"},"FailureAudioSource":{"Type":"S3","BucketName":"chime-voicesdk-sma-promptbucket-1p1tvnc4izve","Key":"try-again-en-US.wav"},"MinNumberOfDigits":1,"MaxNumberOfDigits":1,"Repeat":2,"RepeatDurationInMilliseconds":3000}}],"TransactionAttributes":{"CurrentActionId":"6","locale":"en-US","CurrentActionIdList":"6","LexLastMatchedIntent":"Quit"}}
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:56.031000 END RequestId: c5617d6b-3eff-409b-bff8-7f6ed83c319a
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:56.031000 REPORT RequestId: c5617d6b-3eff-409b-bff8-7f6ed83c319a	Duration: 50.76 ms	Billed Duration: 51 ms	Memory Size: 3009 MB	Max Memory Used: 159 MB	
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:58.051000 START RequestId: 09cea32b-12e6-4283-9092-15e3fd5eabf8 Version: 56
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:58.054000 09cea32b-12e6-4283-9092-15e3fd5eabf8 DEBUG AbstractFlow:214 - SMARequest(schemaVersion=1.0, sequence=4, invocationEventType=ACTION_SUCCESSFUL, callDetails=SMARequest.CallDetails(transactionId=6600de06-fc5a-4a57-8c11-420ccae6f93b, transactionAttributes={CurrentActionId=6, LexLastMatchedIntent=Quit, locale=en-US, CurrentActionIdList=6}, awsAccountId=364253738352, awsRegion=us-east-1, sipMediaApplicationId=cf3e17cd-f4e5-44c3-ab04-325e6b3a6709, participants=[SMARequest.Participant(callId=6cbd7153-b1cd-48b1-8598-9687f6903db1, participantTag=LEG-A, to=+17035550122, from=+16128140714, direction=Inbound, startTime=2023-07-05T10:16:33.239Z, status=Connected)]), errorType=null, errorMessage=null, actionData=ResponsePlayAudioAndGetDigits(type=PlayAudioAndGetDigits, parameters=ResponsePlayAudioAndGetDigits.Parameters(callId=6cbd7153-b1cd-48b1-8598-9687f6903db1, participantTag=LEG-A, inputDigitsRegex=^\d{1}$, audioSource=ResponsePlayAudio.AudioSource(type=S3, bucketName=chime-voicesdk-sma-promptbucket-1p1tvnc4izve, key=main-menu-en-US.wav), failureAudioSource=ResponsePlayAudio.AudioSource(type=S3, bucketName=chime-voicesdk-sma-promptbucket-1p1tvnc4izve, key=try-again-en-US.wav), minNumberOfDigits=1, maxNumberOfDigits=1, terminatorDigits=null, inBetweenDigitsDurationInMilliseconds=3000, repeat=2, repeatDurationInMilliseconds=3000), receivedDigits=8, errorType=null, errorMessage=null))
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:58.054000 09cea32b-12e6-4283-9092-15e3fd5eabf8 DEBUG AbstractFlow:207 - Current Action is PlayAudioAndGetDigits [^\d{1}$] with ID 6
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:58.054000 09cea32b-12e6-4283-9092-15e3fd5eabf8 INFO  AbstractFlow:149 - Adding action PlayAudio desc=[Say Goodbye] keyL=[goodbye] bucket=[chime-voicesdk-sma-promptbucket-1p1tvnc4izve]
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:58.055000 09cea32b-12e6-4283-9092-15e3fd5eabf8 INFO  AbstractFlow:157 - Chaining action Hangup desc=[This is my last step]
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:58.057000 09cea32b-12e6-4283-9092-15e3fd5eabf8 INFO  AbstractFlow:340 - Moving to next action: PlayAudio desc=[Say Goodbye] keyL=[goodbye] bucket=[chime-voicesdk-sma-promptbucket-1p1tvnc4izve]
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:58.060000 09cea32b-12e6-4283-9092-15e3fd5eabf8 DEBUG AbstractFlow:314 - {"SchemaVersion":"1.0","Actions":[{"Type":"PlayAudio","Parameters":{"CallId":"6cbd7153-b1cd-48b1-8598-9687f6903db1","ParticipantTag":"LEG-A","AudioSource":{"Type":"S3","BucketName":"chime-voicesdk-sma-promptbucket-1p1tvnc4izve","Key":"goodbye-en-US.wav"}}},{"Type":"Hangup","Parameters":{"CallId":"6cbd7153-b1cd-48b1-8598-9687f6903db1"}}],"TransactionAttributes":{"CurrentActionId":"1","LexLastMatchedIntent":"Quit","locale":"en-US","CurrentActionIdList":"2,1"}}
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:58.061000 END RequestId: 09cea32b-12e6-4283-9092-15e3fd5eabf8
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:16:58.061000 REPORT RequestId: 09cea32b-12e6-4283-9092-15e3fd5eabf8	Duration: 10.09 ms	Billed Duration: 11 ms	Memory Size: 3009 MB	Max Memory Used: 160 MB	
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:17:00.009000 START RequestId: 010f6002-d185-4e96-9971-5360a2c6aa72 Version: 56
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:17:00.014000 010f6002-d185-4e96-9971-5360a2c6aa72 DEBUG AbstractFlow:214 - SMARequest(schemaVersion=1.0, sequence=5, invocationEventType=HANGUP, callDetails=SMARequest.CallDetails(transactionId=6600de06-fc5a-4a57-8c11-420ccae6f93b, transactionAttributes={CurrentActionId=1, LexLastMatchedIntent=Quit, locale=en-US, CurrentActionIdList=2,1}, awsAccountId=364253738352, awsRegion=us-east-1, sipMediaApplicationId=cf3e17cd-f4e5-44c3-ab04-325e6b3a6709, participants=[SMARequest.Participant(callId=6cbd7153-b1cd-48b1-8598-9687f6903db1, participantTag=LEG-A, to=+17035550122, from=+16128140714, direction=Inbound, startTime=2023-07-05T10:16:33.239Z, status=Disconnected)]), errorType=null, errorMessage=null, actionData=ResponseHangup(type=Hangup, parameters=ResponseHangup.Parameters(callId=6cbd7153-b1cd-48b1-8598-9687f6903db1, participantTag=LEG-A, sipResponseCode=null)))
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:17:00.015000 010f6002-d185-4e96-9971-5360a2c6aa72 DEBUG AbstractFlow:270 - Call Was disconnected by [Application], sending empty response
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:17:00.015000 010f6002-d185-4e96-9971-5360a2c6aa72 DEBUG AbstractFlow:207 - Current Action is Hangup desc=[This is my last step] with ID 1
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:17:00.015000 010f6002-d185-4e96-9971-5360a2c6aa72 INFO  AbstractFlow:243 - Hangup Handler Code Here
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:17:00.016000 010f6002-d185-4e96-9971-5360a2c6aa72 DEBUG AbstractFlow:314 - {"SchemaVersion":"1.0","Actions":[]}
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:17:00.017000 END RequestId: 010f6002-d185-4e96-9971-5360a2c6aa72
+2023/07/05/[56]374cd7798d2a4e36a494a23d658b9741 2023-07-05T10:17:00.017000 REPORT RequestId: 010f6002-d185-4e96-9971-5360a2c6aa72	Duration: 8.31 ms	Billed Duration: 9 ms	Memory Size: 3009 MB	Max Memory Used: 160 MB	
+
 ^C CTRL+C received, cancelling...                                              
 ```
 
@@ -677,248 +712,223 @@ You can find more information and examples about filtering Lambda function logs 
 
 ## Cleanup
 
-To delete the demo, use the SAM CLI. `DO NOT FORGET TO RUN THIS OR YOU WILL CONTINUE TO BE CHARGED FOR AWS RESOURCES`.
-
-Prior to deleting the stack, you should ensure you have disassociated any phone numbers pointing to the Connect Flow.
+To delete the demo, use the SAM CLI.
 
 You can run the following:
 
 ```bash
-sam delete
+sam delete --config-env east
+sam delete --config-env west
 ```
 
 ## Sample Deploy Output
 ```
-java-connect-lex-chatgpt$ sam deploy
+java-chime-voicesdk-sma$ sam deploy --config-env west
 
-		Managed S3 bucket: aws-sam-cli-managed-default-samclisourcebucket
+		Managed S3 bucket: aws-sam-cli-managed-default-samclisourcebucket-13jnbeuzx2
 		A different default S3 bucket can be set in samconfig.toml
 		Or by specifying --s3-bucket explicitly.
-File with same data already exists at 80aa0fed5827b7a80fa780734e9c4c09, skipping upload                                                                                                            
-File with same data already exists at 8a3b643e9487598224c935024ab7de90, skipping upload                                                                                                            
-File with same data already exists at d6f1fe447c5e6b528ef821e8612cc5c3, skipping upload                                                                                                            
+	Uploading to chime-voicesdk-sma/0934badf714b3b6d4be6b4716f73d980  17401808 / 17401808  (100.00%)
+File with same data already exists at chime-voicesdk-sma/0934badf714b3b6d4be6b4716f73d980, skipping upload                                        
+	Uploading to chime-voicesdk-sma/3dd27d8c98d6bee8bdcca98c26123f26  14703860 / 14703860  (100.00%)
+	Uploading to chime-voicesdk-sma/2eac5038f204c6de13a836fb2da6efb9  22977524 / 22977524  (100.00%)
 
 	Deploying with following values
 	===============================
-	Stack name                   : connect-chatgpt
-	Region                       : us-east-1
-	Confirm changeset            : True
+	Stack name                   : chime-voicesdk-sma
+	Region                       : us-west-2
+	Confirm changeset            : False
 	Disable rollback             : False
-	Deployment s3 bucket         : aws-sam-cli-managed-default-samclisourcebucket
+	Deployment s3 bucket         : aws-sam-cli-managed-default-samclisourcebucket-13jnbug4euzx2
 	Capabilities                 : ["CAPABILITY_IAM"]
-	Parameter overrides          : {}
+	Parameter overrides          : {"SMAID": "f6fb2553-e7e0-4900-866b-1b51b91f575a", "CONNECTID": "e8fac445-d291-407e-8fd7-c6296395c2ab"}
 	Signing Profiles             : {}
 
 Initiating deployment
 =====================
 
-	Uploading to f837836f7f1a4ab21d28677fcf6980e3.template  36058 / 36058  (100.00%)
+	Uploading to chime-voicesdk-sma/93e0edbe536d96ab0deced939610d637.template  22349 / 22349  (100.00%)
 
 
 Waiting for changeset to be created..
 
 CloudFormation stack changeset
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-Operation                                       LogicalResourceId                               ResourceType                                    Replacement                                   
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-+ Add                                           BotAlias                                        AWS::Lex::BotAlias                              N/A                                           
-+ Add                                           BotRuntimeRole                                  AWS::IAM::Role                                  N/A                                           
-+ Add                                           BotVersion                                      AWS::Lex::BotVersion                            N/A                                           
-+ Add                                           BucketKey                                       AWS::KMS::Key                                   N/A                                           
-+ Add                                           BucketPolicy                                    AWS::S3::BucketPolicy                           N/A                                           
-+ Add                                           CallTable                                       AWS::DynamoDB::Table                            N/A                                           
-+ Add                                           ChatGPTAliasSNAPSTART                           AWS::Lambda::Alias                              N/A                                           
-+ Add                                           ChatGPTRole                                     AWS::IAM::Role                                  N/A                                           
-+ Add                                           ChatGPTVersion5e83da0577                        AWS::Lambda::Version                            N/A                                           
-+ Add                                           ChatGPT                                         AWS::Lambda::Function                           N/A                                           
-+ Add                                           ClosingPromptEnglish                            Custom::PromptCreator                           N/A                                           
-+ Add                                           ClosingPromptSpanish                            Custom::PromptCreator                           N/A                                           
-+ Add                                           ConnectFlow                                     AWS::Connect::ContactFlow                       N/A                                           
-+ Add                                           ContactUpdatePolicy                             AWS::IAM::ManagedPolicy                         N/A                                           
-+ Add                                           ErrorPromptEnglish                              Custom::PromptCreator                           N/A                                           
-+ Add                                           ErrorPromptSpanish                              Custom::PromptCreator                           N/A                                           
-+ Add                                           HelpPromptEnglish                               Custom::PromptCreator                           N/A                                           
-+ Add                                           HelpPromptSpanish                               Custom::PromptCreator                           N/A                                           
-+ Add                                           LexBot                                          AWS::Lex::Bot                                   N/A                                           
-+ Add                                           LexPromptEnglish                                Custom::PromptCreator                           N/A                                           
-+ Add                                           LexPromptSpanish                                Custom::PromptCreator                           N/A                                           
-+ Add                                           LexToChatGPTPerm                                AWS::Lambda::Permission                         N/A                                           
-+ Add                                           LexToChatGPTSnapPerm                            AWS::Lambda::Permission                         N/A                                           
-+ Add                                           LexV2ConnectIntegration                         AWS::Connect::IntegrationAssociation            N/A                                           
-+ Add                                           MainPrompt                                      Custom::PromptCreator                           N/A                                           
-+ Add                                           NewCallLookupAliasSNAPSTART                     AWS::Lambda::Alias                              N/A                                           
-+ Add                                           NewCallLookupRole                               AWS::IAM::Role                                  N/A                                           
-+ Add                                           NewCallLookupSNSTriggerPermission               AWS::Lambda::Permission                         N/A                                           
-+ Add                                           NewCallLookupSNSTrigger                         AWS::SNS::Subscription                          N/A                                           
-+ Add                                           NewCallLookupVersion23a3112bb1                  AWS::Lambda::Version                            N/A                                           
-+ Add                                           NewCallLookup                                   AWS::Lambda::Function                           N/A                                           
-+ Add                                           NewCallTopic                                    AWS::SNS::Topic                                 N/A                                           
-+ Add                                           PromptBucket                                    AWS::S3::Bucket                                 N/A                                           
-+ Add                                           PromptCreatorRole                               AWS::IAM::Role                                  N/A                                           
-+ Add                                           PromptCreator                                   AWS::Lambda::Function                           N/A                                           
-+ Add                                           SendToSNSConnectIntegration                     AWS::Connect::IntegrationAssociation            N/A                                           
-+ Add                                           SendToSNSRole                                   AWS::IAM::Role                                  N/A                                           
-+ Add                                           SendToSNS                                       AWS::Lambda::Function                           N/A                                           
-+ Add                                           SessionTable                                    AWS::DynamoDB::Table                            N/A                                           
-+ Add                                           SpanishPrompt                                   Custom::PromptCreator                           N/A                                           
-+ Add                                           TransferPromptEnglish                           Custom::PromptCreator                           N/A                                           
-+ Add                                           TransferPromptSpanish                           Custom::PromptCreator                           N/A                                           
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------
+Operation                           LogicalResourceId                   ResourceType                        Replacement                       
+---------------------------------------------------------------------------------------------------------------------------------------------
++ Add                               BotAliasGPT                         AWS::Lex::BotAlias                  N/A                               
++ Add                               BotRuntimeRole                      AWS::IAM::Role                      N/A                               
++ Add                               BotVersionGPT                       AWS::Lex::BotVersion                N/A                               
++ Add                               ChatGPTAliasSNAPSTART               AWS::Lambda::Alias                  N/A                               
++ Add                               ChatGPTRole                         AWS::IAM::Role                      N/A                               
++ Add                               ChatGPTVersion3d508bab8c            AWS::Lambda::Version                N/A                               
++ Add                               ChatGPT                             AWS::Lambda::Function               N/A                               
++ Add                               ChimeCallLexGPT                     AWS::Lex::ResourcePolicy            N/A                               
++ Add                               ChimePolicy                         AWS::IAM::ManagedPolicy             N/A                               
++ Add                               ChimeSMAPerm                        AWS::Lambda::Permission             N/A                               
++ Add                               ChimeSMARole                        AWS::IAM::Role                      N/A                               
++ Add                               ChimeSMA                            AWS::Lambda::Function               N/A                               
++ Add                               GoodbyePromptEN                     Custom::PromptCreator               N/A                               
++ Add                               GoodbyePromptES                     Custom::PromptCreator               N/A                               
++ Add                               LexBotGPT                           AWS::Lex::Bot                       N/A                               
++ Add                               LexToChatGPTPerm                    AWS::Lambda::Permission             N/A                               
++ Add                               LexToChatGPTSnapPerm                AWS::Lambda::Permission             N/A                               
++ Add                               MainMenuEN                          Custom::PromptCreator               N/A                               
++ Add                               MainMenuES                          Custom::PromptCreator               N/A                               
++ Add                               MainPromptEast                      Custom::PromptCreator               N/A                               
++ Add                               MainPromptWest                      Custom::PromptCreator               N/A                               
++ Add                               PromptBucketPolicy                  AWS::S3::BucketPolicy               N/A                               
++ Add                               PromptBucket                        AWS::S3::Bucket                     N/A                               
++ Add                               PromptCopierRole                    AWS::IAM::Role                      N/A                               
++ Add                               PromptCopier                        AWS::Lambda::Function               N/A                               
++ Add                               PromptCreatorRole                   AWS::IAM::Role                      N/A                               
++ Add                               PromptCreator                       AWS::Lambda::Function               N/A                               
++ Add                               RecordBucketPolicy                  AWS::S3::BucketPolicy               N/A                               
++ Add                               RecordBucket                        AWS::S3::Bucket                     N/A                               
++ Add                               SessionTable                        AWS::DynamoDB::Table                N/A                               
++ Add                               StaticPrompts                       Custom::PromptCopier                N/A                               
++ Add                               TansferPromptEN                     Custom::PromptCreator               N/A                               
++ Add                               TansferPromptES                     Custom::PromptCreator               N/A                               
++ Add                               TransferCallConnectIntegration      AWS::Connect::IntegrationAssociat   N/A                               
+                                                                        ion                                                                   
++ Add                               TransferCallRole                    AWS::IAM::Role                      N/A                               
++ Add                               TransferCall                        AWS::Lambda::Function               N/A                               
++ Add                               TryAgainEN                          Custom::PromptCreator               N/A                               
++ Add                               TryAgainES                          Custom::PromptCreator               N/A                               
+---------------------------------------------------------------------------------------------------------------------------------------------
 
 
-Changeset created successfully. arn:aws:cloudformation:us-east-1::changeSet/samcli-deploy1685703701/579fda5c-92d1-4c8a-9032-547725a47612
+Changeset created successfully. arn:aws:cloudformation:us-west-2:changeSet/samcli-deploy1688419429/b28c26d0-12a8-4efc-a9af-aa49d9c404c9
 
 
-Previewing CloudFormation changeset before deployment
-======================================================
-Deploy this changeset? [y/N]: y
-
-2023-06-02 06:02:07 - Waiting for stack create/update to complete
+2023-07-03 16:24:07 - Waiting for stack create/update to complete
 
 CloudFormation events from stack operations (refresh every 5.0 seconds)
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ResourceStatus                                  ResourceType                                    LogicalResourceId                               ResourceStatusReason                          
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-CREATE_IN_PROGRESS                              AWS::IAM::ManagedPolicy                         ContactUpdatePolicy                             -                                             
-CREATE_IN_PROGRESS                              AWS::KMS::Key                                   BucketKey                                       -                                             
-CREATE_IN_PROGRESS                              AWS::DynamoDB::Table                            SessionTable                                    -                                             
-CREATE_IN_PROGRESS                              AWS::DynamoDB::Table                            CallTable                                       -                                             
-CREATE_IN_PROGRESS                              AWS::IAM::Role                                  BotRuntimeRole                                  -                                             
-CREATE_IN_PROGRESS                              AWS::SNS::Topic                                 NewCallTopic                                    -                                             
-CREATE_IN_PROGRESS                              AWS::IAM::ManagedPolicy                         ContactUpdatePolicy                             Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::IAM::Role                                  BotRuntimeRole                                  Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::DynamoDB::Table                            SessionTable                                    Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::DynamoDB::Table                            CallTable                                       Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::KMS::Key                                   BucketKey                                       Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::SNS::Topic                                 NewCallTopic                                    Resource creation Initiated                   
-CREATE_COMPLETE                                 AWS::SNS::Topic                                 NewCallTopic                                    -                                             
-CREATE_IN_PROGRESS                              AWS::IAM::Role                                  SendToSNSRole                                   -                                             
-CREATE_IN_PROGRESS                              AWS::IAM::Role                                  SendToSNSRole                                   Resource creation Initiated                   
-CREATE_COMPLETE                                 AWS::DynamoDB::Table                            SessionTable                                    -                                             
-CREATE_COMPLETE                                 AWS::DynamoDB::Table                            CallTable                                       -                                             
-CREATE_COMPLETE                                 AWS::IAM::ManagedPolicy                         ContactUpdatePolicy                             -                                             
-CREATE_IN_PROGRESS                              AWS::IAM::Role                                  ChatGPTRole                                     -                                             
-CREATE_IN_PROGRESS                              AWS::IAM::Role                                  ChatGPTRole                                     Resource creation Initiated                   
-CREATE_COMPLETE                                 AWS::IAM::Role                                  BotRuntimeRole                                  -                                             
-CREATE_IN_PROGRESS                              AWS::IAM::Role                                  NewCallLookupRole                               -                                             
-CREATE_IN_PROGRESS                              AWS::IAM::Role                                  NewCallLookupRole                               Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::Lex::Bot                                   LexBot                                          -                                             
-CREATE_COMPLETE                                 AWS::IAM::Role                                  SendToSNSRole                                   -                                             
-CREATE_IN_PROGRESS                              AWS::Lex::Bot                                   LexBot                                          Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::Lambda::Function                           SendToSNS                                       -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Function                           SendToSNS                                       Resource creation Initiated                   
-CREATE_COMPLETE                                 AWS::IAM::Role                                  ChatGPTRole                                     -                                             
-CREATE_COMPLETE                                 AWS::Lambda::Function                           SendToSNS                                       -                                             
-CREATE_COMPLETE                                 AWS::IAM::Role                                  NewCallLookupRole                               -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Function                           ChatGPT                                         -                                             
-CREATE_IN_PROGRESS                              AWS::Connect::IntegrationAssociation            SendToSNSConnectIntegration                     -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Function                           ChatGPT                                         Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::Lambda::Function                           NewCallLookup                                   -                                             
-CREATE_IN_PROGRESS                              AWS::Connect::IntegrationAssociation            SendToSNSConnectIntegration                     Resource creation Initiated                   
-CREATE_COMPLETE                                 AWS::Connect::IntegrationAssociation            SendToSNSConnectIntegration                     -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Function                           NewCallLookup                                   Resource creation Initiated                   
-CREATE_COMPLETE                                 AWS::Lambda::Function                           ChatGPT                                         -                                             
-CREATE_COMPLETE                                 AWS::Lex::Bot                                   LexBot                                          -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Permission                         LexToChatGPTPerm                                -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Version                            ChatGPTVersion5e83da0577                        -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Permission                         LexToChatGPTPerm                                Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::Lambda::Version                            ChatGPTVersion5e83da0577                        Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::Lex::BotVersion                            BotVersion                                      -                                             
-CREATE_COMPLETE                                 AWS::Lambda::Function                           NewCallLookup                                   -                                             
-CREATE_IN_PROGRESS                              AWS::Lex::BotVersion                            BotVersion                                      Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::Lambda::Version                            NewCallLookupVersion23a3112bb1                  -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Version                            NewCallLookupVersion23a3112bb1                  Resource creation Initiated                   
-CREATE_COMPLETE                                 AWS::Lambda::Permission                         LexToChatGPTPerm                                -                                             
-CREATE_COMPLETE                                 AWS::Lex::BotVersion                            BotVersion                                      -                                             
-CREATE_COMPLETE                                 AWS::KMS::Key                                   BucketKey                                       -                                             
-CREATE_IN_PROGRESS                              AWS::S3::Bucket                                 PromptBucket                                    -                                             
-CREATE_IN_PROGRESS                              AWS::S3::Bucket                                 PromptBucket                                    Resource creation Initiated                   
-CREATE_COMPLETE                                 AWS::S3::Bucket                                 PromptBucket                                    -                                             
-CREATE_IN_PROGRESS                              AWS::S3::BucketPolicy                           BucketPolicy                                    -                                             
-CREATE_IN_PROGRESS                              AWS::IAM::Role                                  PromptCreatorRole                               -                                             
-CREATE_IN_PROGRESS                              AWS::IAM::Role                                  PromptCreatorRole                               Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::S3::BucketPolicy                           BucketPolicy                                    Resource creation Initiated                   
-CREATE_COMPLETE                                 AWS::S3::BucketPolicy                           BucketPolicy                                    -                                             
-CREATE_COMPLETE                                 AWS::IAM::Role                                  PromptCreatorRole                               -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Function                           PromptCreator                                   -                                             
-CREATE_COMPLETE                                 AWS::Lambda::Version                            ChatGPTVersion5e83da0577                        -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Function                           PromptCreator                                   Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::Lambda::Alias                              ChatGPTAliasSNAPSTART                           -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Alias                              ChatGPTAliasSNAPSTART                           Resource creation Initiated                   
-CREATE_COMPLETE                                 AWS::Lambda::Alias                              ChatGPTAliasSNAPSTART                           -                                             
-CREATE_COMPLETE                                 AWS::Lambda::Version                            NewCallLookupVersion23a3112bb1                  -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Permission                         LexToChatGPTSnapPerm                            -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Permission                         LexToChatGPTSnapPerm                            Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::Lex::BotAlias                              BotAlias                                        -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Alias                              NewCallLookupAliasSNAPSTART                     -                                             
-CREATE_IN_PROGRESS                              AWS::Lex::BotAlias                              BotAlias                                        Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::Lambda::Alias                              NewCallLookupAliasSNAPSTART                     Resource creation Initiated                   
-CREATE_COMPLETE                                 AWS::Lambda::Alias                              NewCallLookupAliasSNAPSTART                     -                                             
-CREATE_COMPLETE                                 AWS::Lex::BotAlias                              BotAlias                                        -                                             
-CREATE_COMPLETE                                 AWS::Lambda::Function                           PromptCreator                                   -                                             
-CREATE_IN_PROGRESS                              AWS::SNS::Subscription                          NewCallLookupSNSTrigger                         -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Permission                         NewCallLookupSNSTriggerPermission               -                                             
-CREATE_IN_PROGRESS                              AWS::Connect::ContactFlow                       ConnectFlow                                     -                                             
-CREATE_IN_PROGRESS                              AWS::Lambda::Permission                         NewCallLookupSNSTriggerPermission               Resource creation Initiated                   
-CREATE_IN_PROGRESS                              AWS::Connect::IntegrationAssociation            LexV2ConnectIntegration                         -                                             
-CREATE_IN_PROGRESS                              AWS::SNS::Subscription                          NewCallLookupSNSTrigger                         Resource creation Initiated                   
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           LexPromptSpanish                                -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           ClosingPromptSpanish                            -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           TransferPromptEnglish                           -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           TransferPromptSpanish                           -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           ErrorPromptEnglish                              -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           ErrorPromptSpanish                              -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           ClosingPromptEnglish                            -                                             
-CREATE_COMPLETE                                 AWS::SNS::Subscription                          NewCallLookupSNSTrigger                         -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           HelpPromptEnglish                               -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           MainPrompt                                      -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           LexPromptEnglish                                -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           SpanishPrompt                                   -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           HelpPromptSpanish                               -                                             
-CREATE_IN_PROGRESS                              AWS::Connect::ContactFlow                       ConnectFlow                                     Resource creation Initiated                   
-CREATE_COMPLETE                                 AWS::Connect::ContactFlow                       ConnectFlow                                     -                                             
-CREATE_IN_PROGRESS                              AWS::Connect::IntegrationAssociation            LexV2ConnectIntegration                         Resource creation Initiated                   
-CREATE_COMPLETE                                 AWS::Connect::IntegrationAssociation            LexV2ConnectIntegration                         -                                             
-CREATE_COMPLETE                                 AWS::Lambda::Permission                         LexToChatGPTSnapPerm                            -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           ClosingPromptSpanish                            Resource creation Initiated                   
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           ClosingPromptEnglish                            Resource creation Initiated                   
-CREATE_COMPLETE                                 Custom::PromptCreator                           ClosingPromptSpanish                            -                                             
-CREATE_COMPLETE                                 Custom::PromptCreator                           ClosingPromptEnglish                            -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           SpanishPrompt                                   Resource creation Initiated                   
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           LexPromptSpanish                                Resource creation Initiated                   
-CREATE_COMPLETE                                 Custom::PromptCreator                           SpanishPrompt                                   -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           TransferPromptSpanish                           Resource creation Initiated                   
-CREATE_COMPLETE                                 Custom::PromptCreator                           LexPromptSpanish                                -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           ErrorPromptEnglish                              Resource creation Initiated                   
-CREATE_COMPLETE                                 Custom::PromptCreator                           TransferPromptSpanish                           -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           ErrorPromptSpanish                              Resource creation Initiated                   
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           HelpPromptEnglish                               Resource creation Initiated                   
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           TransferPromptEnglish                           Resource creation Initiated                   
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           MainPrompt                                      Resource creation Initiated                   
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           LexPromptEnglish                                Resource creation Initiated                   
-CREATE_COMPLETE                                 Custom::PromptCreator                           ErrorPromptEnglish                              -                                             
-CREATE_COMPLETE                                 Custom::PromptCreator                           ErrorPromptSpanish                              -                                             
-CREATE_IN_PROGRESS                              Custom::PromptCreator                           HelpPromptSpanish                               Resource creation Initiated                   
-CREATE_COMPLETE                                 Custom::PromptCreator                           HelpPromptEnglish                               -                                             
-CREATE_COMPLETE                                 Custom::PromptCreator                           TransferPromptEnglish                           -                                             
-CREATE_COMPLETE                                 Custom::PromptCreator                           MainPrompt                                      -                                             
-CREATE_COMPLETE                                 Custom::PromptCreator                           LexPromptEnglish                                -                                             
-CREATE_COMPLETE                                 Custom::PromptCreator                           HelpPromptSpanish                               -                                             
-CREATE_COMPLETE                                 AWS::Lambda::Permission                         NewCallLookupSNSTriggerPermission               -                                             
-CREATE_COMPLETE                                 AWS::CloudFormation::Stack                      connect-chatgpt                                 -                                             
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------
+ResourceStatus                      ResourceType                        LogicalResourceId                   ResourceStatusReason              
+---------------------------------------------------------------------------------------------------------------------------------------------
+CREATE_IN_PROGRESS                  AWS::IAM::Role                      BotRuntimeRole                      -                                 
+CREATE_IN_PROGRESS                  AWS::DynamoDB::Table                SessionTable                        -                                 
+CREATE_IN_PROGRESS                  AWS::S3::Bucket                     RecordBucket                        -                                 
+CREATE_IN_PROGRESS                  AWS::IAM::ManagedPolicy             ChimePolicy                         -                                 
+CREATE_IN_PROGRESS                  AWS::IAM::Role                      ChimeSMARole                        -                                 
+CREATE_IN_PROGRESS                  AWS::S3::Bucket                     PromptBucket                        -                                 
+CREATE_IN_PROGRESS                  AWS::IAM::Role                      BotRuntimeRole                      Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::IAM::ManagedPolicy             ChimePolicy                         Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::IAM::Role                      ChimeSMARole                        Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::S3::Bucket                     RecordBucket                        Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::S3::Bucket                     PromptBucket                        Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::DynamoDB::Table                SessionTable                        Resource creation Initiated       
+CREATE_COMPLETE                     AWS::DynamoDB::Table                SessionTable                        -                                 
+CREATE_IN_PROGRESS                  AWS::IAM::Role                      ChatGPTRole                         -                                 
+CREATE_IN_PROGRESS                  AWS::IAM::Role                      ChatGPTRole                         Resource creation Initiated       
+CREATE_COMPLETE                     AWS::IAM::ManagedPolicy             ChimePolicy                         -                                 
+CREATE_COMPLETE                     AWS::IAM::Role                      BotRuntimeRole                      -                                 
+CREATE_COMPLETE                     AWS::IAM::Role                      ChimeSMARole                        -                                 
+CREATE_IN_PROGRESS                  AWS::IAM::Role                      TransferCallRole                    -                                 
+CREATE_IN_PROGRESS                  AWS::IAM::Role                      TransferCallRole                    Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::Lex::Bot                       LexBotGPT                           -                                 
+CREATE_IN_PROGRESS                  AWS::Lex::Bot                       LexBotGPT                           Resource creation Initiated       
+CREATE_COMPLETE                     AWS::S3::Bucket                     RecordBucket                        -                                 
+CREATE_COMPLETE                     AWS::S3::Bucket                     PromptBucket                        -                                 
+CREATE_IN_PROGRESS                  AWS::S3::BucketPolicy               RecordBucketPolicy                  -                                 
+CREATE_IN_PROGRESS                  AWS::IAM::Role                      PromptCreatorRole                   -                                 
+CREATE_IN_PROGRESS                  AWS::IAM::Role                      PromptCopierRole                    -                                 
+CREATE_IN_PROGRESS                  AWS::IAM::Role                      PromptCreatorRole                   Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::S3::BucketPolicy               PromptBucketPolicy                  -                                 
+CREATE_IN_PROGRESS                  AWS::IAM::Role                      PromptCopierRole                    Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::S3::BucketPolicy               RecordBucketPolicy                  Resource creation Initiated       
+CREATE_COMPLETE                     AWS::S3::BucketPolicy               RecordBucketPolicy                  -                                 
+CREATE_IN_PROGRESS                  AWS::S3::BucketPolicy               PromptBucketPolicy                  Resource creation Initiated       
+CREATE_COMPLETE                     AWS::S3::BucketPolicy               PromptBucketPolicy                  -                                 
+CREATE_COMPLETE                     AWS::IAM::Role                      ChatGPTRole                         -                                 
+CREATE_COMPLETE                     AWS::IAM::Role                      TransferCallRole                    -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Function               ChatGPT                             -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Function               ChatGPT                             Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::Lambda::Function               TransferCall                        -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Function               TransferCall                        Resource creation Initiated       
+CREATE_COMPLETE                     AWS::IAM::Role                      PromptCreatorRole                   -                                 
+CREATE_COMPLETE                     AWS::IAM::Role                      PromptCopierRole                    -                                 
+CREATE_COMPLETE                     AWS::Lambda::Function               ChatGPT                             -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Function               PromptCopier                        -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Function               PromptCreator                       -                                 
+CREATE_COMPLETE                     AWS::Lambda::Function               TransferCall                        -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Version                ChatGPTVersion3d508bab8c            -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Permission             LexToChatGPTPerm                    -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Function               PromptCopier                        Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::Lambda::Permission             LexToChatGPTPerm                    Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::Lambda::Function               PromptCreator                       Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::Lambda::Version                ChatGPTVersion3d508bab8c            Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::Connect::IntegrationAssociat   TransferCallConnectIntegration      -                                 
+                                    ion                                                                                                       
+CREATE_IN_PROGRESS                  AWS::Connect::IntegrationAssociat   TransferCallConnectIntegration      Resource creation Initiated       
+                                    ion                                                                                                       
+CREATE_COMPLETE                     AWS::Connect::IntegrationAssociat   TransferCallConnectIntegration      -                                 
+                                    ion                                                                                                       
+CREATE_COMPLETE                     AWS::Lex::Bot                       LexBotGPT                           -                                 
+CREATE_COMPLETE                     AWS::Lambda::Function               PromptCopier                        -                                 
+CREATE_COMPLETE                     AWS::Lambda::Function               PromptCreator                       -                                 
+CREATE_IN_PROGRESS                  AWS::Lex::BotVersion                BotVersionGPT                       -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCopier                StaticPrompts                       -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCreator               TansferPromptEN                     -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCreator               TryAgainEN                          -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCreator               MainMenuEN                          -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCreator               TansferPromptES                     -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCreator               MainPromptWest                      -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCreator               TryAgainES                          -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCreator               MainMenuES                          -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCreator               GoodbyePromptEN                     -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCreator               MainPromptEast                      -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCreator               GoodbyePromptES                     -                                 
+CREATE_IN_PROGRESS                  AWS::Lex::BotVersion                BotVersionGPT                       Resource creation Initiated       
+CREATE_COMPLETE                     AWS::Lambda::Permission             LexToChatGPTPerm                    -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCreator               TryAgainEN                          Resource creation Initiated       
+CREATE_IN_PROGRESS                  Custom::PromptCreator               GoodbyePromptEN                     Resource creation Initiated       
+CREATE_COMPLETE                     Custom::PromptCreator               TryAgainEN                          -                                 
+CREATE_COMPLETE                     Custom::PromptCreator               GoodbyePromptEN                     -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCreator               TansferPromptEN                     Resource creation Initiated       
+CREATE_IN_PROGRESS                  Custom::PromptCreator               TansferPromptES                     Resource creation Initiated       
+CREATE_IN_PROGRESS                  Custom::PromptCreator               MainPromptWest                      Resource creation Initiated       
+CREATE_IN_PROGRESS                  Custom::PromptCreator               MainMenuEN                          Resource creation Initiated       
+CREATE_COMPLETE                     Custom::PromptCreator               TansferPromptEN                     -                                 
+CREATE_COMPLETE                     Custom::PromptCreator               TansferPromptES                     -                                 
+CREATE_COMPLETE                     Custom::PromptCreator               MainPromptWest                      -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCreator               MainMenuES                          Resource creation Initiated       
+CREATE_IN_PROGRESS                  Custom::PromptCreator               TryAgainES                          Resource creation Initiated       
+CREATE_COMPLETE                     Custom::PromptCreator               MainMenuEN                          -                                 
+CREATE_IN_PROGRESS                  Custom::PromptCreator               MainPromptEast                      Resource creation Initiated       
+CREATE_IN_PROGRESS                  Custom::PromptCopier                StaticPrompts                       Resource creation Initiated       
+CREATE_IN_PROGRESS                  Custom::PromptCreator               GoodbyePromptES                     Resource creation Initiated       
+CREATE_COMPLETE                     Custom::PromptCreator               MainMenuES                          -                                 
+CREATE_COMPLETE                     Custom::PromptCreator               TryAgainES                          -                                 
+CREATE_COMPLETE                     Custom::PromptCreator               MainPromptEast                      -                                 
+CREATE_COMPLETE                     Custom::PromptCopier                StaticPrompts                       -                                 
+CREATE_COMPLETE                     Custom::PromptCreator               GoodbyePromptES                     -                                 
+CREATE_COMPLETE                     AWS::Lex::BotVersion                BotVersionGPT                       -                                 
+CREATE_COMPLETE                     AWS::Lambda::Version                ChatGPTVersion3d508bab8c            -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Alias                  ChatGPTAliasSNAPSTART               -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Alias                  ChatGPTAliasSNAPSTART               Resource creation Initiated       
+CREATE_COMPLETE                     AWS::Lambda::Alias                  ChatGPTAliasSNAPSTART               -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Permission             LexToChatGPTSnapPerm                -                                 
+CREATE_IN_PROGRESS                  AWS::Lex::BotAlias                  BotAliasGPT                         -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Permission             LexToChatGPTSnapPerm                Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::Lex::BotAlias                  BotAliasGPT                         Resource creation Initiated       
+CREATE_COMPLETE                     AWS::Lex::BotAlias                  BotAliasGPT                         -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Function               ChimeSMA                            -                                 
+CREATE_IN_PROGRESS                  AWS::Lex::ResourcePolicy            ChimeCallLexGPT                     -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Function               ChimeSMA                            Resource creation Initiated       
+CREATE_IN_PROGRESS                  AWS::Lex::ResourcePolicy            ChimeCallLexGPT                     Resource creation Initiated       
+CREATE_COMPLETE                     AWS::Lex::ResourcePolicy            ChimeCallLexGPT                     -                                 
+CREATE_COMPLETE                     AWS::Lambda::Permission             LexToChatGPTSnapPerm                -                                 
+CREATE_COMPLETE                     AWS::Lambda::Function               ChimeSMA                            -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Permission             ChimeSMAPerm                        -                                 
+CREATE_IN_PROGRESS                  AWS::Lambda::Permission             ChimeSMAPerm                        Resource creation Initiated       
+CREATE_COMPLETE                     AWS::Lambda::Permission             ChimeSMAPerm                        -                                 
+CREATE_COMPLETE                     AWS::CloudFormation::Stack          chime-voicesdk-sma                  -                                 
+---------------------------------------------------------------------------------------------------------------------------------------------
 
 
-Successfully created/updated stack - connect-chatgpt in us-east-1
+Successfully created/updated stack - chime-voicesdk-sma in us-west-2
+
 
 ```
-## Testing Number
-
-If you have read down this far and you don't want to deploy this on your own, but would like to see it in action:
-  - Call the [CLEO Test Number +1 (505) 216-2949](tel:+15052162949).
-  - If it detects you want to talk to person, it will transfer to a MCI test number, you can then just hang up.
-  - Please be kind as each call does cost money.
-    - Amazon Connect per minute charges.
-    - AWS Lex per minute charges.
-    - ChatGPT API calls.
-  - If the number doesn't work then I may have been overrun with charges and needed to shut it down :(

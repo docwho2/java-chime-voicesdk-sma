@@ -41,6 +41,18 @@ warm_containers = "EAGER"
 [default.local_start_lambda.parameters]
 warm_containers = "EAGER"
 
+[east.deploy]
+[east.deploy.parameters]
+region = "us-east-1"
+parameter_overrides = "SMAID=\"cf3e17cd-f4e5-44c3-ab04-325e6b3a6709\" CONNECTID=\"f837ec93-b6e5-4429-acb7-f698fff0148c\""
+stack_name = "chime-voicesdk-sma"
+resolve_s3 = true
+s3_prefix = "chime-voicesdk-sma"
+profile = "CLEO"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
+
 
 [west.deploy]
 [west.deploy.parameters]
