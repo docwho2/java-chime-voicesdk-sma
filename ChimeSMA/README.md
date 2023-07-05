@@ -89,7 +89,7 @@ After running the above you should see:
 ## Using the Library
 
 See [examples](/Examples/src/main/java/cloud/cleo/chimesma/examples/actions/ExampleActions.java) of creating Actions (Note: for brevity, the actions 
-don't end with ".build()).
+don't end with ".build()").
 
 For a full example refer to the [Demo Application](/Examples/src/main/java/cloud/cleo/chimesma/examples/actions/ExampleFlow.java).
 
@@ -99,7 +99,7 @@ TODO: document the ENV vars used in the Library
 
 ## Building the Hello World App
 
-A simple SAM [template](template.yaml) is provided to get started which deploys the Hello World Lambda.
+A simple SAM [template](/Examples/template.yaml) is provided to get started which deploys the Hello World Lambda.
 
 ```bash
 echo "Chage directory into the Examples"
