@@ -2,79 +2,71 @@
 
 ## Background
 
-This project provides a library to accelerate the development of [SIP Media Applications](https://docs.aws.amazon.com/chime-sdk/latest/ag/use-sip-apps.html) (SMA) in Java.
-These apps allow for the deployment of multi-region and fault-tolerant self-service applications.  Some benefits of using Chime SDK versus 
-[Amazon Connect](https://aws.amazon.com/pm/connect/) for self-service applications are:
+This project provides a library to accelerate the development of [SIP Media Applications](https://docs.aws.amazon.com/chime-sdk/latest/ag/use-sip-apps.html) (SMA) in Java. These apps allow for the deployment of multi-region and fault-tolerant self-service applications. Some benefits of using Chime SDK versus [Amazon Connect](https://aws.amazon.com/pm/connect/) for self-service applications are:
+
 - SIP Ingress
-    - Bring your own carrier.
-    - Load balance accross regions if desired.
+  - Bring your own carrier.
+  - Load balance across regions if desired.
 - SIP Egress
-    - Transfer calls to PBX's or other destinations via SIP for handling (PSTN bypass).
-    - Use your preferred carrier to route calls or Amazon.
-- Built from the ground up to be carrier class and multi-region.
+  - Transfer calls to PBXs or other destinations via SIP for handling (PSTN bypass).
+  - Use your preferred carrier to route calls or Amazon.
+- Built from the ground up to be carrier-class and multi-region.
 - Amazon Chime PSTN numbers can span regions in the US (us-east-1 and us-west-2).
 - Deployed as code versus Connect Flows.
-    - Source control to manage and track changes.
-    - Integrates into DevOps processes already in place.
+  - Source control to manage and track changes.
+  - Integrates into DevOps processes already in place.
 - Central call control
-    - Route calls to multiple Connect instances (many organizations have several instances and other groups on legacy systems).
-    - Don't wrap/trombone calls through Connect instances when calls need to be transferred.
+  - Route calls to multiple Connect instances (many organizations have several instances and other groups on legacy systems).
+  - Don't wrap/trombone calls through Connect instances when calls need to be transferred.
 - Servicing calls in Chime SDK can potentially reduce costs.
-    - SMA calls incur .002/min vs Connect .018/min for self-service.
-    - PSTN Ingres and Egress charges are the same between Chime and Connect.
+  - SMA calls incur $0.002/min vs Connect's $0.018/min for self-service.
+  - PSTN Ingress and Egress charges are the same between Chime and Connect.
 
 ## Library Overview
 
-The library provides two approaches, a JSON event mapping model, and on top of that a flow based library that lets programmers develop call flows 
-without having to deal with event handling and flow optimization.  The latter allows developers to quickly build applications with minimal coding. 
-See the Library [README](ChimeSMA/README.md) for more indepth information about using the library and writing applications.
+The library provides two approaches: a JSON event mapping model and, on top of that, a flow-based library that allows programmers to develop call flows without having to deal with event handling and flow optimization. The latter enables developers to quickly build applications with minimal coding. For more in-depth information about using the library and writing applications, please refer to the Library [README](ChimeSMA/README.md).
 
 ### JSON Java Events
 
-AWS Lambda is great at handling events in JSON.  AWS provides the [Lambda Java Events](https://github.com/aws/aws-lambda-java-libs/tree/main/aws-lambda-java-events) 
-library to handle most of the services that directly integrate with Lambda and provides a full Java Object model for the requests and responses.  However the Chime SMA events are not included in this package.  This library is modeled after this approach and is used as follows:
+AWS Lambda is excellent at handling events in JSON. AWS provides the [Lambda Java Events](https://github.com/aws/aws-lambda-java-libs/tree/main/aws-lambda-java-events) library, which handles most of the services that directly integrate with Lambda and provides a full Java Object model for the requests and responses. However, the Chime SMA events are not included in this package. This library follows a similar approach and is used as follows:
 
-- You define your Lambda to implement [RequestHandler](https://github.com/aws/aws-lambda-java-libs/blob/main/aws-lambda-java-core/src/main/java/com/amazonaws/services/lambda/runtime/RequestHandler.java)<[SMARequest](ChimeSMA/src/main/java/cloud/cleo/chimesma/model/SMARequest.java), [SMAResponse](ChimeSMA/src/main/java/cloud/cleo/chimesma/model/SMAResponse.java)> .
-- Process the incoming request and repond as necessary, see [HellowWorld.java](Examples/src/main/java/cloud/cleo/chimesma/examples/response/HelloWorld.java) for an example.
-- Note, you are responsible for handling the SMA state machine and this quickly becomes unamangeable as the complexity of what you are doing increases.
+- You define your Lambda to implement [RequestHandler](https://github.com/aws/aws-lambda-java-libs/blob/main/aws-lambda-java-core/src/main/java/com/amazonaws/services/lambda/runtime/RequestHandler.java)<[SMARequest](ChimeSMA/src/main/java/cloud/cleo/chimesma/model/SMARequest.java), [SMAResponse](ChimeSMA/src/main/java/cloud/cleo/chimesma/model/SMAResponse.java)>.
+- Process the incoming request and respond as necessary. Refer to [Helloworld.java](Examples/src/main/java/cloud/cleo/chimesma/examples/response/HelloWorld.java) for an example.
+- Note that you are responsible for handling the SMA state machine, and this quickly becomes unmanageable as the complexity of your application increases.
 - Use this low-level approach when you need to control every aspect of the state machine.
 
 ### Java Action Flow Model
 
-Building upon the above, the "Action Flow Model" maps each of the [supported actions for the PSTN Audio service](https://docs.aws.amazon.com/chime-sdk/latest/dg/specify-actions.html) 
-to Java Objects that you dynamically connect to each other to create flows.  The Objects are easily extensible to allow the creation of complex interactions and routing. 
-This part of the library provides:
+Building upon the above, the "Action Flow Model" maps each of the [supported actions for the PSTN Audio service](https://docs.aws.amazon.com/chime-sdk/latest/dg/specify-actions.html) to Java Objects that you can dynamically connect to each other to create flows. These objects are easily extensible, allowing for the creation of complex interactions and routing. This part of the library provides:
 
-- Flow based approach that makes developing applications easier to understand versus an event driven model.
-    - The flow is built statically in memory at initializtion (SNAP Start Init) allowing for very low latency responses.
-- Strong Java typing and builder approach for creating action objects.
-- Sensible defaults are provided for most of the action parameters and can be set or passed into the Lambda (like BOT_ALIAS_ARN for example to start bot conversations) 
-- Derived values whenever possible to reduce lines of code
-    - Speak actions require you set SSML or Text for operations, the flow action takes just a text param and determines and sets the correct value when sending back the JSON.
-- Response optimization sending multiple actions at once (SMA supports up to 10)
-    - Each action is evaluated whether it can be chained with another before sending the action list.
-    - Example: Pause -> Speak -> Pause -> StartRecording -> SpeakAndGetDigits sent one by one would require 4 Lambda calls without optimization.
-    - Actions like SpeakAndGetDigits require a result before proceeding and cannot be chained with another action.
-- Java Locale support across all relevant actions to easily build multi-lingual interactions (Prompts, Speak, and Bots)
-- Extending existing actions is easy, see [CallAndBridgeActionTBTDiversion.java](Examples/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeActionTBTDiversion.java) which 
-extends the standard [CallAndBridge](ChimeSMA/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeAction.java) action to write call info to a DyanmoDB table that can be used in a Connect flow to implement take back and transfer.  See use case later in this document.
+- A flow-based approach that makes developing applications easier to understand compared to an event-driven model.
+  - The flow is built statically in memory during initialization (SNAP Start Init), enabling very low latency responses.
+- Strong Java typing and a builder approach for creating action objects.
+- Sensible defaults for most of the action parameters, which can be set or passed into the Lambda (e.g., BOT_ALIAS_ARN to start bot conversations).
+- Derived values whenever possible to reduce lines of code.
+  - Speak actions require you to set SSML or Text for operations. The flow action takes only a text parameter and determines and sets the correct value when sending back the JSON.
+- Response optimization by sending multiple actions at once (SMA supports up to 10).
+  - Each action is evaluated to determine whether it can be chained with another before sending the action list.
+  - Example: Pause -> Speak -> Pause -> StartRecording -> SpeakAndGetDigits, when sent one by one, would require 4 Lambda calls without optimization.
+  - Actions like SpeakAndGetDigits require a result before proceeding and cannot be chained with another action.
+- Java Locale support across all relevant actions to easily build multilingual interactions (Prompts, Speak, and Bots).
+- Easy extension of existing actions. See [CallAndBridgeActionTBTDiversion.java](Examples/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeActionTBTDiversion.java), which extends the standard [CallAndBridge](ChimeSMA/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeAction.java) action to write call information to a DynamoDB table that can be used in a Connect flow to implement take-back and transfer. See the use case later in this document.
 
 To use the Flow Model:
 
-- Simply create a Java Object that inherits from [AbstractFlow](ChimeSMA/src/main/java/cloud/cleo/chimesma/actions/AbstractFlow.java)
-- Implement the getInitialAction() method that returns the start of the flow.
-- See the flow based [HelloWorld.java](Examples/src/main/java/cloud/cleo/chimesma/examples/actions/HelloWorld.java) example.
+- Simply create a Java Object that inherits from [AbstractFlow](ChimeSMA/src/main/java/cloud/cleo/chimesma/actions/AbstractFlow.java).
+- Implement the `getInitialAction()` method, which returns the start of the flow.
+- Refer to the flow-based [HelloWorld.java](Examples/src/main/java/cloud/cleo/chimesma/examples/actions/HelloWorld.java) example.
 
 
 ## Amazon Connect Take Back and Transfer Use Case
 
-This use case demonstrates sending calls to [Amazon Connect](https://aws.amazon.com/pm/connect/) and then later moving the call to some other destination 
-like a PSTN number (which could be another Connect instance), SIP destination, or to continue a flow at the SMA Application.  Calls are released from
-the Connect instance (call leg disconnected by the SMA Application) and moved to another destination.
+This use case demonstrates sending calls to [Amazon Connect](https://aws.amazon.com/pm/connect/) and then later moving the call to another destination, such as a PSTN number (which could be another Connect instance), SIP destination, or continuing a flow at the SMA Application. Calls are released from the Connect instance (call leg disconnected by the SMA Application) and moved to another destination.
 
-The general steps are:
-- [CallAndBridgeActionTBTDiversion](Examples/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeActionTBTDiversion.java) action writes call data to Dynamo DB table prior to actually moving the call.
-- Connect Script executes a Lambda function to transfer calls
+The general steps are as follows:
+
+1. The [CallAndBridgeActionTBTDiversion](Examples/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeActionTBTDiversion.java) action writes call data to a DynamoDB table prior to actually moving the call.
+2. The Connect Script executes a Lambda function to transfer calls.
 
 
 
@@ -84,29 +76,30 @@ The general steps are:
 
 ### Connect Call Flow
 
-In your connect flow, let's assume you have the destination number set on the contact attribute "TransferNumber".  Normally you would pass that
-directly to "Transfer to phone number" step to place the outbound call.  For this use case, we simply insert a "Invoke AWS Lambda function" and "Wait"
-step into the flow.  The orginal transfer step can be left in place as a failsafe. The wait condition gives the Lambda time to contact the Chime SDK API 
-to signal the SMA app to disconnect the call.  Typically this all executes sub-second.
+In your Connect flow, let's assume you have the destination number set on the contact attribute "TransferNumber". Normally, you would pass that directly to the "Transfer to phone number" step to place the outbound call. For this use case, we simply insert an "Invoke AWS Lambda function" and "Wait" step into the flow. The original transfer step can be left in place as a failsafe. The wait condition gives the Lambda function time to contact the Chime SDK API to signal the SMA app to disconnect the call. Typically, this entire process executes within a sub-second timeframe.
 
 ![Call Flow](assets/connectscript.png)
 
 ### Transfer Lambda
 
-When invoking the Lambda from Connect, we pass both the Diversion header (Connect calls this "Call-Forwarding-Indicator") and the TransferNumber.
+When invoking the Lambda from Connect, we pass both the Diversion header (referred to as "Call-Forwarding-Indicator" in Connect) and the TransferNumber.
 
+```plaintext
+Diversion: <key>, TransferNumber: <destination>
+```
 
 <img src="assets/lambdastep.png" width="30%" height="30%">
 
-The lambda function then:
-- Extracts the key from the SIP header (a random E164 number).
-- Executes a Dynamo DB call to retrieve the call information which consists of: 
-    - AWS Region
-    - sipMediaApplicationId
-    - transactionId
-- Finally, executes a Chime SDK API call to UpdateSipMediaApplicationCall:
-    - The region is used to initialize the client SDK properly to support calls ingressing from either region.
-    - The TransferNumber is passed as a parameter so the SMA Handler knows where to transfer the call to.
+The Lambda function then performs the following steps:
+
+1. Extracts the key from the Diversion header (which is a random E164 number).
+2. Executes a DynamoDB call to retrieve the call information, which consists of:
+   - AWS Region
+   - sipMediaApplicationId
+   - transactionId
+3. Finally, the Lambda function executes a Chime SDK API call to UpdateSipMediaApplicationCall:
+   - The AWS Region is used to initialize the Chime SDK client properly to support calls ingressing from either region.
+   - The TransferNumber is passed as a parameter to inform the SMA Handler where to transfer the call.
 
 Sample Lambda code in NodeJS.
   ```javascript
@@ -149,8 +142,7 @@ Sample Lambda code in NodeJS.
 
 ## Example Flow Application
 
-The [Example Flow](Examples/src/main/java/cloud/cleo/chimesma/examples/actions/ExampleFlow.java) excercises a number of the 
-Actions provided by the Chime SDK.  The Connect use case above is also incoporated into the Demo app.
+The [Example Flow](Examples/src/main/java/cloud/cleo/chimesma/examples/actions/ExampleFlow.java) exercises several Actions provided by the Chime SDK. The Connect use case mentioned above is also incorporated into the Demo app.
 
 ### High Level Components
 
@@ -160,27 +152,17 @@ Actions provided by the Chime SDK.  The Connect use case above is also incoporat
 
 #### Twilio
 
-[Twilio SIP Trunking](https://www.twilio.com/docs/sip-trunking) can be used to send calls into your SMA's or the SIP carrier of your choice.  
-For this demo, the Twilio number of +1-320-495-2425 will be load balanced across regions.  The first prompt in the demo announces the region
-so you can observe that calling the above number will land you in either us-east-1 or us-west-2.  When configuring the Twilio 
-[Origination Settings](https://www.twilio.com/docs/sip-trunking#origination) you can make use of the "edge" setting to optimize the SIP traffic.  
+[Twilio SIP Trunking](https://www.twilio.com/docs/sip-trunking) can be used to send calls into your SMA or the SIP carrier of your choice. For this demo, the Twilio number +1-320-495-2425 will be load balanced across regions. The first prompt in the demo announces the region, so you can observe that calling the above number will land you in either us-east-1 or us-west-2. When configuring the Twilio [Origination Settings](https://www.twilio.com/docs/sip-trunking#origination), you can make use of the "edge" setting to optimize the SIP traffic.
 
-In this case, the first SIP URI references a [Voice Connector](https://docs.aws.amazon.com/chime-sdk/latest/ag/voice-connectors.html) in the us-east-1 
-region, so by adding the "edge=asburn" twilio will egress that call into AWS all within us-east-1.  The same applies for the "edge=umatilla" which is 
-Twilio's edge in Oregon (us-west-2).  You don't want your traffic traversing all over the internet if that can be avoided.
+In this case, the first SIP URI references a [Voice Connector](https://docs.aws.amazon.com/chime-sdk/latest/ag/voice-connectors.html) in the us-east-1 region. By adding the "edge=ashburn" parameter in Twilio's configuration, the call will be egressed into AWS within us-east-1. The same applies for the "edge=umatilla" parameter, which is Twilio's edge in Oregon (us-west-2). It's recommended to minimize the traversal of traffic over the internet if possible.
 
 ![Twilio Origination Settings](assets/twilio.png)
 
 #### Chime SDK Phone Number
 
-After provisiong a [phone number in Chime](https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html) ,
-you create a [SIP Rule](https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html) for the phone number.  Chime does not allow 
-load balancing, so you must setup an ordered priority.  When you call +1-320-200-2007 you will always be routed the SMA in us-east-1, and only if 
-that region or the Lambda associated with the SMA goes down, then you will fail over to us-west-2.
+After provisioning a [phone number in Chime](https://docs.aws.amazon.com/chime-sdk/latest/ag/provision-phone.html), you need to create a [SIP Rule](https://docs.aws.amazon.com/chime-sdk/latest/ag/understand-sip-data-models.html) for the phone number. Chime does not support load balancing, so you must set up an ordered priority. When you call +1-320-200-2007, you will always be routed to the SMA in the us-east-1 region. Only if that region or the Lambda associated with the SMA goes down will you fail over to the us-west-2 region.
 
-Chime does not provide PTSN numbers in all countries, only the US at present.  So if you are deploying in Europe, you will need to use a SIP carrier 
-like Twilio above.  I have tested all this in Franfurt and London regions without issue.  See the PSTN section of the [Available Regions](https://docs.aws.amazon.com/chime-sdk/latest/dg/sdk-available-regions.html) 
-documentation for Chime SDK. 
+Please note that Chime currently provides PSTN numbers only in the United States and not in all countries. If you are deploying in Europe or other regions, you will need to use a SIP carrier like Twilio, as mentioned above. I have tested these configurations in the Frankfurt and London regions without any issues. For a complete list of available regions for Chime SDK PSTN numbers, refer to the PSTN section in the [Available Regions](https://docs.aws.amazon.com/chime-sdk/latest/dg/sdk-available-regions.html) documentation.
 
 ![Chime Phone Targets](assets/chimephonenumber.png)
 
@@ -260,11 +242,12 @@ exten => 292,1,NoOP(Call to AWS Chime Oregon)
 
 ### Starting the Flow
 
-The demo flow is broken into 2 main parts to demonstate moving up and down menu levels
-- The main menu to handle top level functions
-- Recording sub-menu to handle recording and playback of audio
+The demo flow is divided into two main parts to demonstrate moving up and down menu levels:
 
-The initial Action is to play a static prompt and proceed to the main menu
+1. The main menu to handle top-level functions.
+2. The recording sub-menu to handle recording and playback of audio.
+
+The initial action is to play a static prompt and proceed to the main menu.
 
 ```java
 public class ExampleFlow extends AbstractFlow {
@@ -312,10 +295,7 @@ public class ExampleFlow extends AbstractFlow {
 ...
 ```
 
-The initial response will make use of the [PlayAudio](https://docs.aws.amazon.com/chime-sdk/latest/dg/play-audio.html) and 
-[PlayAudioAndGetDigits](https://docs.aws.amazon.com/chime-sdk/latest/dg/play-audio-get-digits.html) Actions.  These both make use
-of static prompts stored in S3.  The main menu prompt is locale specific and can play in both English and Spanish as we will see later.  
-These two actions are chainable so the library will send them both in the initial response:
+The initial response will make use of the [PlayAudio](https://docs.aws.amazon.com/chime-sdk/latest/dg/play-audio.html) and [PlayAudioAndGetDigits](https://docs.aws.amazon.com/chime-sdk/latest/dg/play-audio-get-digits.html) actions. Both actions utilize static prompts stored in S3. The main menu prompt is locale-specific and can be played in both English and Spanish, as we will see later. These two actions are chainable, so the library will send them both in the initial response.
 
 ```json
 {
@@ -366,15 +346,15 @@ These two actions are chainable so the library will send them both in the initia
 
 ### Main Menu
 
-The main menu has 4 choices
-- Press 1 for Chat GPT Bot in English
-- Press 2 for Chat GPT Bot in Spanish
-- Press 3 for Connect Take Back and Transfer
-- Press 4 for Audio Reocding Menu
-- Another other key ends the call
+The main menu presents the caller with 4 choices:
 
-After the caller enters a digit (or enters nothing and the timeout occurs) the below
-code is executed to move the call to the next action.
+- Press 1 for Chat GPT Bot in English.
+- Press 2 for Chat GPT Bot in Spanish.
+- Press 3 for Connect Take Back and Transfer.
+- Press 4 for Audio Recording Menu.
+- Any other key ends the call.
+
+After the caller enters a digit (or no input and the timeout occurs), the following code is executed to move the call to the next action.
 
 ```java
 .withNextActionF(a -> {
@@ -395,36 +375,33 @@ code is executed to move the call to the next action.
 
 ### Lex Bots
 
-Handing control over to a Lex Bot is pretty easy in Chime just like in Amazon Connect.  We could have used a Bot to handle the main menu function 
-rather than collecting digits and then further delegate intents to other bots or flows. In this example our Bot defined in the CloudFormation 
-[template](template.yaml) has 3 intents:
-- "Quit" - the caller is done talking to ChatGPT and wants to move on.
-- "Transfer" - the caller wants to speak with a real person.
-- "FallbackIntent" - anything else the caller asks is passed to ChatGPT for a response with context maintained in a DynamoDB table.
+Handing control over to a Lex Bot in Chime is similar to how it's done in Amazon Connect. We could have used a Bot to handle the main menu function instead of collecting digits and further delegating intents to other bots or flows. In this example, our Bot defined in the CloudFormation [template](template.yaml) has 3 intents:
+
+- "Quit": The caller is done talking to ChatGPT and wants to move on.
+- "Transfer": The caller wants to speak with a real person.
+- "FallbackIntent": Anything else the caller asks is passed to ChatGPT for a response, with context maintained in a DynamoDB table.
 
 When the user presses:
-- One, control is passed to our Bot with a locale set to English (en-US) and welcome prompt in English
-- Two, control is passed to our Bot with a locale set to Spanish (es-US) and welcome prompt in Spanish
+- One: Control is passed to our Bot with the locale set to English (en-US), and the welcome prompt is played in English.
+- Two: Control is passed to our Bot with the locale set to Spanish (es-US), and the welcome prompt is played in Spanish.
 
-Anytime ".withLocale()" is used on an action, that state is maintained by the library.  You can observe this by:
-- Pressing Two to go to the Spanish Bot
-- Say "adiós" to tell the bot your done
-- The next action will then be to go to the main menu, however you will now hear the main menu in Spanish because the locale was set on a prior action
-- If you then pressed One it would set the locale back to English and when you return to the main menu it would be in English once again
+Anytime ".withLocale()" is used on an action, that state is maintained by the library. You can observe this by:
+- Pressing Two to go to the Spanish Bot.
+- Saying "adiós" to indicate that you're done.
+- The next action will then be to go to the main menu, but you will hear the main menu in Spanish because the locale was set in a prior action.
+- If you then pressed One, it would set the locale back to English, and when you return to the main menu, it would be in English once again.
 
-Your Lex session is tied to the call ID so you can do the following:
-- Press One for ChatGPT
-- Say "What is the biggest lake in Minnesota?"
-- ChatGPT:  "Lake Superior, anything else?"
-- Say "That's all"
-- Back at the main menu now
-- Press One for ChatGPT again
-- Say "How deep is that Lake?"
+Your Lex session is tied to the call ID, so you can do the following:
+- Press One for ChatGPT.
+- Ask, "What is the biggest lake in Minnesota?"
+- ChatGPT: "Lake Superior, anything else?"
+- Say, "That's all."
+- Back at the main menu now.
+- Press One for ChatGPT again.
+- Ask, "How deep is that lake?"
 - ChatGPT: "Lake Superior is XXX feet deep, etc."
 
-The Bot still knows the context you're in and what you said to ChatGPT during the call, so it knows when you come back that you are still referring to 
-Lake Superior.  If you tell the bot you want to speak with a person it will return the "Transfer" intent back and the Next Action will be the Connect 
-use case of take back and transfer which is the same as pressing 3 at the main menu.
+The Bot still retains the context of your conversation with ChatGPT during the call, so it knows that when you come back, you are still referring to Lake Superior. If you tell the Bot that you want to speak with a person, it will return the "Transfer" intent, and the next action will be the Connect use case of take back and transfer, which is the same as pressing 3 at the main menu.
 
 ```java
         final var lexBotEN = StartBotConversationAction.builder()
@@ -458,75 +435,68 @@ use case of take back and transfer which is the same as pressing 3 at the main m
 
 ### Connect Take Back and Transfer
 
-When pressing 3 or asking the Bot to speak with a person, the call will be transferred to an Amazon Connect instance in us-east-1.  This makes use 
-of extending the base [CallAndBridge](https://docs.aws.amazon.com/chime-sdk/latest/dg/call-and-bridge.html) Action.  The details are described in the use 
-case mentioned in a prior section.
+When pressing 3 or asking the Bot to speak with a person, the call will be transferred to an Amazon Connect instance in us-east-1. This functionality is achieved by extending the base [CallAndBridge](https://docs.aws.amazon.com/chime-sdk/latest/dg/call-and-bridge.html) action. The details of this use case are described in a prior section.
 
-Using this action in the library is no different than using the base [CallAndBridgeAction](ChimeSMA/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeAction.java).
-In this case we are sending the call to a static number ("+15052162949") that points to sample call flow that executes the transfer Lambda and then 
-transfers the call to "+18004444444" which is a carrier test number (Old MCI number).  This a terminal step, so once you have been transferred, you just
-hangup to release the call resources in Chime.
+Using this action in the library is no different from using the base [CallAndBridgeAction](ChimeSMA/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeAction.java). In this case, we are sending the call to a static number ("+15052162949") that points to a sample call flow. The flow executes the transfer Lambda and then transfers the call to "+18004444444," which is a carrier test number (Old MCI number). This is a terminal step, so once you have been transferred, you can simply hang up to release the call resources in Chime.
 
 ```java
-    // Send call to Connect to demo Take Back and Transfer
-    final var connect = CallAndBridgeActionTBTDiversion.builder()
-       .withDescription("Send Call to AWS Connect")
-       .withUri("+15052162949")
-       .withRingbackToneKeyLocale("transfer")  // If the Spanish locale is set, the caller will hear transferring in Spanish
-       .build();
+// Send call to Connect to demo Take Back and Transfer
+final var connect = CallAndBridgeActionTBTDiversion.builder()
+   .withDescription("Send Call to AWS Connect")
+   .withUri("+15052162949")
+   .withRingbackToneKeyLocale("transfer")  // If the Spanish locale is set, the caller will hear transferring in Spanish
+   .build();
 ```
 
-This Action could be further extended to to save the Locale in the DynamoDB Table and when the call lands at Connect, a lambda could be used to pull
-this to set the language in the Connect flow or any other data collected in the Chime SMA app like caller account number, etc.
+This action could be further extended to save the Locale in the DynamoDB table. When the call lands at Connect, a Lambda function could be used to retrieve this information and set the language in the Connect flow or any other data collected in the Chime SMA app, such as caller account number, etc.
 
 ### Record Audio Menu
 
-When pressing 4 at the main menu we go to a sub-menu that uses Speak instead of using static prompts like the main menu:
-- Pressing one allows you to record audio which is saved to the default RECORD_BUCKET
-- Pressing two plays back your recorded audio or a message indicating you have not recorded audio yet
+When pressing 4 at the main menu, we go to a sub-menu that uses Speak instead of static prompts like the main menu. The menu options are as follows:
+
+- Pressing one allows you to record audio, which is saved to the default RECORD_BUCKET.
+- Pressing two plays back your recorded audio or a message indicating that you have not recorded audio yet.
 - Any other key returns you back to the main menu.
 
-```java
-        // This menu is just in English, we  will use Speak instead of static prompts like main menu
-        final var menu = SpeakAndGetDigitsAction.builder()
-                .withSpeechParameters(SpeakAndGetDigitsAction.SpeechParameters.builder()
-                        // Static text, but this could be dyanimc as well
-                        .withText("Call Recording Menu. "
-                                + "Press One to re cord an Audio File. "
-                                + "Press Two to Listen to your recorded Audio File. "
-                                + "Any other key to return to the Main Menu").build())
-                .withFailureSpeechParameters(SpeakAndGetDigitsAction.SpeechParameters.builder()
-                        .withText("Plese try again").build())
-                .withRepeatDurationInMilliseconds(3000)
-                .withRepeat(2)
-                .withMinNumberOfDigits(1)
-                .withMaxNumberOfDigits(1)
-                .withInputDigitsRegex("^\\d{1}$")
-                .withErrorAction(MAIN_MENU)
-                .build();
+Here is an example code snippet that represents the actions and their configuration:
 
-        menu.setNextActionF(a -> {
-            switch (a.getReceivedDigits()) {
-                case "1":
-                    return recordPrompt;
-                case "2":
-                    final var key = a.getTransactionAttribute(RecordAudioAction.RECORD_AUDIO_KEY);
-                    if (key != null) {
-                        // Some Audio has been recorded
-                        return playAudio;
-                    } else {
-                        // No Audio has been recorded
-                        return noRecording;
-                    }
-                default:
-                    return MAIN_MENU;
+```java
+// This menu is just in English, we will use Speak instead of static prompts like the main menu
+final var menu = SpeakAndGetDigitsAction.builder()
+        .withSpeechParameters(SpeakAndGetDigitsAction.SpeechParameters.builder()
+                .withText("Call Recording Menu. Press One to record an Audio File. Press Two to listen to your recorded Audio File. Press any other key to return to the Main Menu.").build())
+        .withFailureSpeechParameters(SpeakAndGetDigitsAction.SpeechParameters.builder()
+                .withText("Please try again.").build())
+        .withRepeatDurationInMilliseconds(3000)
+        .withRepeat(2)
+        .withMinNumberOfDigits(1)
+        .withMaxNumberOfDigits(1)
+        .withInputDigitsRegex("^\\d{1}$")
+        .withErrorAction(MAIN_MENU)
+        .build();
+
+menu.setNextActionF(a -> {
+    switch (a.getReceivedDigits()) {
+        case "1":
+            return recordPrompt;
+        case "2":
+            final var key = a.getTransactionAttribute(RecordAudioAction.RECORD_AUDIO_KEY);
+            if (key != null) {
+                // Some Audio has been recorded
+                return playAudio;
+            } else {
+                // No Audio has been recorded
+                return noRecording;
             }
-        });
+        default:
+            return MAIN_MENU;
+    }
+});
 ```
 
-The [RecordAudio](https://docs.aws.amazon.com/chime-sdk/latest/dg/record-audio.html) Action does not give you any indication to start recording so 
-a beep wav file is used to indicate recording is active.  One again, the library optimizes the interaction by sending all the actions at once to 
-create a fluid flow to the caller.  When pressing one to record audio, the SMA response would look like this.
+The [RecordAudio](https://docs.aws.amazon.com/chime-sdk/latest/dg/record-audio.html) action does not provide an indication to start recording, so a beep WAV file is played to indicate that recording is active. Once again, the library optimizes the interaction by sending all the actions at once to create a fluid flow for the caller.
+
+When pressing one to record audio, the SMA response would look like this:
 
 ```json
 {
@@ -535,7 +505,7 @@ create a fluid flow to the caller.  When pressing one to record audio, the SMA r
         {
             "Type": "Speak",
             "Parameters": {
-                "Text": "At the beep, re cord up to 30 seconds of Audio.  Press any key to stop the recording.",
+                "Text": "At the beep, record up to 30 seconds of Audio. Press any key to stop the recording.",
                 "CallId": "f085191e-c647-4503-9d3a-3cba41aead2e",
                 "LanguageCode": "en-US",
                 "TextType": "text",
@@ -577,30 +547,29 @@ create a fluid flow to the caller.  When pressing one to record audio, the SMA r
 }
 ```
 
+This response includes the Speak action to prompt the user, the PlayAudio action to play the beep sound, and the RecordAudio action to record the audio. The transaction attributes maintain the current action and locale information for future references.
+
 ### Wrapping Up
 
-This library in combination with the CloudFormation template demonstrates:
-- Deploying resilant mult-region voice applications
-- Creation of static prompts with Polly at deploy time to save cost on Polly usage ([PollyPromptCreator](PollyPromptCreation/src/main/java/cloud/cleo/chimesma/PollyPromptGenerator.java))
-- Deployment of static prompt files with the applicattion ([PromptCopier](PollyPromptCreation/src/main/java/cloud/cleo/chimesma/PromptCopier.java))
-- Easily pipelined with "sam deploy" tied to source control
-- Programming flows in Java that are easy to understand versus SMA Event handling model
-- Easy to extend actions that can be used to keep flows concise and still easy to understand (Connect TBT for example)
-- Utilizing Lambda SNAP Start to improve latency and performance (Flows are built at SNAP initialization)
-- Locale support to easily support multi-lingual applications
-- Utilize the full power of Java anywhere to make routing decisions or input/output to the Actions.
+This library, in combination with the CloudFormation template, demonstrates the following capabilities:
 
-Things I may add to the demo in the future:
-- Transfer Action that uses a Global DynamoDB Table
-    - Maps logical names to transfer destinations
-    - destinations might be SIP or PSTN
-    - destinations might have other info like "Queue" or "Skill" name that would inserted into the transfer table for Connect to pick up
-- Time of Day Action
-    - pull hours from API or Dyanmo Table
-    - Open/Closed ouputs
-    - Holiday/Special hours
-- [Function Calling](https://platform.openai.com/docs/guides/gpt/function-calling) to make the ChatGPT bot do more
+- Deployment of resilient multi-region voice applications.
+- Creation of static prompts with Polly at deploy time to save costs on Polly usage.
+- Deployment of static prompt files with the application.
+- Easy integration with source control and pipeline deployment using "sam deploy".
+- Programming flows in Java that are easy to understand compared to the SMA Event handling model.
+- Extensibility of actions to keep flows concise and easy to understand.
+- Utilization of Lambda SNAP Start to improve latency and performance.
+- Locale support for multi-lingual applications.
+- Leveraging the full power of Java for routing decisions and input/output to the actions.
 
+In the future, some additions that could be made to the demo include:
+
+- Transfer action that uses a global DynamoDB table to map logical names to transfer destinations, such as SIP or PSTN, with additional information like "Queue" or "Skill" names for Connect to pick up.
+- Time of Day action that retrieves hours from an API or DynamoDB table, allowing for outputs such as Open/Closed status and support for holiday/special hours.
+- Utilizing [Function Calling](https://platform.openai.com/docs/guides/gpt/function-calling) to enhance the capabilities of the ChatGPT bot.
+
+These enhancements would further expand the functionality and flexibility of the library.
 
 ## Deploy the Project
 
