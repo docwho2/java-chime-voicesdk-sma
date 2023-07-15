@@ -63,4 +63,9 @@ After running the above you should see:
 
 ### Environment Variables
 
-TODO: document the ENV vars used in the Library
+Typically in your CloudFormation or whatever you use to deploy your Lambda, it might be easier to set these ENV variables.
+
+- PROMPT_BUCKET - When using any of the Play Actions like [PlayAudio](/ChimeSMAEvent/src/main/java/cloud/cleo/chimesma/model/ResponsePlayAudio.java) you can omit the S3 BucketName if this variable is set.
+- RECORD_BUCKET - When using any of the Record Actions like [RecordAudio](/ChimeSMAEvent/src/main/java/cloud/cleo/chimesma/model/ResponseRecordAudio.java) you can omit the S3 BucketName if this variable is set.
+- BOT_ALIAS_ARN - When using the [StartBotConversion](/ChimeSMAEvent/src/main/java/cloud/cleo/chimesma/model/ResponseStartBotConversation.java) Action you can omit the BotAliasArn if this variable is set.
+

@@ -51,7 +51,7 @@ Building upon the above, the "Action Flow Model" maps each of the [supported act
   - Example: Pause -> Speak -> Pause -> StartRecording -> SpeakAndGetDigits, when sent one by one, would require 4 Lambda calls without optimization.
   - Actions like SpeakAndGetDigits require a result before proceeding and cannot be chained with another action.
 - Java Locale support across all relevant actions to easily build multilingual interactions (Prompts, Speak, and Bots).
-- Easy extension of existing actions. See [CallAndBridgeActionTBTDiversion.java](Examples/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeActionTBTDiversion.java), which extends the standard [CallAndBridge](ChimeSMA/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeAction.java) action to write call information to a DynamoDB table that can be used in a Connect flow to implement take-back and transfer. See the use case later in this document.
+- Easy extension of existing actions. See [CallAndBridgeActionTBTDiversion.java](Examples/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeActionTBTDiversion.java), which extends the standard [CallAndBridge](ChimeSMAFlow/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeAction.java) action to write call information to a DynamoDB table that can be used in a Connect flow to implement take-back and transfer. See the use case later in this document.
 
 To use the Flow Model:
 
@@ -439,7 +439,7 @@ The Bot still retains the context of your conversation with ChatGPT during the c
 
 When pressing 3 or asking the Bot to speak with a person, the call will be transferred to an Amazon Connect instance in us-east-1. This functionality is achieved by extending the base [CallAndBridge](https://docs.aws.amazon.com/chime-sdk/latest/dg/call-and-bridge.html) action. The details of this use case are described in a prior section.
 
-Using this action in the library is no different from using the base [CallAndBridgeAction](ChimeSMA/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeAction.java). In this case, we are sending the call to a static number ("+15052162949") that points to a sample call flow. The flow executes the transfer Lambda and then transfers the call to "+18004444444," which is a carrier test number (Old MCI number). This is a terminal step, so once you have been transferred, you can simply hang up to release the call resources in Chime.
+Using this action in the library is no different from using the base [CallAndBridgeAction](ChimeSMAFlow/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeAction.java). In this case, we are sending the call to a static number ("+15052162949") that points to a sample call flow. The flow executes the transfer Lambda and then transfers the call to "+18004444444," which is a carrier test number (Old MCI number). This is a terminal step, so once you have been transferred, you can simply hang up to release the call resources in Chime.
 
 ```java
 // Send call to Connect to demo Take Back and Transfer

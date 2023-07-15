@@ -16,7 +16,7 @@ Building upon the [Event Libray](/ChimeSAMEvent), the "Action Flow Model" maps e
   - Example: Pause -> Speak -> Pause -> StartRecording -> SpeakAndGetDigits, when sent one by one, would require 4 Lambda calls without optimization.
   - Actions like SpeakAndGetDigits require a result before proceeding and cannot be chained with another action.
 - Java Locale support across all relevant actions to easily build multilingual interactions (Prompts, Speak, and Bots).
-- Easy extension of existing actions. See [CallAndBridgeActionTBTDiversion.java](/Examples/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeActionTBTDiversion.java), which extends the standard [CallAndBridge](/ChimeSMA/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeAction.java) action to write call information to a DynamoDB table that can be used in a Connect flow to implement take-back and transfer. See the use case later in this document.
+- Easy extension of existing actions. See [CallAndBridgeActionTBTDiversion.java](/Examples/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeActionTBTDiversion.java), which extends the standard [CallAndBridge](/ChimeSMAFlow/src/main/java/cloud/cleo/chimesma/actions/CallAndBridgeAction.java) action to write call information to a DynamoDB table that can be used in a Connect flow to implement take-back and transfer. See the use case later in this document.
 
 To use the Flow Model:
 
@@ -84,7 +84,40 @@ For a full example refer to the [Demo Application](/Examples/src/main/java/cloud
 
 ### Environment Variables
 
-TODO: document the ENV vars used in the Library
+Typically in your CloudFormation or whatever you use to deploy your Lambda, it might be easier to set these ENV variables.
+
+- PROMPT_BUCKET - When using any of the Play Actions like [PlayAudio](/ChimeSMAFlow/src/main/java/cloud/cleo/chimesma/actions/PlayAudioAction.java) you can omit the S3 BucketName if this variable is set.
+- RECORD_BUCKET - When using any of the Record Actions like [RecordAudio](/ChimeSMAFlow/src/main/java/cloud/cleo/chimesma/actions/RecordAudioAction.java) you can omit the S3 BucketName if this variable is set.
+- BOT_ALIAS_ARN - When using the [StartBotConversion](/ChimeSMAFlow/src/main/java/cloud/cleo/chimesma/actions/StartBotConversationAction.java) Action you can omit the BotAliasArn if this variable is set.
+- LANGUAGE_VOICE_MAP - When using any Speak actions, you can provide a JSON array that indicates which VoiceId you want to use for each locale making it easier to support multi-lingual apps.
+
+An example LANGUAGE_VOICE_MAP:
+```json
+[
+  { "Locale" : "en-US" , "VoiceId" : "Joanna" },
+  { "Locale" : "es-US" , "VoiceId" : "Lupe" }
+]
+```
+
+Constructing the same JSON in CloudFormation for a Lambda in the Environment section:
+
+```yaml
+    Environment: 
+        Variables:
+          PROMPT_BUCKET: !Ref PromptBucket
+          RECORD_BUCKET: !Ref RecordBucket
+          BOT_ALIAS_ARN: !GetAtt BotAliasGPT.Arn
+          LANGUAGE_VOICE_MAP:
+              Fn::ToJsonString:  # Note: this requires AWS::LanguageExtensions in the Transform section
+                  - Locale: en-US
+                    VoiceId: Joanna
+                  - Locale: es-US
+                    VoiceId: Lupe
+```
+
+See the main the project [template.yaml](https://github.com/docwho2/java-chime-voicesdk-sma/blob/main/template.yaml#L287) for an example of creating 
+resources like S3 Buckets and Bots and then passing these in via ENV vars the SMA Lambda.  If you have several Bots for example, you might to create 
+you own ENV vars in addition to above to support N number of Bots.
 
 ## Building the Hello World App
 
