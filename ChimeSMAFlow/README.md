@@ -116,7 +116,7 @@ Constructing the same JSON in CloudFormation for a Lambda in the Environment sec
 ```
 
 See the main the project [template.yaml](https://github.com/docwho2/java-chime-voicesdk-sma/blob/main/template.yaml#L287) for an example of creating 
-resources like S3 Buckets and Bots and then passing these in via ENV vars the SMA Lambda.  If you have several Bots for example, you might to create 
+resources like S3 Buckets and Bots and then passing these in via ENV vars the SMA Lambda.  If you have several Bots for example, you might need to create 
 you own ENV vars in addition to above to support N number of Bots.
 
 ## Building the Hello World App
