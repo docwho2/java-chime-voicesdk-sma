@@ -15,13 +15,13 @@
             <AppenderRef ref="Lambda"/>
         </Root>
         
-        <Logger name="software.amazon.lambda.powertools" level="DEBUG"/>
+        <Logger name="software.amazon.lambda.powertools" level="INFO"/>
 
-        <Logger name="software.amazon.awssdk" level="DEBUG"/>
+        <Logger name="software.amazon.awssdk" level="INFO"/>
            
-        <Logger name="software.amazon.awssdk.request" level="DEBUG"/>
+        <Logger name="software.amazon.awssdk.request" level="INFO"/>
           
-        <Logger name="org.jooq" level="DEBUG"/>
+        <Logger name="cloud.cleo" level="DEBUG"/>
             
     </Loggers>
 </Configuration>

@@ -2,11 +2,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>cloud.cleo.chimesma</groupId>
-    <artifactId>sma-lambda-lib</artifactId>
+    <artifactId>sma-lambda-event-lib</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
-    <name>Chime SDK SMA Library</name>
-    <description>Chime Voice SDK Session Media Application (SMA) Library/Framework</description>
+    <name>Chime SDK SMA Event Library</name>
+    <description>Chime Voice SDK Session Media Application (SMA) Event Library/Framework</description>
     
     <parent>
         <groupId>cloud.cleo.chimesma</groupId>
@@ -16,6 +16,7 @@
 
     <dependencies>
 
+        <!-- Use the AWS Serialization artifact so we are in sync with java-lambda-events and their Jackson versions -->
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-lambda-java-serialization</artifactId>
@@ -25,23 +26,6 @@
                     <artifactId>gson</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-lambda-java-log4j2</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-slf4j18-impl</artifactId>
         </dependency>
 
     </dependencies>

@@ -5,8 +5,8 @@
     <artifactId>sma-examples</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
-    <name>Chime SDK Examples</name>
-    <description>Chime Voice Session Media Application (SMA)</description>
+    <name>Chime SDK SMA Examples</name>
+    <description>Chime Voice Session Media Application (SMA) Examples</description>
     
     <parent>
         <groupId>cloud.cleo.chimesma</groupId>
@@ -19,23 +19,11 @@
         
         <dependency>
             <groupId>cloud.cleo.chimesma</groupId>
-            <artifactId>sma-lambda-lib</artifactId>
+            <artifactId>sma-lambda-flow-lib</artifactId>
             <version>1.0</version>
         </dependency>
         
         
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-lambda-java-log4j2</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j18-impl</artifactId>
@@ -53,6 +41,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.0</version>
                 <configuration>
                     
                 </configuration>

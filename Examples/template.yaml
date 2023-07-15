@@ -4,7 +4,7 @@ Transform:
   - AWS::LanguageExtensions
 
 Description: >
-  AWS Chime Voice SDK SMA Hello World
+  AWS Chime Voice SDK SMA Hello World Flow Example
 
 Parameters:
   VOICEIDEN:
@@ -46,7 +46,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-HelloWorld
-      Description: Chime SMA Hello World Example
+      Description: Chime SMA Hello World Flow Example
       Handler: cloud.cleo.chimesma.examples.actions.HelloWorld
       AutoPublishAlias: SNAPSTART
       CodeUri: .

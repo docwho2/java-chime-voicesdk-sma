@@ -28,13 +28,14 @@
     </properties>
     
     <modules>
-        <module>PollyPromptCreation</module>
-        <module>ChimeSMA</module>
-        <module>ChatGPT</module>
-        <module>Examples</module>
-        <!-- These are needed for lex events (bots) and JSON processing -->
+         <!-- These are needed for lex events (bots) and JSON processing -->
         <module>LambdaEventsV4/aws-lambda-java-serialization</module>
         <module>LambdaEventsV4/aws-lambda-java-events</module>
+        <module>ChimeSMAEvent</module>
+        <module>ChimeSMAFlow</module>
+        <module>PollyPromptCreation</module>
+        <module>ChatGPT</module>
+        <module>Examples</module>
     </modules>
 
     <dependencyManagement>

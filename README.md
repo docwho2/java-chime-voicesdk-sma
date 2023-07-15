@@ -24,16 +24,17 @@ This project provides a library to accelerate the development of [SIP Media Appl
 
 ## Library Overview
 
-The library provides two approaches: a JSON event mapping model and, on top of that, a flow-based library that allows programmers to develop call flows without having to deal with event handling and flow optimization. The latter enables developers to quickly build applications with minimal coding. For more in-depth information about using the library and writing applications, please refer to the Library [README](ChimeSMA/README.md).
+The library provides two approaches: a JSON event mapping model and, on top of that, a flow-based library that allows programmers to develop call flows without having to deal with event handling and flow optimization. The latter enables developers to quickly build applications with minimal coding.
 
 ### JSON Java Events
 
 AWS Lambda is excellent at handling events in JSON. AWS provides the [Lambda Java Events](https://github.com/aws/aws-lambda-java-libs/tree/main/aws-lambda-java-events) library, which handles most of the services that directly integrate with Lambda and provides a full Java Object model for the requests and responses. However, the Chime SMA events are not included in this package. This library follows a similar approach and is used as follows:
 
-- You define your Lambda to implement [RequestHandler](https://github.com/aws/aws-lambda-java-libs/blob/main/aws-lambda-java-core/src/main/java/com/amazonaws/services/lambda/runtime/RequestHandler.java)<[SMARequest](ChimeSMA/src/main/java/cloud/cleo/chimesma/model/SMARequest.java), [SMAResponse](ChimeSMA/src/main/java/cloud/cleo/chimesma/model/SMAResponse.java)>.
+- You define your Lambda to implement [RequestHandler](https://github.com/aws/aws-lambda-java-libs/blob/main/aws-lambda-java-core/src/main/java/com/amazonaws/services/lambda/runtime/RequestHandler.java)<[SMARequest](ChimeSMAEvent/src/main/java/cloud/cleo/chimesma/model/SMARequest.java), [SMAResponse](ChimeSMAEvent/src/main/java/cloud/cleo/chimesma/model/SMAResponse.java)>.
 - Process the incoming request and respond as necessary. Refer to [Helloworld.java](Examples/src/main/java/cloud/cleo/chimesma/examples/response/HelloWorld.java) for an example.
 - Note that you are responsible for handling the SMA state machine, and this quickly becomes unmanageable as the complexity of your application increases.
 - Use this low-level approach when you need to control every aspect of the state machine.
+- For more in-depth information about using the library and writing applications, please refer to the Library [README](ChimeSMAEvent/README.md).
 
 ### Java Action Flow Model
 
@@ -54,9 +55,10 @@ Building upon the above, the "Action Flow Model" maps each of the [supported act
 
 To use the Flow Model:
 
-- Simply create a Java Object that inherits from [AbstractFlow](ChimeSMA/src/main/java/cloud/cleo/chimesma/actions/AbstractFlow.java).
+- Simply create a Java Object that inherits from [AbstractFlow](ChimeSMAFlow/src/main/java/cloud/cleo/chimesma/actions/AbstractFlow.java).
 - Implement the `getInitialAction()` method, which returns the start of the flow.
 - Refer to the flow-based [HelloWorld.java](Examples/src/main/java/cloud/cleo/chimesma/examples/actions/HelloWorld.java) example.
+- For more in-depth information about using the library and writing applications, please refer to the Library [README](ChimeSMAFlow/README.md).
 
 
 ## Amazon Connect Take Back and Transfer Use Case

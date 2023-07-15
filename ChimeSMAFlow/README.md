@@ -1,20 +1,9 @@
-# Amazon Chime SDK SIP Media Application(SMA) Java Library
+# Amazon Chime SDK SIP Media Application(SMA) Java Flow Library
 
-
-The library provides two approaches: a JSON event mapping model and, on top of that, a flow-based library that allows programmers to develop call flows without having to deal with event handling and flow optimization. The latter enables developers to quickly build applications with minimal coding.
-
-## JSON Java Events
-
-AWS Lambda is excellent at handling events in JSON. AWS provides the [Lambda Java Events](https://github.com/aws/aws-lambda-java-libs/tree/main/aws-lambda-java-events) library, which handles most of the services that directly integrate with Lambda and provides a full Java Object model for the requests and responses. However, the Chime SMA events are not included in this package. This library follows a similar approach and is used as follows:
-
-- You define your Lambda to implement [RequestHandler](https://github.com/aws/aws-lambda-java-libs/blob/main/aws-lambda-java-core/src/main/java/com/amazonaws/services/lambda/runtime/RequestHandler.java)<[SMARequest](/ChimeSMA/src/main/java/cloud/cleo/chimesma/model/SMARequest.java), [SMAResponse](/ChimeSMA/src/main/java/cloud/cleo/chimesma/model/SMAResponse.java)>.
-- Process the incoming request and respond as necessary. Refer to [Helloworld.java](/Examples/src/main/java/cloud/cleo/chimesma/examples/response/HelloWorld.java) for an example.
-- Note that you are responsible for handling the SMA state machine, and this quickly becomes unmanageable as the complexity of your application increases.
-- Use this low-level approach when you need to control every aspect of the state machine.
 
 ## Java Action Flow Model
 
-Building upon the above, the "Action Flow Model" maps each of the [supported actions for the PSTN Audio service](https://docs.aws.amazon.com/chime-sdk/latest/dg/specify-actions.html) to Java Objects that you can dynamically connect to each other to create flows. These objects are easily extensible, allowing for the creation of complex interactions and routing. This part of the library provides:
+Building upon the [Event Libray](/ChimeSAMEvent), the "Action Flow Model" maps each of the [supported actions for the PSTN Audio service](https://docs.aws.amazon.com/chime-sdk/latest/dg/specify-actions.html) to Java Objects that you can dynamically connect to each other to create flows. These objects are easily extensible, allowing for the creation of complex interactions and routing. This part of the library provides:
 
 - A flow-based approach that makes developing applications easier to understand compared to an event-driven model.
   - The flow is built statically in memory during initialization (SNAP Start Init), enabling very low latency responses.
@@ -31,7 +20,7 @@ Building upon the above, the "Action Flow Model" maps each of the [supported act
 
 To use the Flow Model:
 
-- Simply create a Java Object that inherits from [AbstractFlow](/ChimeSMA/src/main/java/cloud/cleo/chimesma/actions/AbstractFlow.java).
+- Simply create a Java Object that inherits from [AbstractFlow](/ChimeSMAFlow/src/main/java/cloud/cleo/chimesma/actions/AbstractFlow.java).
 - Implement the `getInitialAction()` method, which returns the start of the flow.
 - Refer to the flow-based [HelloWorld.java](/Examples/src/main/java/cloud/cleo/chimesma/examples/actions/HelloWorld.java) example.
 
@@ -44,7 +33,7 @@ At some point the the library components will be published to the central repo, 
 echo "Clone the repo"
 git clone https://github.com/docwho2/java-chime-voicesdk-sma.git
 
-echo "Chage directory into the cloned repo"
+echo "Change directory into the cloned repo"
 cd java-chime-voicesdk-sma
 
 echo "Retrieve the V4 Events sub-module"
@@ -57,21 +46,21 @@ mvn install
 After running the above you should see:
 
 ```bash
-[INFO] ------------------------------------------------------------------------
 [INFO] Reactor Summary:
 [INFO] 
-[INFO] Chime SMA Parent POM 1.0 ........................... SUCCESS [  0.085 s]
-[INFO] Chime Polly Prompt Generator 1.0 ................... SUCCESS [  2.609 s]
-[INFO] AWS Lambda Java Runtime Serialization 2.0.0 ........ SUCCESS [  1.122 s]
-[INFO] Chime SDK SMA Library 1.0 .......................... SUCCESS [  1.179 s]
-[INFO] AWS Lambda Java Events Library 4.0.0 ............... SUCCESS [  3.061 s]
-[INFO] Chime Lex ChatGPT Lambda 1.0 ....................... SUCCESS [  1.759 s]
-[INFO] Chime SDK Examples 1.0 ............................. SUCCESS [  1.230 s]
+[INFO] AWS Lambda Java Runtime Serialization 2.0.0 ........ SUCCESS [  7.869 s]
+[INFO] AWS Lambda Java Events Library 4.0.0 ............... SUCCESS [  6.248 s]
+[INFO] Chime SMA Parent POM 1.0 ........................... SUCCESS [  0.002 s]
+[INFO] Chime SDK SMA Event Library 1.0 .................... SUCCESS [  0.790 s]
+[INFO] Chime SDK SMA Flow Library 1.0 ..................... SUCCESS [  1.227 s]
+[INFO] Chime Polly Prompt Generator 1.0 ................... SUCCESS [  5.528 s]
+[INFO] Chime Lex ChatGPT Lambda 1.0 ....................... SUCCESS [  4.142 s]
+[INFO] Chime SDK SMA Examples 1.0 ......................... SUCCESS [  1.250 s]
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  11.129 s
-[INFO] Finished at: 2023-07-05T07:01:00-05:00
+[INFO] Total time:  27.848 s
+[INFO] Finished at: 2023-07-15T05:18:16-05:00
 [INFO] ------------------------------------------------------------------------
 ```
 
@@ -81,7 +70,7 @@ After running the above you should see:
 ```xml
    <dependency>
      <groupId>cloud.cleo.chimesma</groupId>
-     <artifactId>sma-lambda-lib</artifactId>
+     <artifactId>sma-lambda-flow-lib</artifactId>
      <version>1.0</version>
    </dependency>
 ```

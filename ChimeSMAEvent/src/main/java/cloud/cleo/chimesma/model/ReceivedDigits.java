@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Interface.java to edit this template
  */
-package cloud.cleo.chimesma.actions;
+package cloud.cleo.chimesma.model;
 
 /**
  * Applied to Actions that receive Digits
