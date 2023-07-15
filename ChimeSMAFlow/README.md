@@ -3,7 +3,7 @@
 
 ## Java Action Flow Model
 
-Building upon the [Event Libray](/ChimeSAMEvent), the "Action Flow Model" maps each of the [supported actions for the PSTN Audio service](https://docs.aws.amazon.com/chime-sdk/latest/dg/specify-actions.html) to Java Objects that you can dynamically connect to each other to create flows. These objects are easily extensible, allowing for the creation of complex interactions and routing. This part of the library provides:
+Building upon the [Event Libray](/ChimeSMAEvent), the "Action Flow Model" maps each of the [supported actions for the PSTN Audio service](https://docs.aws.amazon.com/chime-sdk/latest/dg/specify-actions.html) to Java Objects that you can dynamically connect to each other to create flows. These objects are easily extensible, allowing for the creation of complex interactions and routing. This part of the library provides:
 
 - A flow-based approach that makes developing applications easier to understand compared to an event-driven model.
   - The flow is built statically in memory during initialization (SNAP Start Init), enabling very low latency responses.
