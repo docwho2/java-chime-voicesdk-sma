@@ -25,7 +25,7 @@ echo "Retrieve the V4 Events sub-module"
 git submodule update --init
 
 echo "Build and Install all artifacts"
-mvn install
+mvn install -DskipTests
 ```
 
 After running the above you should see:
