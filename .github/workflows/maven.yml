@@ -27,8 +27,8 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
-    - name: Pull sub-module
-      run: git submodule update --init
+    #- name: Pull sub-module
+    #  run: git submodule update --init
     - name: Build with Maven
       run: mvn -B package -DskipTests
 
