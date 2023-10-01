@@ -59,6 +59,7 @@ To use the Flow Model:
 - Implement the `getInitialAction()` method, which returns the start of the flow.
 - Refer to the flow-based [HelloWorld.java](Examples/src/main/java/cloud/cleo/chimesma/examples/actions/HelloWorld.java) example.
 - For more in-depth information about using the library and writing applications, please refer to the Library [README](ChimeSMAFlow/README.md).
+- Please see [Square Retail ChatGPT IVR](https://github.com/docwho2/java-squareup-chatgpt-ivr) for a full working example deployment.
 
 
 ## Amazon Connect Take Back and Transfer Use Case
