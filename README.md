@@ -155,7 +155,7 @@ The [Example Flow](Examples/src/main/java/cloud/cleo/chimesma/examples/actions/E
 
 #### Twilio
 
-[Twilio SIP Trunking](https://www.twilio.com/docs/sip-trunking) can be used to send calls into your SMA or the SIP carrier of your choice. For this demo, the Twilio number +1-320-495-2425 will be load balanced across regions. The first prompt in the demo announces the region, so you can observe that calling the above number will land you in either us-east-1 or us-west-2. When configuring the Twilio [Origination Settings](https://www.twilio.com/docs/sip-trunking#origination), you can make use of the "edge" setting to optimize the SIP traffic.
+[Twilio SIP Trunking](https://www.twilio.com/docs/sip-trunking) can be used to send calls into your SMA or the SIP carrier of your choice.  When configuring the Twilio [Origination Settings](https://www.twilio.com/docs/sip-trunking#origination), you can make use of the "edge" setting to optimize the SIP traffic.
 
 In this case, the first SIP URI references a [Voice Connector](https://docs.aws.amazon.com/chime-sdk/latest/ag/voice-connectors.html) in the us-east-1 region. By adding the "edge=ashburn" parameter in Twilio's configuration, the call will be egressed into AWS within us-east-1. The same applies for the "edge=umatilla" parameter, which is Twilio's edge in Oregon (us-west-2). It's recommended to minimize the traversal of traffic over the internet if possible.
 
