@@ -60,6 +60,7 @@ To use the Flow Model:
 - Refer to the flow-based [HelloWorld.java](Examples/src/main/java/cloud/cleo/chimesma/examples/actions/HelloWorld.java) example.
 - For more in-depth information about using the library and writing applications, please refer to the Library [README](ChimeSMAFlow/README.md).
 - Please see [Square Retail ChatGPT IVR](https://github.com/docwho2/java-squareup-chatgpt-ivr) for a full working example deployment.
+- Also related is [Priovisioning Chime PSTN SDK resources with Java CDK](https://github.com/docwho2/java-chime-voice-sdk-cdk).
 
 
 ## Amazon Connect Take Back and Transfer Use Case
