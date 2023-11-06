@@ -44,7 +44,7 @@ warm_containers = "EAGER"
 [east.deploy]
 [east.deploy.parameters]
 region = "us-east-1"
-parameter_overrides = "SMAID=\"cf3e17cd-f4e5-44c3-ab04-325e6b3a6709\" CONNECTID=\"f837ec93-b6e5-4429-acb7-f698fff0148c\""
+parameter_overrides = "SMAID=\"cf3e17cd-f4e5-44c3-ab04-325e6b3a6709\" CONNECTID=\"f837ec93-b6e5-4429-acb7-f698fff0148c\" OPENAIMODEL=\"gpt-3.5-turbo-1106\""
 stack_name = "chime-voicesdk-sma"
 resolve_s3 = true
 s3_prefix = "chime-voicesdk-sma"
@@ -57,7 +57,7 @@ image_repositories = []
 [west.deploy]
 [west.deploy.parameters]
 region = "us-west-2"
-parameter_overrides = "SMAID=\"f6fb2553-e7e0-4900-866b-1b51b91f575a\" CONNECTID=\"e8fac445-d291-407e-8fd7-c6296395c2ab\""
+parameter_overrides = "SMAID=\"f6fb2553-e7e0-4900-866b-1b51b91f575a\" CONNECTID=\"e8fac445-d291-407e-8fd7-c6296395c2ab\" OPENAIMODEL=\"gpt-3.5-turbo-1106\""
 stack_name = "chime-voicesdk-sma"
 resolve_s3 = true
 s3_prefix = "chime-voicesdk-sma"
