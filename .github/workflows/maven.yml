@@ -32,3 +32,10 @@ jobs:
     - name: Build with Maven
       run: mvn -B package -DskipTests
 
+    - name: Setup AWS SAM
+      uses: aws-actions/setup-sam@v2
+      with:
+        use-installer: true
+
+    - name: SAM Build
+      run: sam build
