@@ -30,7 +30,7 @@ jobs:
         distribution: 'temurin'
         cache: maven
     - name: Build with Maven
-      run: mvn -B package -DskipTests
+      run: mvn -B install -DskipTests
 
     - name: Setup AWS SAM
       uses: aws-actions/setup-sam@v2
