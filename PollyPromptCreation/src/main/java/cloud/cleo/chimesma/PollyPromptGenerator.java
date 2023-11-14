@@ -7,11 +7,13 @@ package cloud.cleo.chimesma;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.events.CloudFormationCustomResourceEvent;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import org.apache.logging.log4j.LogManager;
@@ -33,7 +35,10 @@ import software.amazon.lambda.powertools.cloudformation.AbstractCustomResourceHa
 import software.amazon.lambda.powertools.cloudformation.Response;
 
 /**
- *
+ * Custom Resource to generate prompts from CloudFormation.  Prompts can be created,
+ * updated, and deleted as template changes.  Ultimately, anything created is deleted
+ * so prompt buckets can be deleted as well.
+ * 
  * @author sjensen
  */
 public class PollyPromptGenerator extends AbstractCustomResourceHandler {
@@ -65,56 +70,7 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
             final var text = cfcre.getResourceProperties().get("PromptText").toString();
             final var voice_id = cfcre.getResourceProperties().get("VoiceId").toString();
 
-            final var ssr = SynthesizeSpeechRequest.builder()
-                    .engine(text.toLowerCase().contains("<speak>") ? Engine.STANDARD : Engine.NEURAL)
-                    .voiceId(voice_id)
-                    .sampleRate("8000")
-                    .outputFormat(OutputFormat.PCM)
-                    .textType(text.toLowerCase().contains("<speak>") ? TextType.SSML : TextType.TEXT)
-                    .text(text).build();
-
-            final var por = PutObjectRequest.builder()
-                    .bucket(BUCKET_NAME)
-                    .contentType("audio/wav")
-                    .key(name)
-                    .build();
-
-            // get the task root which is where all the resources will be (sox binary)
-            final var task_root = System.getenv("LAMBDA_TASK_ROOT");
-
-                        
-            // Sox binary is in the resource folder
-            final var soxBinary = Path.of(task_root, "sox");
-            log.debug("LD_LIBRARY_PATH=" + System.getenv("LD_LIBRARY_PATH"));
-            
-
-            // Name of temp for input to sox
-            final var pollyFile = Path.of("/tmp", "polly_audio.pcm");
-            
-            // Name of temp for outout of sox
-            final var wavFile = Path.of("/tmp", name );
-            
-            // Take the Polly output and write to temp file
-            Files.copy(polly.synthesizeSpeech(ssr), pollyFile, StandardCopyOption.REPLACE_EXISTING);
-
-            // Call sox to convert PCM file to WAV for Chime SDK Playback
-            // https://docs.aws.amazon.com/connect/latest/adminguide/setup-prompts-s3.html
-            final var command = String.format("%s -t raw -r 8000 -e signed -b 16 -c 1 %s -r 8000 -c 1 %s", soxBinary, pollyFile, wavFile);
-            log.debug("Executing: " + command);
-            final var process = Runtime.getRuntime().exec(command);
-            
-
-            final var inStream = new StreamGobbler(process.getInputStream(), log::debug);
-            Executors.newSingleThreadExecutor().submit(inStream);
-            
-            final var errorStream = new StreamGobbler(process.getErrorStream(), log::debug);
-            Executors.newSingleThreadExecutor().submit(errorStream);
-            
-            log.debug(" Process exited with " + process.waitFor());
-            
-            
-            // Push the final wav file into the prompt bucket
-            s3.putObject(por, RequestBody.fromFile(wavFile));
+            createPrompt(name, text, voice_id);
 
         } catch (Exception e) {
             log.error("Could Not create the prompt", e);
@@ -122,6 +78,149 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
         return Response.builder()
                 .value(cfcre.getResourceProperties())
                 .build();
+    }
+
+    /**
+     * Update the Prompt if anything has changed
+     *
+     * @param cfcre
+     * @param cntxt
+     * @return
+     */
+    @Override
+    protected Response update(final CloudFormationCustomResourceEvent cfcre, final Context cntxt) {
+        log.debug("Received UPDATE Event from Cloudformation", cfcre);
+
+        // Old Values
+        final var name_old = cfcre.getOldResourceProperties().get("PromptName").toString();
+        final var text_old = cfcre.getOldResourceProperties().get("PromptText").toString();
+        final var voice_id_old = cfcre.getOldResourceProperties().get("VoiceId").toString();
+
+        // New Values
+        final var name = cfcre.getResourceProperties().get("PromptName").toString();
+        final var text = cfcre.getResourceProperties().get("PromptText").toString();
+        final var voice_id = cfcre.getResourceProperties().get("VoiceId").toString();
+
+        try {
+            if (!Objects.equals(name, name_old)) {
+                // Since the name has changed, requires delete of object and re-creaate
+                log.debug("The filename has changed from [" + name_old + "] to [" + name + "]");
+
+                // Delete the old file
+                deleteS3Object(name_old);
+                // Create new based on incoming values
+                createPrompt(name, text, voice_id);
+                
+            } else if ( ( ! Objects.equals(text, text_old) ) || (! Objects.equals(voice_id, voice_id_old) ) ) {
+                log.debug("The text has changed from [" + text_old + "] to [" + text + "]");
+                log.debug("The voice has changed from [" + voice_id_old+ "] to [" + voice_id + "]");
+                
+                // Just re-creaate the prompt
+                createPrompt(name, text, voice_id);
+            } else {
+                log.debug("No Changes were detected in the old vs new values, thus doing nothing !");
+            }
+
+        } catch (Exception e) {
+            log.error("Could Not update the prompt", e);
+        }
+
+        return Response.builder()
+                .value(cfcre.getResourceProperties())
+                .build();
+    }
+
+    /**
+     * Delete the prompts we created so the bucket can be deleted
+     *
+     * @param cfcre
+     * @param cntxt
+     * @return
+     */
+    @Override
+    protected Response delete(final CloudFormationCustomResourceEvent cfcre, final Context cntxt) {
+        try {
+            final var name = cfcre.getResourceProperties().get("PromptName").toString();
+            log.debug("Deleting Promp " + name);
+            deleteS3Object(name);
+        } catch (Exception e) {
+            log.error("Could Not delete the prompt", e);
+        }
+        return Response.builder()
+                .value(cfcre.getResourceProperties())
+                .build();
+    }
+
+    /**
+     * Create Prompt and Write the file to the S3 bucket
+     *
+     * @param name
+     * @param text
+     * @param voice_id
+     * @throws IOException
+     * @throws InterruptedException
+     */
+    private void createPrompt(final String name, final String text, final String voice_id) throws IOException, InterruptedException {
+        final var ssr = SynthesizeSpeechRequest.builder()
+                .engine(text.toLowerCase().contains("<speak>") ? Engine.STANDARD : Engine.NEURAL)
+                .voiceId(voice_id)
+                .sampleRate("8000")
+                .outputFormat(OutputFormat.PCM)
+                .textType(text.toLowerCase().contains("<speak>") ? TextType.SSML : TextType.TEXT)
+                .text(text).build();
+
+        // get the task root which is where all the resources will be (sox binary)
+        final var task_root = System.getenv("LAMBDA_TASK_ROOT");
+
+        // Sox binary is in the resource folder
+        final var soxBinary = Path.of(task_root, "sox");
+        log.debug("LD_LIBRARY_PATH=" + System.getenv("LD_LIBRARY_PATH"));
+
+        // Name of temp for input to sox
+        final var pollyFile = Path.of("/tmp", "polly_audio.pcm");
+
+        // Name of temp for outout of sox
+        final var wavFile = Path.of("/tmp", name);
+
+        // Take the Polly output and write to temp file
+        Files.copy(polly.synthesizeSpeech(ssr), pollyFile, StandardCopyOption.REPLACE_EXISTING);
+
+        // Call sox to convert PCM file to WAV for Chime SDK Playback
+        // https://docs.aws.amazon.com/connect/latest/adminguide/setup-prompts-s3.html
+        final var command = String.format("%s -t raw -r 8000 -e signed -b 16 -c 1 %s -r 8000 -c 1 %s", soxBinary, pollyFile, wavFile);
+        log.debug("Executing: " + command);
+        final var process = Runtime.getRuntime().exec(command);
+
+        final var inStream = new StreamGobbler(process.getInputStream(), log::debug);
+        Executors.newSingleThreadExecutor().submit(inStream);
+
+        final var errorStream = new StreamGobbler(process.getErrorStream(), log::debug);
+        Executors.newSingleThreadExecutor().submit(errorStream);
+
+        log.debug(" Process exited with " + process.waitFor());
+
+        // Push the final wav file into the prompt bucket
+        s3.putObject(PutObjectRequest.builder()
+                .bucket(BUCKET_NAME)
+                // Chime needs this to be set exactly to the below
+                .contentType("audio/wav")
+                .key(name)
+                .build(),
+                RequestBody.fromFile(wavFile)
+        );
+    }
+
+    /**
+     * Delete object in the prompt bucket
+     *
+     * @param name
+     */
+    private void deleteS3Object(final String name) {
+        s3.deleteObject(DeleteObjectRequest.builder()
+                .bucket(BUCKET_NAME)
+                .key(name)
+                .build()
+        );
     }
 
     private static class StreamGobbler implements Runnable {
@@ -140,47 +239,4 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
                     .forEach(consumer);
         }
     }
-
-    
-
-    /**
-     * We don't do anything on stack updates, just return null
-     *
-     * @param cfcre
-     * @param cntxt
-     * @return
-     */
-    @Override
-    protected Response update(CloudFormationCustomResourceEvent cfcre, Context cntxt) {
-        log.debug("Received UPDATE Event from Cloudformation", cfcre);
-        return null;
-    }
-
-    /**
-     * Delete the prompts we created so the bucket can be deleted
-     *
-     * @param cfcre
-     * @param cntxt
-     * @return
-     */
-    @Override
-    protected Response delete(CloudFormationCustomResourceEvent cfcre, Context cntxt) {
-        try {
-            final var name = cfcre.getResourceProperties().get("PromptName").toString();
-            log.debug("Deleting Promp " + name);
-            final var dor = DeleteObjectRequest.builder()
-                    .bucket(BUCKET_NAME)
-                    .key(name)
-                    .build();
-
-            s3.deleteObject(dor);
-
-        } catch (Exception e) {
-            log.error("Could Not delete the prompt", e);
-        }
-        return Response.builder()
-                .value(cfcre.getResourceProperties())
-                .build();
-    }
-
 }
