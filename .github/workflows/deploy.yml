@@ -1,0 +1,124 @@
+
+name: SAM Deployment
+
+on:
+  push:
+    branches: [ "main" ]
+
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
+concurrency: deploy
+
+env:
+  # https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository
+  # Create secrets in the repository and they will be pushed to Parameter store, these are required
+  # If you don't set an API key for square, you can still use ChatGPT by itself
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'NEED_TO_SET_THIS' }}  
+    
+  
+  # https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository
+  # Create repository variables to override any/all of the below from the defaults
+  #
+  STACK_NAME: ${{ vars.STACK_NAME || 'chime-voicesdk-sma' }}
+  
+  
+  # https://platform.openai.com/docs/models/overview (requres model with function calling)
+  OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-3.5-turbo-1106' }}
+  
+  # Polly voices to use for English and Spanish https://docs.aws.amazon.com/polly/latest/dg/ntts-voices-main.html
+  VOICE_ID_EN: ${{ vars.VOICE_ID_EN  || 'Joanna' }}
+  VOICE_ID_ES: ${{ vars.VOICE_ID_ES  || 'Lupe' }}
+
+
+jobs:
+  # Deploy the app into 2 regions at the same time via SAM with matrix job
+  sam-deploy:
+    strategy:
+      matrix:
+        environment: [ east, west ]
+    runs-on: ubuntu-latest
+    environment: ${{ matrix.environment }}
+    
+    steps:     
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Setup AWS Credentials
+      id: aws-creds
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: ${{ vars.REGION }}
+        # The full role ARN if you are using OIDC
+        # https://github.com/aws-actions/configure-aws-credentials#oidc
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        # Set up the below secrets if you are not using OIDC and want to use regular keys (best practive is to use just role above with OIDC provider)
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        mask-aws-account-id: true
+    
+    - name: Add AWS_ACCOUNT_ID to Environment
+      run: echo "AWS_ACCOUNT_ID=${{ steps.aws-creds.outputs.aws-account-id }}" >> $GITHUB_ENV
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'corretto'
+        cache: maven     
+       
+    - name: Build up all the libraries
+      # Exclude modules that SAM builds so it can use SAM cache and speed deploys
+      run: mvn -B install -DskipTests --no-transfer-progress
+
+    - name: Setup AWS SAM
+      uses: aws-actions/setup-sam@v2
+      with:
+        use-installer: true
+    
+    - name: Push OpenAI API Key to Parameter store
+      run: >
+        aws ssm put-parameter
+        --name /${STACK_NAME}/OPENAI_API_KEY
+        --description "OpenAI API Key used for stack ${STACK_NAME}"
+        --type String
+        --value ${OPENAI_API_KEY}
+        --overwrite
+    
+    - name: Cache SAM Build files
+      uses: actions/cache@v3
+      with:
+        path: .aws-sam
+        key: ${{ runner.os }}-sam
+       
+    - name: SAM Build
+      run: sam build
+      
+    - name: SAM Deploy
+      run:  >
+        sam deploy --no-fail-on-empty-changeset --no-confirm-changeset
+        --region ${{ vars.REGION }}
+        --stack-name ${STACK_NAME}
+        --parameter-overrides
+        SMAID=${{ vars.SMA_ID }}
+        CONNECTID=${{ vars.CONNECT_ID }}
+        OPENAIAPIKEY=/${STACK_NAME}/OPENAI_API_KEY
+        OPENAIMODEL=${OPENAI_MODEL}
+        VOICEIDEN=${VOICE_ID_EN}
+        VOICEIDES=${VOICE_ID_ES}
+    
+    - name: Update SMA Endpoint 
+      run: |
+        # Chime for some reason loses reference to lambda, so always set to something else and then back to what it should be
+        TARGET_ENDPOINT=arn:aws:lambda:${{ vars.REGION }}:${AWS_ACCOUNT_ID}:function:${STACK_NAME}-ChimeSMA
+        GPT_ENDPOINT=arn:aws:lambda:${{ vars.REGION }}:${AWS_ACCOUNT_ID}:function:${STACK_NAME}-ChatGPT
+        aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${{ vars.SMA_ID }} --endpoints LambdaArn=${GPT_ENDPOINT}
+        aws chime-sdk-voice update-sip-media-application --sip-media-application-id ${{ vars.SMA_ID }} --endpoints LambdaArn=${TARGET_ENDPOINT}
+       
+        
+            
+      

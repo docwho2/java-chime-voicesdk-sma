@@ -637,35 +637,24 @@ Resources:
           AttributeName: ttl
           Enabled: true
             
-            
-  
       
   ChimeCallLexGPT:
-    Type: 'AWS::Lex::ResourcePolicy'
+    Type: AWS::Lex::ResourcePolicy
     Properties:
       ResourceArn: !GetAtt BotAliasGPT.Arn
       Policy:
-       {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-           "Sid": "AllowChimePstnAudioUseBotGPT",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "voiceconnector.chime.amazonaws.com"
-            },
-            "Action": "lex:StartConversation",
-            "Resource": !Sub "${BotAliasGPT.Arn}",
-            "Condition": {
-                "StringEquals": {
-                    "AWS:SourceAccount": !Sub "${AWS::AccountId}"
-                    },
-                    "ArnEquals": {
-                    "AWS:SourceArn": !Sub "arn:aws:voiceconnector:${AWS::Region}:${AWS::AccountId}:sma/${SMAID}"
-                    }
-                }
-              }
-            ]
-      }
+        Version: '2012-10-17'
+        Statement:
+        - Sid: AllowChimePstnAudioUseBotGPT
+          Effect: Allow
+          Principal:
+            Service: voiceconnector.chime.amazonaws.com
+          Action: lex:StartConversation
+          Resource: !Sub ${BotAliasGPT.Arn}
+          Condition:
+            StringEquals:
+              AWS:SourceAccount: !Sub ${AWS::AccountId}
+            ArnEquals:
+              AWS:SourceArn: !Sub arn:aws:voiceconnector:${AWS::Region}:${AWS::AccountId}:sma/${SMAID}
       
       
