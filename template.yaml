@@ -120,6 +120,15 @@ Resources:
         - S3CrudPolicy:
             BucketName: !Ref PromptBucket
   
+  PromptCopierLogGroup:
+    Type: AWS::Logs::LogGroup
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: RetainExceptOnCreate
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${PromptCopier}'
+      RetentionInDays: 30
+      
+      
   StaticPrompts:
     Type: Custom::PromptCopier
     Properties:
@@ -170,7 +179,14 @@ Resources:
               Action:
                 - polly:SynthesizeSpeech
               Resource: '*'
-        
+  
+  PromptCreatorLogGroup:
+    Type: AWS::Logs::LogGroup
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: RetainExceptOnCreate
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${PromptCreator}'
+      RetentionInDays: 30
   
   MainPromptEast:
     Type: Custom::PromptCreator
@@ -303,6 +319,13 @@ Resources:
       SnapStart:
         ApplyOn: PublishedVersions
   
+  ChimeSMALogGroup:
+    Type: AWS::Logs::LogGroup
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ChimeSMA}'
+      RetentionInDays: 90
         
   ChimeSMAPerm:
       Type: AWS::Lambda::Permission
@@ -397,6 +420,14 @@ Resources:
             console.log(JSON.stringify(cresponse));
             return {status: 'OK'};
         };
+  
+  TransferCallLogGroup:
+    Type: AWS::Logs::LogGroup
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${TransferCall}'
+      RetentionInDays: 90
             
   TransferCallConnectIntegration:
     Type: AWS::Connect::IntegrationAssociation
@@ -600,7 +631,15 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Ref SessionTable
   
-        
+  ChatGPTLogGroup:
+    Type: AWS::Logs::LogGroup
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ChatGPT}'
+      RetentionInDays: 90
+      
+
   LexToChatGPTPerm:
       Type: AWS::Lambda::Permission
       Properties:

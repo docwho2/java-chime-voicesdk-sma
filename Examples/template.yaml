@@ -61,6 +61,13 @@ Resources:
       SnapStart:
         ApplyOn: PublishedVersions
   
+  ChimeSMALogGroup:
+    Type: AWS::Logs::LogGroup
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ChimeSMA}'
+      RetentionInDays: 90
         
   ChimeSMAPerm:
       Type: AWS::Lambda::Permission
