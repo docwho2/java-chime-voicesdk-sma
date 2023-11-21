@@ -49,11 +49,21 @@
             <artifactId>s3</artifactId>
         </dependency>
     
-         <dependency>
+        <dependency>
             <groupId>software.amazon.lambda</groupId>
             <artifactId>powertools-cloudformation</artifactId>
         </dependency>
        
     </dependencies>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+    
     
 </project>
