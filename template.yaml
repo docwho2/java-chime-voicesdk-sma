@@ -108,6 +108,7 @@ Resources:
   
   PromptCopier:
     Type: AWS::Serverless::Function
+    DependsOn: PromptCopierLogGroup
     Properties:
       FunctionName: !Sub ${AWS::StackName}-PromptCopier
       Description: Copy Static prompts in repo to S3 to be used in Chime SMA
@@ -125,7 +126,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DeletionPolicy: RetainExceptOnCreate
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${PromptCopier}'
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-PromptCopier'
       RetentionInDays: 30
       
       
@@ -136,6 +137,7 @@ Resources:
   
   RecordBucket:
     Type: AWS::S3::Bucket
+    UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     
   RecordBucketPolicy:
@@ -162,6 +164,7 @@ Resources:
  
   PromptCreator:
     Type: AWS::Serverless::Function
+    DependsOn: PromptCreatorLogGroup
     Properties:
       FunctionName: !Sub ${AWS::StackName}-PromptCreator
       Description: Creates Static prompts to be used in Chime Voice SDK
@@ -185,7 +188,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DeletionPolicy: RetainExceptOnCreate
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${PromptCreator}'
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-PromptCreator'
       RetentionInDays: 30
   
   MainPromptEast:
