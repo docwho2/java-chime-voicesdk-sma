@@ -37,7 +37,7 @@ import org.apache.logging.log4j.Logger;
 public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResponse> {
 
     // Initialize the Log4j logger.
-    protected final static Logger log = LogManager.getLogger();
+    protected final static Logger log = LogManager.getLogger(AbstractFlow.class);
 
     private final static ObjectMapper mapper = JacksonPojoSerializer.getInstance().getMapper();
 

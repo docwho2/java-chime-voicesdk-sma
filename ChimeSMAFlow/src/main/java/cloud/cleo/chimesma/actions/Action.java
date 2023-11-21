@@ -33,7 +33,7 @@ import org.apache.logging.log4j.Logger;
 @NoArgsConstructor
 public abstract class Action<A extends Action, R extends ResponseAction> implements Cloneable {
 
-    protected final static Logger log = LogManager.getLogger();
+    protected final static Logger log = LogManager.getLogger(Action.class);
 
     protected final static ObjectMapper mapper = JacksonPojoSerializer.getInstance().getMapper();
 

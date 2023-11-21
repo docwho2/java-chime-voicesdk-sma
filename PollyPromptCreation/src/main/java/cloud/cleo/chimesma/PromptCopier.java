@@ -32,7 +32,7 @@ import software.amazon.lambda.powertools.cloudformation.Response;
 public class PromptCopier extends AbstractCustomResourceHandler {
 
     // Initialize the Log4j logger.
-    Logger log = LogManager.getLogger();
+    Logger log = LogManager.getLogger(PromptCopier.class);
 
     private final static S3Client s3 = S3Client.builder()
             .region(Region.of(System.getenv(SdkSystemSetting.AWS_REGION.environmentVariable())))
