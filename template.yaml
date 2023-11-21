@@ -124,7 +124,7 @@ Resources:
   PromptCopierLogGroup:
     Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
-    DeletionPolicy: RetainExceptOnCreate
+    DeletionPolicy: Delete
     Properties:
       LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-PromptCopier'
       RetentionInDays: 30
@@ -186,7 +186,7 @@ Resources:
   PromptCreatorLogGroup:
     Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
-    DeletionPolicy: RetainExceptOnCreate
+    DeletionPolicy: Delete
     Properties:
       LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-PromptCreator'
       RetentionInDays: 30
@@ -297,6 +297,7 @@ Resources:
                 
   ChimeSMA:
     Type: AWS::Serverless::Function
+    DependsOn: ChimeSMALogGroup
     Properties:
       FunctionName: !Sub ${AWS::StackName}-ChimeSMA
       Description: Chime SMA Call FLow Director Example
@@ -327,7 +328,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DeletionPolicy: Delete
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${ChimeSMA}'
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-ChimeSMA'
       RetentionInDays: 90
         
   ChimeSMAPerm:
@@ -615,6 +616,7 @@ Resources:
                 
   ChatGPT:
     Type: AWS::Serverless::Function
+    DependsOn: ChatGPTLogGroup
     Properties:
       FunctionName: !Sub ${AWS::StackName}-ChatGPT
       Description: Lex fullfilment that talks to ChatGPT service
@@ -639,7 +641,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DeletionPolicy: Delete
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${ChatGPT}'
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-ChatGPT'
       RetentionInDays: 90
       
 
