@@ -44,7 +44,7 @@ jobs:
           
     - name: SAM Delete Stack
       run:  >
-        sam delete --no-fail-on-empty-changeset --no-confirm-changeset --no-prompts
+        sam delete --no-prompts
         --region ${{ vars.REGION }}
         --stack-name ${STACK_NAME}
         
