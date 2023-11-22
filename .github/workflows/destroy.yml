@@ -1,0 +1,52 @@
+## YAML Template.
+name: Destroy Stack
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Region to Destroy Stack in'
+        type: environment
+        required: true
+
+env:
+  STACK_NAME: ${{ vars.STACK_NAME || 'chime-voicesdk-sma' }}
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
+  
+
+jobs:
+  destroy-stack:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+        
+    - name: Setup AWS Credentials
+      id: aws-creds
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+          aws-region: ${{ vars.REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          # Set up the below secrets if you are not using OIDC and want to use regular keys (best practive is to use just role above with OIDC provider)
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          mask-aws-account-id: true
+    
+    - name: Setup AWS SAM
+      uses: aws-actions/setup-sam@v2
+      with:
+        use-installer: true
+          
+    - name: SAM Delete Stack
+      run:  >
+        sam delete --no-fail-on-empty-changeset --no-confirm-changeset --no-prompts
+        --region ${{ vars.REGION }}
+        --stack-name ${STACK_NAME}
+        
+    - name: Delete OpenAI API Key from Param Store
+      run: aws ssm --region ${{ vars.REGION }} delete-parameter --name "/${STACK_NAME}/OPENAI_API_KEY"
+       
