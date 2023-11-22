@@ -49,5 +49,6 @@ jobs:
         --stack-name ${STACK_NAME}
         
     - name: Delete OpenAI API Key from Param Store
+      continue-on-error: true
       run: aws ssm --region ${{ vars.REGION }} delete-parameter --name "/${STACK_NAME}/OPENAI_API_KEY"
        
