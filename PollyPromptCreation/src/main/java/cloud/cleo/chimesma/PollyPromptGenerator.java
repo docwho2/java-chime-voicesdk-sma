@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import org.apache.logging.log4j.LogManager;
@@ -28,23 +29,34 @@ import software.amazon.awssdk.services.polly.model.Engine;
 import software.amazon.awssdk.services.polly.model.OutputFormat;
 import software.amazon.awssdk.services.polly.model.SynthesizeSpeechRequest;
 import software.amazon.awssdk.services.polly.model.TextType;
+import software.amazon.awssdk.services.polly.model.VoiceId;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.lambda.powertools.cloudformation.AbstractCustomResourceHandler;
 import software.amazon.lambda.powertools.cloudformation.Response;
 
 /**
- * Custom Resource to generate prompts from CloudFormation.  Prompts can be created,
- * updated, and deleted as template changes.  Ultimately, anything created is deleted
- * so prompt buckets can be deleted as well.
- * 
+ * Custom Resource to generate prompts from CloudFormation. Prompts can be created, updated, and deleted as template
+ * changes. Ultimately, anything created is deleted so prompt buckets can be deleted as well.
+ *
  * @author sjensen
  */
 public class PollyPromptGenerator extends AbstractCustomResourceHandler {
 
     // Initialize the Log4j logger.
     Logger log = LogManager.getLogger(PollyPromptGenerator.class);
+
+    // The filename for the prompt
+    private final static String NAME_INPUT = "PromptName";
+    // The text to generate the prompt
+    private final static String TEXT_INPUT = "PromptText";
+    // The Polly VoicedId to use (Optional and defaults to Joanna if not provided)
+    private final static String VOICEID_INPUT = "VoiceId";
+
+    // The default voice to use if not provided
+    private final static VoiceId DEFAULT_VOICE = VoiceId.JOANNA;
 
     private final static PollyClient polly = PollyClient.builder()
             .region(Region.of(System.getenv(SdkSystemSetting.AWS_REGION.environmentVariable())))
@@ -58,6 +70,10 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
             .httpClient(UrlConnectionHttpClient.builder().build())
             .build();
 
+    /**
+     * Bucket passed from ENV, this makes sure CF provisions the bucket before creating this Lambda and calling the
+     * Custom resources.
+     */
     private final static String BUCKET_NAME = System.getenv("PROMPT_BUCKET");
 
     @Override
@@ -66,18 +82,26 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
         log.debug(cfcre);
 
         try {
-            final var name = cfcre.getResourceProperties().get("PromptName").toString();
-            final var text = cfcre.getResourceProperties().get("PromptText").toString();
-            final var voice_id = cfcre.getResourceProperties().get("VoiceId").toString();
+            final var name = cfcre.getResourceProperties().get(NAME_INPUT).toString();
+            final var text = cfcre.getResourceProperties().get(TEXT_INPUT).toString();
+            final var voice_id = cfcre.getResourceProperties().get(VOICEID_INPUT).toString();
 
-            createPrompt(name, text, voice_id);
+            // These are required and we cannot generate a prompt if we have no name or text
+            if (StringUtils.isBlank(name)) {
+                log.error(NAME_INPUT + " must be provided, returning CF Error");
+                return Response.failed(UUID.randomUUID().toString());
+            }
+            if (StringUtils.isBlank(text)) {
+                log.error(TEXT_INPUT + " must be provided, returning CF Error");
+                return Response.failed(UUID.randomUUID().toString());
+            }
 
+            createPrompt(name, text, validateVoiceId(voice_id));
+            return Response.success(BUCKET_NAME + "/" + name);
         } catch (Exception e) {
             log.error("Could Not create the prompt", e);
+            return Response.failed(UUID.randomUUID().toString());
         }
-        return Response.builder()
-                .value(cfcre.getResourceProperties())
-                .build();
     }
 
     /**
@@ -92,14 +116,23 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
         log.debug("Received UPDATE Event from Cloudformation", cfcre);
 
         // Old Values
-        final var name_old = cfcre.getOldResourceProperties().get("PromptName").toString();
-        final var text_old = cfcre.getOldResourceProperties().get("PromptText").toString();
-        final var voice_id_old = cfcre.getOldResourceProperties().get("VoiceId").toString();
+        final var name_old = cfcre.getOldResourceProperties().get(NAME_INPUT).toString();
+        final var text_old = cfcre.getOldResourceProperties().get(TEXT_INPUT).toString();
+        final var voice_id_old = validateVoiceId(cfcre.getOldResourceProperties().get(VOICEID_INPUT).toString());
 
         // New Values
-        final var name = cfcre.getResourceProperties().get("PromptName").toString();
-        final var text = cfcre.getResourceProperties().get("PromptText").toString();
-        final var voice_id = cfcre.getResourceProperties().get("VoiceId").toString();
+        final var name = cfcre.getResourceProperties().get(NAME_INPUT).toString();
+        final var text = cfcre.getResourceProperties().get(TEXT_INPUT).toString();
+        final var voice_id = validateVoiceId(cfcre.getResourceProperties().get(VOICEID_INPUT).toString());
+
+        if (StringUtils.isBlank(name)) {
+            log.error(NAME_INPUT + " must be provided, returning CF Error");
+            return Response.failed(cfcre.getPhysicalResourceId());
+        }
+        if (StringUtils.isBlank(text)) {
+            log.error(TEXT_INPUT + " must be provided, returning CF Error");
+            return Response.failed(cfcre.getPhysicalResourceId());
+        }
 
         try {
             if (!Objects.equals(name, name_old)) {
@@ -110,24 +143,21 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
                 deleteS3Object(name_old);
                 // Create new based on incoming values
                 createPrompt(name, text, voice_id);
-                
-            } else if ( ( ! Objects.equals(text, text_old) ) || (! Objects.equals(voice_id, voice_id_old) ) ) {
+
+            } else if ((!Objects.equals(text, text_old)) || (!Objects.equals(voice_id, voice_id_old))) {
                 log.debug("The text has changed from [" + text_old + "] to [" + text + "]");
-                log.debug("The voice has changed from [" + voice_id_old+ "] to [" + voice_id + "]");
-                
+                log.debug("The voice has changed from [" + voice_id_old + "] to [" + voice_id + "]");
+
                 // Just re-creaate the prompt
                 createPrompt(name, text, voice_id);
             } else {
                 log.debug("No Changes were detected in the old vs new values, thus doing nothing !");
             }
-
+            return Response.success(BUCKET_NAME + "/" + name);
         } catch (Exception e) {
             log.error("Could Not update the prompt", e);
+            return Response.failed(cfcre.getPhysicalResourceId());
         }
-
-        return Response.builder()
-                .value(cfcre.getResourceProperties())
-                .build();
     }
 
     /**
@@ -140,15 +170,22 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
     @Override
     protected Response delete(final CloudFormationCustomResourceEvent cfcre, final Context cntxt) {
         try {
-            final var name = cfcre.getResourceProperties().get("PromptName").toString();
-            log.debug("Deleting Promp " + name);
-            deleteS3Object(name);
+            final var name = cfcre.getResourceProperties().get(NAME_INPUT).toString();
+            
+            if ( ! StringUtils.isBlank(name) ) {
+                deleteS3Object(name);
+                log.debug("Deleting Promp " + name);
+            } else {
+                log.warn(NAME_INPUT + " must be set, so will not attempt S3 Delete");
+            }
+            
         } catch (Exception e) {
-            log.error("Could Not delete the prompt", e);
+            // Maybe someone deleted bucket, but no biggy, lets not stop CF stack delete
+            // Could be 20 prompts would drive someone mad, so we will always return
+            // SUCCESS for this operation
+            log.error("Could Not delete the prompt, but not returning CF error", e);
         }
-        return Response.builder()
-                .value(cfcre.getResourceProperties())
-                .build();
+        return Response.success(cfcre.getPhysicalResourceId());
     }
 
     /**
@@ -160,7 +197,7 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
      * @throws IOException
      * @throws InterruptedException
      */
-    private void createPrompt(final String name, final String text, final String voice_id) throws IOException, InterruptedException {
+    private void createPrompt(final String name, final String text, final VoiceId voice_id) throws IOException, InterruptedException {
         final var ssr = SynthesizeSpeechRequest.builder()
                 .engine(text.toLowerCase().contains("<speak>") ? Engine.STANDARD : Engine.NEURAL)
                 .voiceId(voice_id)
@@ -186,7 +223,7 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
         Files.copy(polly.synthesizeSpeech(ssr), pollyFile, StandardCopyOption.REPLACE_EXISTING);
 
         // Call sox to convert PCM file to WAV for Chime SDK Playback
-        // https://docs.aws.amazon.com/connect/latest/adminguide/setup-prompts-s3.html
+        // https://docs.aws.amazon.com/chime-sdk/latest/dg/play-audio.html
         final var command = String.format("%s -t raw -r 8000 -e signed -b 16 -c 1 %s -r 8000 -c 1 %s", soxBinary, pollyFile, wavFile);
         log.debug("Executing: " + command);
         final var process = Runtime.getRuntime().exec(command);
@@ -221,6 +258,33 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
                 .key(name)
                 .build()
         );
+    }
+
+    /**
+     * Take incoming VoiceId as String and validate and default if need be
+     *
+     * @param voice_id
+     * @return VoiceId enum
+     */
+    private VoiceId validateVoiceId(final String voice_id) {
+        if (voice_id == null || voice_id.isBlank()) {
+            return DEFAULT_VOICE;
+        }
+
+        try {
+            final var vid = VoiceId.fromValue(voice_id);
+            if (VoiceId.UNKNOWN_TO_SDK_VERSION.equals(vid)) {
+                log.warn("Incoming VoiceId input of [" + voice_id + "] did not resolve, using default voice " + DEFAULT_VOICE);
+            } else {
+                // Valid VoiceId, so return it
+                return vid;
+            }
+        } catch (Exception e) {
+            // Shouldn't happen, but you know, API's change ...
+            log.error("Error converting VoiceId input of [" + voice_id + "] to SDK Enum");
+        }
+
+        return DEFAULT_VOICE;
     }
 
     private static class StreamGobbler implements Runnable {

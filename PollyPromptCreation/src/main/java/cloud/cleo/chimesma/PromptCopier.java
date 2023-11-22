@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,8 +26,8 @@ import software.amazon.lambda.powertools.cloudformation.AbstractCustomResourceHa
 import software.amazon.lambda.powertools.cloudformation.Response;
 
 /**
- *  Copy all prompts in the repo in the resources/prompts directory to S3 Prompt Bucket
- * so they can be Played by Chime
+ * Copy all prompts in the repo in the resources/prompts directory to S3 Prompt Bucket so they can be Played by Chime
+ *
  * @author sjensen
  */
 public class PromptCopier extends AbstractCustomResourceHandler {
@@ -40,6 +41,10 @@ public class PromptCopier extends AbstractCustomResourceHandler {
             .httpClient(UrlConnectionHttpClient.builder().build())
             .build();
 
+    /**
+     * Bucket passed from ENV, this makes sure CF provisions the bucket before creating this Lambda and calling the
+     * Custom resources.
+     */
     private final static String BUCKET_NAME = System.getenv("PROMPT_BUCKET");
 
     @Override
@@ -55,20 +60,18 @@ public class PromptCopier extends AbstractCustomResourceHandler {
                 final var por = PutObjectRequest.builder()
                         .bucket(BUCKET_NAME)
                         // Chime requires audio/wav, but a default copy would set audio/x-wav 
-                        .contentType("audio/wav") 
+                        .contentType("audio/wav")
                         .key(path.getFileName().toString())
                         .build();
 
                 // Push the wav file into the prompt bucket
                 s3.putObject(por, RequestBody.fromFile(path));
             }
-
+            return Response.success(UUID.randomUUID().toString());
         } catch (Exception e) {
             log.error("Could Not copy prompts", e);
+            return Response.failed(UUID.randomUUID().toString());
         }
-        return Response.builder()
-                .value(cfcre.getResourceProperties())
-                .build();
     }
 
     /**
@@ -97,9 +100,7 @@ public class PromptCopier extends AbstractCustomResourceHandler {
         } catch (Exception e) {
             log.error("Could Not delete the static prompts", e);
         }
-        return Response.builder()
-                .value(cfcre.getResourceProperties())
-                .build();
+        return Response.success(cfcre.getPhysicalResourceId());
     }
 
     /**
@@ -131,7 +132,7 @@ public class PromptCopier extends AbstractCustomResourceHandler {
     @Override
     protected Response update(CloudFormationCustomResourceEvent cfcre, Context cntxt) {
         log.debug("Received UPDATE Event from Cloudformation", cfcre);
-        return null;
+        return Response.success(cfcre.getPhysicalResourceId());
     }
 
 }
