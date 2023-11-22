@@ -21,6 +21,7 @@ permissions:
 jobs:
   destroy-stack:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
