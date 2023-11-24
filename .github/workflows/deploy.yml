@@ -73,7 +73,7 @@ jobs:
        
     - name: Build up all the libraries
       # Exclude modules that SAM builds so it can use SAM cache and speed deploys
-      run: mvn -B install -DskipTests --no-transfer-progress
+      run: mvn -B install -DskipTests --no-transfer-progress --quiet
 
     - name: Setup AWS SAM
       uses: aws-actions/setup-sam@v2

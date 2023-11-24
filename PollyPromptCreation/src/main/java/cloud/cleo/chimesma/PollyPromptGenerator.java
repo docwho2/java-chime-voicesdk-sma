@@ -214,7 +214,7 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
         log.debug("LD_LIBRARY_PATH=" + System.getenv("LD_LIBRARY_PATH"));
 
         // Name of temp for input to sox
-        final var pollyFile = Path.of("/tmp", "polly_audio.pcm");
+        final var pollyFile = Path.of("/tmp", UUID.randomUUID().toString() + ".pcm");
 
         // Name of temp for outout of sox
         final var wavFile = Path.of("/tmp", name);
