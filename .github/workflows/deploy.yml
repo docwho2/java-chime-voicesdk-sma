@@ -4,6 +4,10 @@ name: SAM Deployment
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - '**.png'
+      - '**.md'
+      - '**.sh'
 
 
 permissions:
