@@ -79,7 +79,7 @@ public abstract class Action<A extends Action, R extends ResponseAction> impleme
      * @return
      */
     public final R getActionData() {
-        if (event.getActionData().getType().equals(getActionType())) {
+        if (event.getActionData() != null && event.getActionData().getType().equals(getActionType())) {
             return (R) event.getActionData();
         }
         return null;
