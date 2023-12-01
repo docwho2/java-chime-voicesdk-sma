@@ -149,7 +149,7 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
         log.info("Adding action " + action.getDebugSummary());
 
         int counter = 1;  // Can only send max of 10 actions at a time
-        while (action.getNextRoutingAction() != null && action.isChainable() && counter < 10) {
+        while (action.isChainable() && action.getNextRoutingAction() != null  && counter < 10) {
             // We have a next action
             final var nextAction = action.getNextRoutingAction().clone(event);
             list.add(nextAction);
