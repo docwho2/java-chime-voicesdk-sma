@@ -5,6 +5,7 @@
 package cloud.cleo.chimesma.actions;
 
 import static cloud.cleo.chimesma.actions.Action.log;
+import static cloud.cleo.chimesma.model.ParticipantTag.*;
 import cloud.cleo.chimesma.model.ResponseAction;
 import cloud.cleo.chimesma.model.ResponseActionType;
 import static cloud.cleo.chimesma.model.ResponseActionType.CallAndBridge;
@@ -12,9 +13,11 @@ import cloud.cleo.chimesma.model.ResponseCallAndBridge;
 import cloud.cleo.chimesma.model.ResponsePlayAudio;
 import static cloud.cleo.chimesma.model.SMARequest.SMAEventType.ACTION_SUCCESSFUL;
 import cloud.cleo.chimesma.model.SMARequest.Status;
+import static cloud.cleo.chimesma.model.SMARequest.Status.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import lombok.Builder;
 import lombok.Data;
@@ -56,6 +59,14 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction, ResponseCal
     protected String ringbackToneKey;
     protected String ringbackToneKeyLocale;
 
+    /**
+     * Action to take when there is a hang up on LegB (outgoing leg). Use case, App dials out to someone, then they hang
+     * or its disconnected on purpose, but then you want to return the caller (leg A) back into IVR app and not hang up
+     * on them.
+     */
+    protected Action nextLegBHangupAction;
+    protected Function<CallAndBridgeAction, Action> nextLegBHangupActionF;
+
     @Override
     protected ResponseAction getResponse() {
 
@@ -77,7 +88,7 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction, ResponseCal
 
         final var myArn = getFuncValOrDefault(arnF, arn);
         final var myUri = getFuncValOrDefault(uriF, uri);
-        
+
         final var endpoint = ResponseCallAndBridge.Endpoint.builder()
                 .withArn(myArn)
                 // When Arn is set, then must be a AWS (SIP route), when this is null, we route to PSTN
@@ -120,30 +131,43 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction, ResponseCal
         }
         return super.getNextRoutingAction();
     }
-    
+
     /**
      * Hangup events are dispatched to CallAndBridge Actions.
-     * 
-     * @return 
+     *
+     * @return
      */
     protected Action getHangupAction() {
-         if (getEvent() != null) {
-             log.debug("CallAndBridge Hangup Event processing");
-             final var partL = getEvent().getCallDetails().getParticipants();
-             
-             if ( partL.size() > 1) {
-                 // We have two participants and one side has hung up (by caller or callee), so we should hang the other leg up as well
-                 final var participant = partL.stream()
+        if (getEvent() != null) {
+            log.debug("CallAndBridge Hangup Event processing");
+            final var partL = getEvent().getCallDetails().getParticipants();
+
+            if (nextLegBHangupActionF != null || nextLegBHangupAction != null ) {
+                log.debug("Hangup Action on Leg-B disconnect set, checking for scenario of A=Connected and B=Disconnected");
+                if ( partL.size() == 2) {
+                    final var legACon = partL.stream().anyMatch(p -> p.getParticipantTag().equals(LEG_A) && p.getStatus().equals(Connected));
+                    final var legBDis = partL.stream().anyMatch(p -> p.getParticipantTag().equals(LEG_B) && p.getStatus().equals(Disconnected));
+                    if (legACon && legBDis) {
+                        log.debug("LegB has disconnected and LegA is still connected, performing LegBHangupAction");
+                        return getFuncValOrDefault(nextLegBHangupActionF, nextLegBHangupAction);
+                    }
+                }
+            }
+
+            // Normal Disconnect Scenario, where any leg that is hung up, we must hang the other leg up or call will sit forever
+            if (partL.size() > 1) {
+                // We have two participants and one side has hung up (by caller or callee), so we should hang the other leg up as well
+                final var participant = partL.stream()
                         .filter(p -> p.getStatus().equals(Status.Connected))
-                                .findAny().orElse(null);
-                 // Disconnet the participant that is still in a connected state
-                 if (participant != null) {
-                     log.debug("CallAndBridge Hangup Event, 2 participants, One still connected, disconnecting " + participant.getParticipantTag());
-                        return HangupAction.builder().withParticipantTag(participant.getParticipantTag()).build();
-                 }
-             }
-         }
-         return null; 
+                        .findAny().orElse(null);
+                // Disconnet the participant that is still in a connected state
+                if (participant != null) {
+                    log.debug("CallAndBridge Hangup Event, 2 participants, One still connected, disconnecting " + participant.getParticipantTag());
+                    return HangupAction.builder().withParticipantTag(participant.getParticipantTag()).build();
+                }
+            }
+        }
+        return null;
     }
 
     @Override
