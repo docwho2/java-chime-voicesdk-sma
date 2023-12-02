@@ -6,6 +6,7 @@ package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.*;
 import static cloud.cleo.chimesma.model.SMARequest.SMAEventType.DIGITS_RECEIVED;
+import java.util.Map;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -34,9 +35,17 @@ public class ReceiveDigitsAction extends Action<ReceiveDigitsAction, ResponseRec
                 .append(" [").append(getInputDigitsRegex()).append(']');
     }
 
+    /**
+     * Override this because this is special case where ID needs to be
+     * set at render time, not after success like LexBot for example.
+     *
+     * @return
+     */
     @Override
-    protected void onActionSuccessful() {
-        setTransactionAttribute(RECEIVE_DIGITS_ID, getId().toString());
+    public Map<String, Object> getTransactionAttributes() {
+        final var attrs = super.getTransactionAttributes();
+        attrs.put(RECEIVE_DIGITS_ID, getId().toString());
+        return attrs;
     }
 
     @Override
