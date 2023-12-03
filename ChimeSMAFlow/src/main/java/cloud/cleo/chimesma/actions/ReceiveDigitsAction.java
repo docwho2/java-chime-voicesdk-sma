@@ -35,9 +35,14 @@ public class ReceiveDigitsAction extends Action<ReceiveDigitsAction, ResponseRec
                 .append(" [").append(getInputDigitsRegex()).append(']');
     }
 
+    @Override
+    protected void onActionSuccessful() {
+        setTransactionAttribute("LastReceivedDigits", getReceivedDigits());
+    }
+
     /**
-     * Override this because this is special case where ID needs to be
-     * set at render time, not after success like LexBot for example.
+     * Override this because this is special case where ID needs to be set at render time, not after success like LexBot
+     * for example.
      *
      * @return
      */

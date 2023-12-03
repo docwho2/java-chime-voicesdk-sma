@@ -123,7 +123,7 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
         } else {
             return actions.entrySet().stream()
                     .filter((t) -> t.getValue().equals(action))
-                    .map(t -> t.getKey() ).findAny().orElse(0);
+                    .map(t -> t.getKey()).findAny().orElse(0);
         }
     }
 
@@ -149,7 +149,7 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
         log.info("Adding action " + action.getDebugSummary());
 
         int counter = 1;  // Can only send max of 10 actions at a time
-        while (action.isChainable() && action.getNextRoutingAction() != null  && counter < 10) {
+        while (action.isChainable() && action.getNextRoutingAction() != null && counter < 10) {
             // We have a next action
             final var nextAction = action.getNextRoutingAction().clone(event);
             list.add(nextAction);
@@ -233,7 +233,22 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                     break;
                 case DIGITS_RECEIVED:
                     action = getCurrentAction(event);
-                    res = defaultResponse(action, event);
+                    action.onActionSuccessful();
+                    final var dr_attrs = event.getCallDetails().getTransactionAttributes();
+                    final var dr_actionIdStr = (String) dr_attrs.get(CURRENT_ACTION_ID);
+                    // We need to check if we were weren't the last action, because if we weren't then we need to get that action
+                    // And set as current
+                    final var dr_nra = action.getNextRoutingAction();
+                    final var dr_List = getActions(dr_nra, event);
+                    if ( !action.getId().toString().equals(dr_actionIdStr) ) {
+                        // We weren't the current action ID, so reset to that
+                        final var attrs_new = dr_List.getLast().getTransactionAttributes();
+                        attrs_new.put(CURRENT_ACTION_ID, dr_actionIdStr);
+                        res = SMAResponse.builder().withTransactionAttributes(attrs_new)
+                            .withActions(dr_List.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
+                    } else {
+                        res = defaultResponse(action, event);
+                    }
                     break;
                 case ACTION_FAILED:
                     action = getCurrentAction(event);
@@ -269,15 +284,15 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                     final var disconnectedBy = event.getCallDetails().getTransactionAttributes().getOrDefault("Disconnect", "Application");
                     log.debug("Call Was disconnected by [" + disconnectedBy + "], sending empty response");
                     action = getCurrentAction(event);
-                    if (action instanceof CallAndBridgeAction ) {
+                    if (action instanceof CallAndBridgeAction) {
                         // Because Call Bridge has 2 call legs in play, delegate respone to the Action since there
                         // various way to handle things, but the default being once connected a hangup on one leg should drop the other
                         final var cab = (CallAndBridgeAction) action;
                         final var nextAction = cab.getHangupAction();
-                        if ( nextAction != null ) {
+                        if (nextAction != null) {
                             actionList = getActions(nextAction, event);
                             res = SMAResponse.builder().withTransactionAttributes(actionList.getLast().getTransactionAttributes())
-                            .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
+                                    .withActions(actionList.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
                         } else {
                             // No next action after hangup
                             res = emptyResponse();
