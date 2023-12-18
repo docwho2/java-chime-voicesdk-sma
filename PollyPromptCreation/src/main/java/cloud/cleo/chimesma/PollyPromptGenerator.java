@@ -199,7 +199,8 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
      */
     private void createPrompt(final String name, final String text, final VoiceId voice_id) throws IOException, InterruptedException {
         final var ssr = SynthesizeSpeechRequest.builder()
-                .engine(text.toLowerCase().contains("<speak>") ? Engine.STANDARD : Engine.NEURAL)
+                 // We will only user Neural Voices
+                .engine(Engine.NEURAL)
                 .voiceId(voice_id)
                 .sampleRate("8000")
                 .outputFormat(OutputFormat.PCM)
