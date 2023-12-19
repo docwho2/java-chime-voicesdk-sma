@@ -82,8 +82,12 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                 List<LocaleVoiceId> list = mapper.readerForListOf(LocaleVoiceId.class).readValue(vmapStr);
                 for (var map : list) {
                     if (map.locale != null && map.voiceId != null) {
-                        log.debug("Adding Locale [" + map.locale + "] with VoiceId [" + map.voiceId + "]");
-                        voice_map.put(Locale.forLanguageTag(map.locale), ResponseSpeak.VoiceId.valueOf(map.voiceId));
+                        try {
+                            log.debug("Adding Locale [" + map.locale + "] with VoiceId [" + map.voiceId + "]");
+                            voice_map.put(Locale.forLanguageTag(map.locale), ResponseSpeak.VoiceId.valueOf(map.voiceId));
+                        } catch (Exception e) {
+                            log.error("Error processing Locale", e);
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -240,12 +244,12 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
                     // And set as current
                     final var dr_nra = action.getNextRoutingAction();
                     final var dr_List = getActions(dr_nra, event);
-                    if ( !action.getId().toString().equals(dr_actionIdStr) ) {
+                    if (!action.getId().toString().equals(dr_actionIdStr)) {
                         // We weren't the current action ID, so reset to that
                         final var attrs_new = dr_List.getLast().getTransactionAttributes();
                         attrs_new.put(CURRENT_ACTION_ID, dr_actionIdStr);
                         res = SMAResponse.builder().withTransactionAttributes(attrs_new)
-                            .withActions(dr_List.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
+                                .withActions(dr_List.stream().map(a -> a.getResponse()).collect(Collectors.toList())).build();
                     } else {
                         res = defaultResponse(action, event);
                     }
