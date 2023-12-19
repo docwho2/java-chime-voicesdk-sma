@@ -48,7 +48,7 @@ public class SpeakAndGetDigitsAction extends Action<SpeakAndGetDigitsAction, Res
             final var speechParam = ResponseSpeakAndGetDigits.SpeechParameter.builder()
                     .withText(myContent)
                     .withTextType(getSpeakContentType(myContent))
-                    .withEngine(sp.engine)
+                    .withEngine(sp.engine != null ? sp.engine : Engine.neural)
                     // If set on the builder, use that, otherwise our the Actions locale
                     .withLanguageCode(locale.toLanguageTag())
                     .withVoiceId(sp.voiceId != null ? sp.voiceId : voice_map.get(locale))

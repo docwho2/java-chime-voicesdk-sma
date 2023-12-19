@@ -39,7 +39,7 @@ public class SpeakAction extends Action<SpeakAction,ResponseSpeak> {
         var myContent = getFuncValOrDefault(textF,text);
         final var params = ResponseSpeak.Parameters.builder()
                 .withCallId(getCallId())
-                .withEngine(engine)
+                .withEngine(engine != null ? engine : Engine.neural)
                 .withLanguageCode(getLocale().toLanguageTag())
                 .withText(myContent)
                 .withTextType(getSpeakContentType(myContent))
