@@ -33,7 +33,7 @@ public class ResponseSpeak implements ResponseAction, ErrorTypeMessage, Serializ
     @JsonInclude(value = JsonInclude.Include.NON_NULL)
     @JsonProperty(value = "ErrorMessage", access = JsonProperty.Access.WRITE_ONLY)
     private String errorMessage;
-    
+
     @Data
     @Builder(setterPrefix = "with")
     @NoArgsConstructor
@@ -45,16 +45,16 @@ public class ResponseSpeak implements ResponseAction, ErrorTypeMessage, Serializ
         private String text;
         @JsonProperty(value = "CallId")
         private String callId;
-        
+
         @JsonProperty(value = "Engine")
         private Engine engine;
-        
+
         @JsonProperty(value = "LanguageCode")
         private String languageCode;
-        
+
         @JsonProperty(value = "TextType")
         private TextType textType;
-        
+
         @JsonProperty(value = "VoiceId")
         private VoiceId voiceId;
     }
@@ -69,16 +69,27 @@ public class ResponseSpeak implements ResponseAction, ErrorTypeMessage, Serializ
         text
     }
 
-   /**
-    * https://docs.aws.amazon.com/polly/latest/dg/API_SynthesizeSpeech.html#polly-SynthesizeSpeech-request-VoiceId
-    */
+    /**
+     * https://docs.aws.amazon.com/polly/latest/dg/API_SynthesizeSpeech.html#polly-SynthesizeSpeech-request-VoiceId
+     *
+     * These can change over time, run below to get nice formatted and sorted list to paste .
+     *
+     * aws polly describe-voices --query 'Voices[].Id' --output json | tr -d '\"[] ' | sort | xargs -n 7
+     */
     public enum VoiceId {
-        Aditi, Amy, Astrid, Bianca, Brian, Camila, Carla, Carmen, Celine, Chantal,
-        Conchita, Cristiano, Dora, Emma, Enrique, Ewa, Filiz, Gabrielle, Geraint,
-        Giorgio, Gwyneth, Hans, Ines, Ivy, Jacek, Jan, Joanna, Joey, Justin, Karl,
-        Kendra, Kevin, Kimberly, Lea, Liv, Lotte, Lucia, Lupe, Mads, Maja, Marlene,
-        Mathieu, Matthew, Maxim, Mia, Miguel, Mizuki, Naja, Nicole, Olivia, Penelope,
-        Raveena, Ricardo, Ruben, Russell, Ruth, Salli, Seoyeon, Takumi, Tatyana, Vicki,
-        Vitoria, Zeina, Zhiyu, Aria, Ayanda
+        Aditi, Adriano, Amy, Andres, Aria, Arlet, Arthur,
+        Astrid, Ayanda, Bianca, Brian, Camila, Carla, Carmen,
+        Celine, Chantal, Conchita, Cristiano, Daniel, Danielle, Dora,
+        Elin, Emma, Enrique, Ewa, Filiz, Gabrielle, Geraint,
+        Giorgio, Gregory, Gwyneth, Hala, Hannah, Hans, Hiujin,
+        Ida, Ines, Isabelle, Ivy, Jacek, Jan, Joanna,
+        Joey, Justin, Kajal, Karl, Kazuha, Kendra, Kevin,
+        Kimberly, Laura, Lea, Liam, Lisa, Liv, Lotte,
+        Lucia, Lupe, Mads, Maja, Marlene, Mathieu, Matthew,
+        Maxim, Mia, Miguel, Mizuki, Naja, Niamh, Nicole,
+        Ola, Olivia, Pedro, Penelope, Raveena, Remi, Ricardo,
+        Ruben, Russell, Ruth, Salli, Seoyeon, Sergio, Sofie,
+        Stephen, Suvi, Takumi, Tatyana, Thiago, Tomoko, Vicki,
+        Vitoria, Zayd, Zeina, Zhiyu
     }
 }
