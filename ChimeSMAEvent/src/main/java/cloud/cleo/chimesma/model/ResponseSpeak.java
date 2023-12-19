@@ -78,7 +78,7 @@ public class ResponseSpeak implements ResponseAction, ErrorTypeMessage, Serializ
         Giorgio, Gwyneth, Hans, Ines, Ivy, Jacek, Jan, Joanna, Joey, Justin, Karl,
         Kendra, Kevin, Kimberly, Lea, Liv, Lotte, Lucia, Lupe, Mads, Maja, Marlene,
         Mathieu, Matthew, Maxim, Mia, Miguel, Mizuki, Naja, Nicole, Olivia, Penelope,
-        Raveena, Ricardo, Ruben, Russell, Salli, Seoyeon, Takumi, Tatyana, Vicki,
+        Raveena, Ricardo, Ruben, Russell, Ruth, Salli, Seoyeon, Takumi, Tatyana, Vicki,
         Vitoria, Zeina, Zhiyu, Aria, Ayanda
     }
 }
