@@ -1,7 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package cloud.cleo.chimesma;
 
 import com.amazonaws.services.lambda.runtime.Context;
@@ -33,7 +30,6 @@ import software.amazon.awssdk.services.polly.model.VoiceId;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.lambda.powertools.cloudformation.AbstractCustomResourceHandler;
 import software.amazon.lambda.powertools.cloudformation.Response;
 
@@ -88,17 +84,17 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
         log.debug(cfcre);
 
         try {
-            final var name = cfcre.getResourceProperties().get(NAME_INPUT).toString();
-            final var text = cfcre.getResourceProperties().get(TEXT_INPUT).toString();
-            final var voice_id = cfcre.getResourceProperties().get(VOICEID_INPUT).toString();
-            final var engine = cfcre.getResourceProperties().get(ENGINE_INPUT).toString();
+            final var name = cfcre.getResourceProperties().getOrDefault(NAME_INPUT,"").toString();
+            final var text = cfcre.getResourceProperties().getOrDefault(TEXT_INPUT,"").toString();
+            final var voice_id = cfcre.getResourceProperties().getOrDefault(VOICEID_INPUT,"").toString();
+            final var engine = cfcre.getResourceProperties().getOrDefault(ENGINE_INPUT,"").toString();
 
             // These are required and we cannot generate a prompt if we have no name or text
-            if (StringUtils.isBlank(name)) {
+            if (name.isBlank()) {
                 log.error(NAME_INPUT + " must be provided, returning CF Error");
                 return Response.failed(UUID.randomUUID().toString());
             }
-            if (StringUtils.isBlank(text)) {
+            if (text.isBlank()) {
                 log.error(TEXT_INPUT + " must be provided, returning CF Error");
                 return Response.failed(UUID.randomUUID().toString());
             }
@@ -123,22 +119,22 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
         log.debug("Received UPDATE Event from Cloudformation", cfcre);
 
         // Old Values
-        final var name_old = cfcre.getOldResourceProperties().get(NAME_INPUT).toString();
-        final var text_old = cfcre.getOldResourceProperties().get(TEXT_INPUT).toString();
-        final var voice_id_old = validateVoiceId(cfcre.getOldResourceProperties().get(VOICEID_INPUT).toString());
-        final var engine_old = validateEngine(cfcre.getOldResourceProperties().get(ENGINE_INPUT).toString());
+        final var name_old = cfcre.getOldResourceProperties().getOrDefault(NAME_INPUT,"").toString();
+        final var text_old = cfcre.getOldResourceProperties().getOrDefault(TEXT_INPUT,"").toString();
+        final var voice_id_old = validateVoiceId(cfcre.getOldResourceProperties().getOrDefault(VOICEID_INPUT,"").toString());
+        final var engine_old = validateEngine(cfcre.getOldResourceProperties().getOrDefault(ENGINE_INPUT,"").toString());
 
         // New Values
-        final var name = cfcre.getResourceProperties().get(NAME_INPUT).toString();
-        final var text = cfcre.getResourceProperties().get(TEXT_INPUT).toString();
-        final var voice_id = validateVoiceId(cfcre.getResourceProperties().get(VOICEID_INPUT).toString());
-        final var engine = validateEngine(cfcre.getResourceProperties().get(ENGINE_INPUT).toString());
+        final var name = cfcre.getResourceProperties().getOrDefault(NAME_INPUT,"").toString();
+        final var text = cfcre.getResourceProperties().getOrDefault(TEXT_INPUT,"").toString();
+        final var voice_id = validateVoiceId(cfcre.getResourceProperties().getOrDefault(VOICEID_INPUT,"").toString());
+        final var engine = validateEngine(cfcre.getResourceProperties().getOrDefault(ENGINE_INPUT,"").toString());
 
-        if (StringUtils.isBlank(name)) {
+        if (name.isBlank()) {
             log.error(NAME_INPUT + " must be provided, returning CF Error");
             return Response.failed(cfcre.getPhysicalResourceId());
         }
-        if (StringUtils.isBlank(text)) {
+        if ( text.isBlank() ) {
             log.error(TEXT_INPUT + " must be provided, returning CF Error");
             return Response.failed(cfcre.getPhysicalResourceId());
         }
@@ -185,9 +181,9 @@ public class PollyPromptGenerator extends AbstractCustomResourceHandler {
     @Override
     protected Response delete(final CloudFormationCustomResourceEvent cfcre, final Context cntxt) {
         try {
-            final var name = cfcre.getResourceProperties().get(NAME_INPUT).toString();
+            final var name = cfcre.getResourceProperties().getOrDefault(NAME_INPUT,"").toString();
 
-            if (!StringUtils.isBlank(name)) {
+            if (! name.isBlank()) {
                 deleteS3Object(name);
                 log.debug("Deleting Promp " + name);
             } else {
