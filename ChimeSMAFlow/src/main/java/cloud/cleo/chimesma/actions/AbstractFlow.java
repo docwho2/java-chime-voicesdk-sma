@@ -219,11 +219,25 @@ public abstract class AbstractFlow implements RequestStreamHandler {
         return action;
     }
 
+    /**
+     * Java 21 doesn't want to deserialize like 17 did, so we use our own mapper to handle things.
+     * 
+     * @param in
+     * @param out
+     * @param cntxt
+     * @throws IOException 
+     */
     @Override
     public void handleRequest(InputStream in, OutputStream out, Context cntxt) throws IOException {
         mapper.writeValue(out, handleRequest(mapper.readValue(in, SMARequest.class), cntxt));
     }
 
+    /**
+     * Worked direct in Java 17, but need above for 21.
+     * @param event
+     * @param cntxt
+     * @return 
+     */
     public final SMAResponse handleRequest(SMARequest event, Context cntxt) {
         try {
             log.debug(event);
