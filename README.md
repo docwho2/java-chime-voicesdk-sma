@@ -608,7 +608,7 @@ sam deploy --config-env west
 The commands perform the follwoing operations:
 - Clones the repository into your local directory
 - Change directory into the cloned repository
-- Set up some required components like the V4 Java Events library that is not published yet (this is a sub-module) and install the parent POM used by Lambda functions.
+- Set up required libraries and install the parent POM used by Lambda functions.
 - Build the components that will be deployed by SAM
 - Package and deploy the project to us-east-1
 - Package and deploy the project to us-west-2
