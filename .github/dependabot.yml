@@ -18,9 +18,3 @@ updates:
       interval: "daily"
       time: "03:20"
       timezone: "America/Chicago"
-  - package-ecosystem: "gitsubmodule"
-    directory: "/"
-    schedule:
-      interval: "daily"
-      time: "03:20"
-      timezone: "America/Chicago"
