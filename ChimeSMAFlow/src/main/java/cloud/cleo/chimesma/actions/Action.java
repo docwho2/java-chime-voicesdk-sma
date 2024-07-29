@@ -7,8 +7,6 @@ package cloud.cleo.chimesma.actions;
 import static cloud.cleo.chimesma.actions.AbstractFlow.CURRENT_ACTION_ID;
 import cloud.cleo.chimesma.model.*;
 import static cloud.cleo.chimesma.model.SMARequest.SMAEventType.ACTION_FAILED;
-import com.amazonaws.services.lambda.serialization.JacksonPojoSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -35,7 +33,6 @@ public abstract class Action<A extends Action, R extends ResponseAction> impleme
 
     protected final static Logger log = LogManager.getLogger(Action.class);
 
-    protected final static ObjectMapper mapper = JacksonPojoSerializer.getInstance().getMapper();
 
     // Id used to track unique Java Object Actions
     private final Integer id = AbstractFlow.registerAction(this);
@@ -213,8 +210,8 @@ public abstract class Action<A extends Action, R extends ResponseAction> impleme
 
     protected String getRecievedDigitsFromAction() {
         final var ad = getEvent().getActionData();
-        if (ad instanceof ReceivedDigits) {
-            final var rd =  ((ReceivedDigits) ad).getReceivedDigits();
+        if (ad instanceof ReceivedDigits receivedDigits) {
+            final var rd =  receivedDigits.getReceivedDigits();
             return rd == null ? "" : rd;
         }
         return "";

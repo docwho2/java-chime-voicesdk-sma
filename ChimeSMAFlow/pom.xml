@@ -23,6 +23,19 @@
             <version>1.0</version>
         </dependency>
  
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+ 
         <!-- FLow Library needs logging and Lambda Definition -->
         <dependency>
             <groupId>com.amazonaws</groupId>

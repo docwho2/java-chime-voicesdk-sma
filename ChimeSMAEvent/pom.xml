@@ -13,22 +13,5 @@
         <artifactId>parent-pom</artifactId>
         <version>1.0</version>
     </parent>
-
-    <dependencies>
-
-        <!-- Use the AWS Serialization artifact so we are in sync with java-lambda-events and their Jackson versions -->
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-lambda-java-serialization</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.code.gson</groupId>
-                    <artifactId>gson</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-    </dependencies>
-
-    
+  
 </project>

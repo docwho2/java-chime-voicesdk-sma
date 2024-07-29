@@ -12,7 +12,6 @@ import cloud.cleo.chimesma.model.SMARequest.Status;
 import static cloud.cleo.chimesma.model.SMARequest.Status.*;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.amazonaws.services.lambda.serialization.JacksonPojoSerializer;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
@@ -39,7 +38,7 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
     // Initialize the Log4j logger.
     protected final static Logger log = LogManager.getLogger(AbstractFlow.class);
 
-    private final static ObjectMapper mapper = JacksonPojoSerializer.getInstance().getMapper();
+    private final static ObjectMapper mapper = new ObjectMapper();
 
     // The first action in the call start
     private static Action startAction;
