@@ -30,9 +30,6 @@
     </properties>
     
     <modules>
-        <!-- These are needed for lex events (bots) and JSON processing -->
-        <module>LambdaEventsV4/aws-lambda-java-serialization</module>
-        <module>LambdaEventsV4/aws-lambda-java-events</module>
         <!-- Local Modules -->
         <module>ChimeSMAEvent</module>
         <module>ChimeSMAFlow</module>
@@ -72,12 +69,6 @@
                 </exclusions>
             </dependency>
             
-            
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-lambda-java-events</artifactId>
-                <version>4.0.0</version>
-            </dependency>
             
             
             <!-- Lambda Logging -->
