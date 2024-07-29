@@ -11,9 +11,12 @@ import static cloud.cleo.chimesma.model.SMARequest.SMAEventType.*;
 import cloud.cleo.chimesma.model.SMARequest.Status;
 import static cloud.cleo.chimesma.model.SMARequest.Status.*;
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,7 +36,7 @@ import org.apache.logging.log4j.Logger;
  *
  * @author sjensen
  */
-public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResponse> {
+public abstract class AbstractFlow implements RequestStreamHandler {
 
     // Initialize the Log4j logger.
     protected final static Logger log = LogManager.getLogger(AbstractFlow.class);
@@ -211,7 +214,12 @@ public abstract class AbstractFlow implements RequestHandler<SMARequest, SMAResp
         return action;
     }
 
-    @Override
+   
+     @Override
+    public void handleRequest(InputStream in, OutputStream out, Context cntxt) throws IOException {
+         mapper.writeValue(out, handleRequest( mapper.readValue(in, SMARequest.class),cntxt ));
+    }
+    
     public final SMAResponse handleRequest(SMARequest event, Context cntxt) {
         try {
             log.debug(event);
