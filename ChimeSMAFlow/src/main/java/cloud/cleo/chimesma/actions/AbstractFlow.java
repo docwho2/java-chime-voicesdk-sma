@@ -13,6 +13,7 @@ import static cloud.cleo.chimesma.model.SMARequest.Status.*;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
@@ -60,6 +61,10 @@ public abstract class AbstractFlow implements RequestStreamHandler {
 
     public final static String CURRENT_ACTION_ID = "CurrentActionId";
     public final static String CURRENT_ACTION_ID_LIST = "CurrentActionIdList";
+
+    static {
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
 
     protected AbstractFlow() {
         if (startAction == null) {
@@ -214,12 +219,11 @@ public abstract class AbstractFlow implements RequestStreamHandler {
         return action;
     }
 
-   
-     @Override
+    @Override
     public void handleRequest(InputStream in, OutputStream out, Context cntxt) throws IOException {
-         mapper.writeValue(out, handleRequest( mapper.readValue(in, SMARequest.class),cntxt ));
+        mapper.writeValue(out, handleRequest(mapper.readValue(in, SMARequest.class), cntxt));
     }
-    
+
     public final SMAResponse handleRequest(SMARequest event, Context cntxt) {
         try {
             log.debug(event);
