@@ -583,13 +583,13 @@ Before proceeding, it is assumed you have valid AWS credentials setup with the A
 To use the SAM CLI, you need the following tools.
 
 * SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* Java17 - [Install the Java 17](https://docs.aws.amazon.com/corretto/latest/corretto-17-ug/downloads-list.html)
+* Java21 - [Install the Java 17](https://docs.aws.amazon.com/corretto/latest/corretto-21-ug/downloads-list.html)
 * Maven - [Install Maven](https://maven.apache.org/install.html)
 
 If you have brew installed then
 ```bash
 brew install aws-sam-cli
-brew install corretto17
+brew install corretto21
 brew install maven
 ```
 
