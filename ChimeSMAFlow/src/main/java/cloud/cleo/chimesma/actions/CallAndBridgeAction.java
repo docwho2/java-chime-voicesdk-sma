@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package cloud.cleo.chimesma.actions;
 
 import static cloud.cleo.chimesma.actions.Action.log;
@@ -113,18 +109,22 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction, ResponseCal
     protected Action getNextRoutingAction() {
         if (getEvent() != null) {
             switch (getEvent().getInvocationEventType()) {
-                case ACTION_SUCCESSFUL:
+                case ACTION_SUCCESSFUL -> {
                     final var ad = getEvent().getActionData();
                     switch (ad.getType()) {
-                        case CallAndBridge:
+                        case CallAndBridge -> {
                             // When a call is bridged successfully don't do anything
                             log.debug("CallAndBridge has connected call now, empty response");
                             return null;
-                        default:
+                        }
+                        default -> {
                             return super.getNextRoutingAction();
+                        }
                     }
-                default:
+                }
+                default -> {
                     return super.getNextRoutingAction();
+                }
             }
         }
         return super.getNextRoutingAction();
@@ -140,9 +140,9 @@ public class CallAndBridgeAction extends Action<CallAndBridgeAction, ResponseCal
             log.debug("CallAndBridge Hangup Event processing");
             final var partL = getEvent().getCallDetails().getParticipants();
 
-            if (nextLegBHangupActionF != null || nextLegBHangupAction != null ) {
+            if (nextLegBHangupActionF != null || nextLegBHangupAction != null) {
                 log.debug("Hangup Action on Leg-B disconnect set, checking for scenario of A=Connected and B=Disconnected");
-                if ( partL.size() == 2) {
+                if (partL.size() == 2) {
                     final var legACon = partL.stream().anyMatch(p -> p.getParticipantTag().equals(LEG_A) && p.getStatus().equals(Connected));
                     final var legBDis = partL.stream().anyMatch(p -> p.getParticipantTag().equals(LEG_B) && p.getStatus().equals(Disconnected));
                     if (legACon && legBDis) {

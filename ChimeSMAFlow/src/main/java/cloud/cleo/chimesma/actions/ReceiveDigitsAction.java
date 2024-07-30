@@ -1,14 +1,9 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.*;
 import static cloud.cleo.chimesma.model.SMARequest.SMAEventType.DIGITS_RECEIVED;
 import java.util.Map;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**

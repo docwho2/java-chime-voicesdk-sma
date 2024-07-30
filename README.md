@@ -18,9 +18,6 @@ This project provides a library to accelerate the development of [SIP Media Appl
 - Central call control
   - Route calls to multiple Connect instances (many organizations have several instances and other groups on legacy systems).
   - Don't wrap/trombone calls through Connect instances when calls need to be transferred.
-- Servicing calls in Chime SDK can potentially reduce costs.
-  - SMA calls incur $0.002/min vs Connect's $0.018/min for self-service.
-  - PSTN Ingress and Egress charges are the same between Chime and Connect.
 
 ## Library Overview
 
@@ -583,13 +580,13 @@ Before proceeding, it is assumed you have valid AWS credentials setup with the A
 To use the SAM CLI, you need the following tools.
 
 * SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* Java21 - [Install the Java 17](https://docs.aws.amazon.com/corretto/latest/corretto-21-ug/downloads-list.html)
+* Java21 - [Install the Java 21](https://docs.aws.amazon.com/corretto/latest/corretto-21-ug/downloads-list.html)
 * Maven - [Install Maven](https://maven.apache.org/install.html)
 
 If you have brew installed then
 ```bash
 brew install aws-sam-cli
-brew install corretto21
+brew install corretto@21
 brew install maven
 ```
 

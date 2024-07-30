@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package cloud.cleo.chimesma.examples.actions;
 
 import cloud.cleo.chimesma.actions.*;
@@ -66,14 +62,14 @@ public class ExampleActions extends AbstractFlow {
                 .withSpeechParameters(SpeechParameters.builder().withText("Pleast enter One or Two").build())
                 .withFailureSpeechParameters(SpeechParameters.builder().withText("Pleast try again").build())
                 .withNextActionF((a) -> {
-                    switch (a.getReceivedDigits()) {
-                        case "1":
-                            return SpeakAction.builder().withText("You Pressed One !").build();
-                        case "2":
-                            return SpeakAction.builder().withText("You Pressed Two !").build();
-                        default:
-                            return SpeakAction.builder().withText("You Pressed Nothing !").build();
-                    }
+                    return switch (a.getReceivedDigits()) {
+                        case "1" ->
+                            SpeakAction.builder().withText("You Pressed One !").build();
+                        case "2" ->
+                            SpeakAction.builder().withText("You Pressed Two !").build();
+                        default ->
+                            SpeakAction.builder().withText("You Pressed Nothing !").build();
+                    };
                 });
 
         // Another variation
@@ -86,16 +82,14 @@ public class ExampleActions extends AbstractFlow {
                 .withFailureSpeechParameters(SpeechParameters.builder().withText("Pleast try again").build())
                 .withNextActionF((a) -> {
                     String pressed;
-                    switch (a.getReceivedDigits()) {
-                        case "1":
-                            pressed = "one";
-                            break;
-                        case "2":
-                            pressed = "two";
-                            break;
-                        default:
-                            pressed = "nothing";
-                    }
+                    pressed = switch (a.getReceivedDigits()) {
+                        case "1" ->
+                            "one";
+                        case "2" ->
+                            "two";
+                        default ->
+                            "nothing";
+                    };
                     return SpeakAction.builder().withTextF(ac -> "You Pressed " + pressed).build();
                 });
 
@@ -118,15 +112,14 @@ public class ExampleActions extends AbstractFlow {
         StartBotConversationAction.builder()
                 .withContent("Welcome to the Bot, how can I help you today?")
                 .withNextActionF((a) -> {
-                    switch (a.getIntentName()) {
-                        case "Quit":
-                            return SpeakAction.builder().withText("Thanks for calling, goodbye").build();
-                        case "Transfer":
-                            return CallAndBridgeAction.builder().withArn("+18004444444").build();
-                        default:
-                            // Didn't match any of the intents
-                            return getErrorAction();
-                    }
+                    return switch (a.getIntentName()) {
+                        case "Quit" ->
+                            SpeakAction.builder().withText("Thanks for calling, goodbye").build();
+                        case "Transfer" ->
+                            CallAndBridgeAction.builder().withArn("+18004444444").build();
+                        default ->
+                            getErrorAction();
+                    }; // Didn't match any of the intents
                 });
 
         /**
@@ -156,15 +149,14 @@ public class ExampleActions extends AbstractFlow {
                                 .withNextAction(new HangupAction())
                                 .build();
                     }
-                    switch (a.getIntentName()) {
-                        case "Quit":
-                            return SpeakAction.builder().withText("Thanks for calling, goodbye").withNextAction(new HangupAction()).build();
-                        case "Transfer":
-                            return CallAndBridgeAction.builder().withArn("+18004444444").build();
-                        default:
-                            // Didn't match any of the intents
-                            return getErrorAction();
-                    }
+                    return switch (a.getIntentName()) {
+                        case "Quit" ->
+                            SpeakAction.builder().withText("Thanks for calling, goodbye").withNextAction(new HangupAction()).build();
+                        case "Transfer" ->
+                            CallAndBridgeAction.builder().withArn("+18004444444").build();
+                        default ->
+                            getErrorAction();
+                    }; // Didn't match any of the intents
                 });
 
         /**
@@ -175,45 +167,43 @@ public class ExampleActions extends AbstractFlow {
                 .build();
 
         bot.setNextActionF((a) -> {
-            switch (a.getIntentName()) {
-                case "Quit":
-                    return SpeakAction.builder().withText("Thanks for calling, goodbye").build();
-                case "Transfer":
-                    return CallAndBridgeAction.builder().withArn("+18004444444").build();
-                default:
-                    // Didn't match any of the intents, keep them in the bot and start again
-                    // Only way out is to match intent or caller hangs up
-                    return bot;  //self reference
-            }
+            return switch (a.getIntentName()) {
+                case "Quit" ->
+                    SpeakAction.builder().withText("Thanks for calling, goodbye").build();
+                case "Transfer" ->
+                    CallAndBridgeAction.builder().withArn("+18004444444").build();
+                default ->
+                    bot;
+            }; // Didn't match any of the intents, keep them in the bot and start again
+            // Only way out is to match intent or caller hangs up
+            //self reference
         });
-        
-        
+
         /**
          * Use a class to encapsulate the routing decision
          */
         StartBotConversationAction.builder()
                 .withContent("Welcome to the Bot, how can I help you today?")
-                .withNextActionF(new LogicFunction());        
-        
+                .withNextActionF(new LogicFunction());
+
         /**
          * Use a class that takes a parameter
          */
         SpeakAction.builder().withText("Thanks for calling, You will be hung up on or transferred")
-                .withNextActionF(new HangupOrTransferFunction("+18004444444"));        
-       
+                .withNextActionF(new HangupOrTransferFunction("+18004444444"));
 
         return new HangupAction();
     }
 
     /**
-     * If you have allot of logic or need to reuse logic, then it makes sense to encapsulate in a class
-     * This class would specific for handling Bot routing
+     * If you have allot of logic or need to reuse logic, then it makes sense to encapsulate in a class This class would
+     * specific for handling Bot routing
      */
     public static class LogicFunction implements Function<StartBotConversationAction, Action> {
 
         @Override
         public Action apply(StartBotConversationAction action) {
-           switch (action.getIntentName()) {
+            switch (action.getIntentName()) {
                 case "Quit":
                     return SpeakAction.builder().withText("Thanks for calling, goodbye").build();
                 case "Transfer":
@@ -230,13 +220,13 @@ public class ExampleActions extends AbstractFlow {
      *
      */
     public static class HangupOrTransferFunction implements Function<SpeakAction, Action> {
+
         private final String phoneNumber;
-        
+
         public HangupOrTransferFunction(String phoneNumber) {
             this.phoneNumber = phoneNumber;
         }
 
-        
         @Override
         public Action apply(SpeakAction action) {
             if (new Random().nextBoolean()) {
@@ -249,7 +239,7 @@ public class ExampleActions extends AbstractFlow {
         }
 
     }
-    
+
     /**
      * Create 11 Pause Actions linked together. Used to test flow optimization
      *
@@ -268,16 +258,14 @@ public class ExampleActions extends AbstractFlow {
                     .build();
 
             switch (i) {
-                case 1:
+                case 1 ->
                     startLoop = a;
-                    break;
-                case eventCount:
+                case eventCount -> {
                     lastLoop.setNextAction(a);
                     a.setNextAction(nextAction);
-                    break;
-                default:
+                }
+                default ->
                     lastLoop.setNextAction(a);
-                    break;
             }
             lastLoop = a;
         }

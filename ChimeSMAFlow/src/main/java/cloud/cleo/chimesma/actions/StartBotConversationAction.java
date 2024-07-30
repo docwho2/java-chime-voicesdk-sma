@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package cloud.cleo.chimesma.actions;
 
 import cloud.cleo.chimesma.model.*;
@@ -83,8 +79,8 @@ public class StartBotConversationAction extends Action<StartBotConversationActio
     public String getIntentName() {
         try {
             final var ad = getEvent().getActionData();
-            if (ad instanceof ActionDataStartBotConversation) {
-                return ((ActionDataStartBotConversation) ad).getIntentResult()
+            if (ad instanceof ActionDataStartBotConversation actionDataStartBotConversation) {
+                return actionDataStartBotConversation.getIntentResult()
                         .getSessionState().getIntent().getName();
             }
         } catch (Exception e) {

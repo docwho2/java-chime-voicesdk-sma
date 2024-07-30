@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package cloud.cleo.chimesma.actions;
 
 import static cloud.cleo.chimesma.actions.ReceiveDigitsAction.RECEIVE_DIGITS_ID;
@@ -63,6 +59,7 @@ public abstract class AbstractFlow implements RequestStreamHandler {
     public final static String CURRENT_ACTION_ID_LIST = "CurrentActionIdList";
 
     static {
+        // AWS could extend inout objects so don't fail when new properties have been added
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
@@ -221,11 +218,11 @@ public abstract class AbstractFlow implements RequestStreamHandler {
 
     /**
      * Java 21 doesn't want to deserialize like 17 did, so we use our own mapper to handle things.
-     * 
+     *
      * @param in
      * @param out
      * @param cntxt
-     * @throws IOException 
+     * @throws IOException
      */
     @Override
     public void handleRequest(InputStream in, OutputStream out, Context cntxt) throws IOException {
@@ -234,9 +231,10 @@ public abstract class AbstractFlow implements RequestStreamHandler {
 
     /**
      * Worked direct in Java 17, but need above for 21.
+     *
      * @param event
      * @param cntxt
-     * @return 
+     * @return
      */
     public final SMAResponse handleRequest(SMARequest event, Context cntxt) {
         try {
@@ -291,14 +289,12 @@ public abstract class AbstractFlow implements RequestStreamHandler {
                         break;
                     }
                     log.error("Error for " + action.getDebugSummary());
-                    if (event.getActionData() instanceof ErrorTypeMessage) {
-                        final var ad = (ErrorTypeMessage) event.getActionData();
-                        log.error("ErrorType = [" + ad.getErrorType() + "]");
-                        log.error("ErrorMessage = [" + ad.getErrorMessage() + "]");
+                    if (event.getActionData() instanceof ErrorTypeMessage errorTypeMessage) {
+                        log.error("ErrorType = [" + errorTypeMessage.getErrorType() + "]");
+                        log.error("ErrorMessage = [" + errorTypeMessage.getErrorMessage() + "]");
                     }
-                    if (event.getActionData() instanceof ErrorMessage) {
-                        final var ad = (ErrorMessage) event.getActionData();
-                        log.error("Error = [" + ad.getError() + "]");
+                    if (event.getActionData() instanceof ErrorMessage errorMessage) {
+                        log.error("Error = [" + errorMessage.getError() + "]");
                     }
                     if (action.getErrorAction() != null) {
                         actionList = getActions(action.getErrorAction(), event);
@@ -313,11 +309,10 @@ public abstract class AbstractFlow implements RequestStreamHandler {
                     final var disconnectedBy = event.getCallDetails().getTransactionAttributes().getOrDefault("Disconnect", "Application");
                     log.debug("Call Was disconnected by [" + disconnectedBy + "], sending empty response");
                     action = getCurrentAction(event);
-                    if (action instanceof CallAndBridgeAction) {
+                    if (action instanceof CallAndBridgeAction callAndBridgeAction) {
                         // Because Call Bridge has 2 call legs in play, delegate respone to the Action since there
                         // various way to handle things, but the default being once connected a hangup on one leg should drop the other
-                        final var cab = (CallAndBridgeAction) action;
-                        final var nextAction = cab.getHangupAction();
+                        final var nextAction = callAndBridgeAction.getHangupAction();
                         if (nextAction != null) {
                             actionList = getActions(nextAction, event);
                             res = SMAResponse.builder().withTransactionAttributes(actionList.getLast().getTransactionAttributes())
@@ -416,15 +411,4 @@ public abstract class AbstractFlow implements RequestStreamHandler {
         return SMAResponse.builder().withActions(List.of(ResponseHangup.builder().withParameters(ResponseHangup.Parameters.builder().withParticipantTag(ParticipantTag.LEG_B).build()).build())).build();
     }
 
-//    public void handleRequest(InputStream in, OutputStream out, Context cntxt) throws IOException {
-//       // Read in JSON Tree
-//        var json = mapper.readTree(in);
-//        log.debug("INPUT JSON is " + json.toString());
-//
-//        final var res = handleRequest(JacksonPojoSerializer.getInstance().fromJson(json.toString(), SMAEvent.class), cntxt);
-//        
-//        try (Writer w = new OutputStreamWriter(out, "UTF-8")) {
-//            w.write(mapper.writeValueAsString(res));
-//        }
-//    }
 }

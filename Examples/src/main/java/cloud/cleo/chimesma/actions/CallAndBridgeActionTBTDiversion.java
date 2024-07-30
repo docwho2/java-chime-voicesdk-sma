@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package cloud.cleo.chimesma.actions;
 
 import static cloud.cleo.chimesma.actions.Action.log;
@@ -79,10 +75,10 @@ public class CallAndBridgeActionTBTDiversion extends CallAndBridgeAction {
     protected Action getNextRoutingAction() {
         if (getEvent() != null) {
             switch (getEvent().getInvocationEventType()) {
-                case ACTION_SUCCESSFUL:
+                case ACTION_SUCCESSFUL -> {
                     final var ad = getEvent().getActionData();
                     switch (ad.getType()) {
-                        case Hangup:
+                        case Hangup -> {
                             // Received SUCCESS on Hanging Up leg B, so we know we did this and it's a TBT
                             if (((ResponseHangup) ad).getParameters().getParticipantTag().equals(LEG_B)) {
                                 log.debug("CallAndBridgeTBTDiversion Diconnect on leg B associated with Disconnect and Transfer");
@@ -90,13 +86,16 @@ public class CallAndBridgeActionTBTDiversion extends CallAndBridgeAction {
                                 setUri((String) getTransactionAttribute("transferNumber"));
                                 return this;
                             }
-
-                        default:
+                        }
+                        default -> {
                             return super.getNextRoutingAction();
+                        }
                     }
+                }
 
-                default:
+                default -> {
                     return super.getNextRoutingAction();
+                }
             }
         }
         return super.getNextRoutingAction();
@@ -112,8 +111,8 @@ public class CallAndBridgeActionTBTDiversion extends CallAndBridgeAction {
             final var participant = partList.stream()
                     .filter(p -> p.getStatus().equals(SMARequest.Status.Disconnected) && p.getParticipantTag().equals(LEG_B))
                     .findAny().orElse(null);
-            
-            if ( participant != null && getTransactionAttribute("transferNumber") != null ) {
+
+            if (participant != null && getTransactionAttribute("transferNumber") != null) {
                 log.debug("CallAndBridgeTBTDiversion LEG-B disconnected, empty response, do not disconnect LEG-A");
                 return null;
             }
@@ -165,41 +164,41 @@ public class CallAndBridgeActionTBTDiversion extends CallAndBridgeAction {
     /**
      * Example Lambda Code that Connect would use to execute the transfer
      */
-    private final static String LAMBDA_CODE = ""
-            + "        const {ChimeClient, UpdateSipMediaApplicationCallCommand} = require(\"@aws-sdk/client-chime\");\n"
-            + "        const { DynamoDBClient, GetItemCommand } = require(\"@aws-sdk/client-dynamodb\")\n"
-            + "        const ddb = new DynamoDBClient();\n"
-            + "        const regex = /(\\+[0-9]+)/;\n"
-            + "        const table_name = process.env.CALLS_TABLE_NAME;\n"
-            + "        exports.handler = async function (event) {\n"
-            + "            console.log(JSON.stringify(event));\n"
-            + "            let match = event.Details.Parameters.Diversion.match(regex);\n"
-            + "            console.log('Extracted phoneKey is ' + match[1] );\n"
-            + "            \n"
-            + "            const dparams = {\n"
-            + "                Key : {\n"
-            + "                  phoneNumber : {\n"
-            + "                    S: match[1]\n"
-            + "                  }\n"
-            + "                },\n"
-            + "                TableName: table_name\n"
-            + "            };\n"
-            + "            \n"
-            + "            const dresponse = await ddb.send(new GetItemCommand(dparams));\n"
-            + "            console.log(JSON.stringify(dresponse))\n"
-            + "            \n"
-            + "            const cparams = {\n"
-            + "                SipMediaApplicationId: dresponse.Item.sipMediaApplicationId.S,\n"
-            + "                TransactionId: dresponse.Item.transactionId.S,\n"
-            + "                Arguments: {\n"
-            + "                    phoneNumber: event.Details.Parameters.transferTo\n"
-            + "                }   \n"
-            + "            };\n"
-            + "            // We need to know region before initializing client\n"
-            + "            const chime = new ChimeClient({ region: dresponse.Item.region.S,  });\n"
-            + "            const cresponse = await chime.send(new UpdateSipMediaApplicationCallCommand(cparams));\n"
-            + "            console.log(JSON.stringify(cresponse));\n"
-            + "            return {status: 'OK'};\n"
-            + "        };";
+    public final static String LAMBDA_CODE = """
+                                                      const {ChimeClient, UpdateSipMediaApplicationCallCommand} = require("@aws-sdk/client-chime");
+                                                      const { DynamoDBClient, GetItemCommand } = require("@aws-sdk/client-dynamodb")
+                                                      const ddb = new DynamoDBClient();
+                                                      const regex = /(\\+[0-9]+)/;
+                                                      const table_name = process.env.CALLS_TABLE_NAME;
+                                                      exports.handler = async function (event) {
+                                                          console.log(JSON.stringify(event));
+                                                          let match = event.Details.Parameters.Diversion.match(regex);
+                                                          console.log('Extracted phoneKey is ' + match[1] );
+                                                          
+                                                          const dparams = {
+                                                              Key : {
+                                                                phoneNumber : {
+                                                                  S: match[1]
+                                                                }
+                                                              },
+                                                              TableName: table_name
+                                                          };
+                                                          
+                                                          const dresponse = await ddb.send(new GetItemCommand(dparams));
+                                                          console.log(JSON.stringify(dresponse))
+                                                          
+                                                          const cparams = {
+                                                              SipMediaApplicationId: dresponse.Item.sipMediaApplicationId.S,
+                                                              TransactionId: dresponse.Item.transactionId.S,
+                                                              Arguments: {
+                                                                  phoneNumber: event.Details.Parameters.transferTo
+                                                              }   
+                                                          };
+                                                          // We need to know region before initializing client
+                                                          const chime = new ChimeClient({ region: dresponse.Item.region.S,  });
+                                                          const cresponse = await chime.send(new UpdateSipMediaApplicationCallCommand(cparams));
+                                                          console.log(JSON.stringify(cresponse));
+                                                          return {status: 'OK'};
+                                                      };""";
 
 }

@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package cloud.cleo.chimesma.examples.actions;
 
 import cloud.cleo.chimesma.actions.*;
@@ -24,7 +20,7 @@ public class HelloWorld extends AbstractFlow {
        // You don't have to specify a call ID as it will default to LEG-A call ID
        // https://docs.aws.amazon.com/chime-sdk/latest/dg/speak.html 
        return SpeakAction.builder()
-               .withText("Hello, you have a built a Voice Application!")
+               .withText("Hello, you have built a Voice Application!")
                .withNextAction(new HangupAction())
                .build();
     }

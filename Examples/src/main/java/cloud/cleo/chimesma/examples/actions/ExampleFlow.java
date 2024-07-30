@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package cloud.cleo.chimesma.examples.actions;
 
 import cloud.cleo.chimesma.actions.*;
@@ -69,14 +65,14 @@ public class ExampleFlow extends AbstractFlow {
 
         // Two invocations of the bot, so create one function and use for both
         Function<StartBotConversationAction, Action> botNextAction = (a) -> {
-            switch (a.getIntentName()) {
+            return switch (a.getIntentName()) {
                 // The Lex bot also has intent to speak with someone
-                case "Transfer":
-                    return connect;
-                case "Quit":
-                default:
-                    return MAIN_MENU;
-            }
+                case "Transfer" ->
+                    connect;
+                //case "Quit":
+                default ->
+                    MAIN_MENU;
+            };
         };
 
         // Both bots are the same, so the handler is the same
@@ -94,18 +90,18 @@ public class ExampleFlow extends AbstractFlow {
                 .withInputDigitsRegex("^\\d{1}$")
                 .withErrorAction(goodbye)
                 .withNextActionF(a -> {
-                    switch (a.getReceivedDigits()) {
-                        case "1":
-                            return lexBotEN;
-                        case "2":
-                            return lexBotES;
-                        case "3":
-                            return connect;
-                        case "4":
-                            return CALL_RECORDING_MENU;
-                        default:
-                            return goodbye;
-                    }
+                    return switch (a.getReceivedDigits()) {
+                        case "1" ->
+                            lexBotEN;
+                        case "2" ->
+                            lexBotES;
+                        case "3" ->
+                            connect;
+                        case "4" ->
+                            CALL_RECORDING_MENU;
+                        default ->
+                            goodbye;
+                    };
                 })
                 .build();
 
@@ -198,21 +194,24 @@ public class ExampleFlow extends AbstractFlow {
                 .build();
 
         menu.setNextActionF(a -> {
-            switch (a.getReceivedDigits()) {
-                case "1":
-                    return recordPrompt;
-                case "2":
+            return switch (a.getReceivedDigits()) {
+                case "1" ->
+                    recordPrompt;
+
+                case "2" -> {
                     final var key = a.getTransactionAttribute(RecordAudioAction.RECORD_AUDIO_KEY);
                     if (key != null) {
                         // Some Audio has been recorded
-                        return playAudio;
+                        yield playAudio;
                     } else {
                         // No Audio has been recorded
-                        return noRecording;
+                        yield noRecording;
                     }
-                default:
-                    return MAIN_MENU;
-            }
+                }
+                default ->
+                    MAIN_MENU;
+
+            };
         });
 
         return menu;
