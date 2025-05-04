@@ -383,7 +383,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-TransferCall
       Description: Lambda that will send message to Chime SMA to indicate transfer
       Handler: index.handler
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       MemorySize: 512
       Timeout: 5
       Environment: 
