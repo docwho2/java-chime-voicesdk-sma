@@ -2,7 +2,7 @@
 
 ## Background
 
-This project provides a library to accelerate the development of [SIP Media Applications](https://docs.aws.amazon.com/chime-sdk/latest/ag/use-sip-apps.html) (SMA) in Java. These apps allow for the deployment of multi-region and fault-tolerant self-service applications. Some benefits of using Chime SDK versus [Amazon Connect](https://aws.amazon.com/pm/connect/) for self-service applications are:
+This project provides a library to accelerate the development of [SIP Media Applications](https://docs.aws.amazon.com/chime-sdk/latest/ag/use-sip-apps.html) (SMA) in Java. These apps allow for the deployment of multi-region and fault-tolerant self-service applications. Some benefits of using Chime SDK are:
 
 - SIP Ingress
   - Bring your own carrier.
