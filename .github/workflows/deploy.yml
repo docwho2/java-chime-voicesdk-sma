@@ -54,7 +54,7 @@ jobs:
     
     - name: Setup AWS Credentials
       id: aws-creds
-      uses: aws-actions/configure-aws-credentials@v5
+      uses: aws-actions/configure-aws-credentials@v6
       with:
         aws-region: ${{ vars.REGION }}
         # The full role ARN if you are using OIDC
