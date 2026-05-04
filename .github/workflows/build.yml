@@ -33,7 +33,7 @@ jobs:
       run: mvn -B install -DskipTests --no-transfer-progress
 
     - name: Setup AWS SAM
-      uses: aws-actions/setup-sam@v2
+      uses: aws-actions/setup-sam@v3
       with:
         use-installer: true
 
