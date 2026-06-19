@@ -24,7 +24,7 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
         
     - name: Setup AWS Credentials
       id: aws-creds
